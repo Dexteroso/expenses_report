@@ -1,0 +1,454 @@
+const { Op, fn, col, where: sequelizeWhere } = require('sequelize');
+const Account = require('../models/sequelize/Account');
+const Category = require('../models/sequelize/Category');
+const Concept = require('../models/sequelize/Concept');
+const Expense = require('../models/sequelize/Expense');
+const { logActivity } = require('../utils/activityLogger');
+
+const getNextExpenseCode = async () => {
+    const captureDate = new Date();
+    const captureYear = String(captureDate.getFullYear()).slice(-2);
+    const expenseCodePrefix = `EX${captureYear}`;
+
+    const lastExpenseRow = await Expense.findOne({
+        attributes: ['expense_code'],
+        where: {
+            expense_code: {
+                [Op.regexp]: `^${expenseCodePrefix}[0-9]{4}$`,
+            },
+        },
+        order: [['expense_code', 'DESC']],
+        raw: true,
+    });
+
+    let nextSequence = 1;
+
+    if (lastExpenseRow) {
+        const lastExpenseCode = lastExpenseRow.expense_code;
+        const lastSequence = Number(lastExpenseCode.slice(expenseCodePrefix.length));
+        nextSequence = lastSequence + 1;
+    }
+
+    const sequenceCode = String(nextSequence).padStart(4, '0');
+
+    return `${expenseCodePrefix}${sequenceCode}`;
+};
+
+const expenseIncludes = [
+    {
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'type'],
+        required: true,
+    },
+    {
+        model: Concept,
+        as: 'concept',
+        attributes: ['id', 'name'],
+        required: true,
+    },
+    {
+        model: Account,
+        as: 'account',
+        attributes: [
+            'id',
+            'account_alias',
+            'created_at',
+            'billing_cycle_end_day',
+            'account_type',
+        ],
+        required: false,
+    },
+];
+
+const formatDateOnly = (value) => {
+    if (!value) {
+        return value;
+    }
+
+    if (value instanceof Date) {
+        return value.toISOString().slice(0, 10);
+    }
+
+    return String(value).slice(0, 10);
+};
+
+const getLocalizedAccountType = (accountType) => {
+    if (accountType === 'credit') return 'Crédito';
+    if (accountType === 'debit') return 'Débito';
+    if (accountType === 'cash') return 'Efectivo';
+    if (accountType === 'transfer') return 'Transferencia';
+    if (accountType === 'investment') return 'Inversión';
+
+    return 'Otro';
+};
+
+const formatExpenseRow = (expense) => {
+    const row = typeof expense.get === 'function' ? expense.get({ plain: true }) : expense;
+
+    return {
+        id: row.id,
+        expense_code: row.expense_code,
+        date: formatDateOnly(row.date),
+        type: row.type,
+        tipo: row.type === 'income' ? 'Ingreso' : 'Egreso',
+        category_id: row.category_id,
+        category: row.category?.name,
+        concept_id: row.concept_id,
+        concept: row.concept?.name,
+        description: row.description,
+        amount: row.amount,
+        account_id: row.account_id,
+        account_alias: row.account?.account_alias,
+        created_at: row.account?.created_at,
+        billing_cycle_end_day: row.account?.billing_cycle_end_day,
+        account_type: getLocalizedAccountType(row.account?.account_type),
+    };
+};
+
+const getExpenseActivityDetails = async (expenseId, userId) => {
+    try {
+        const expense = await Expense.findOne({
+            include: expenseIncludes,
+            where: {
+                id: expenseId,
+                user_id: userId,
+            },
+        });
+
+        if (!expense) {
+            return {};
+        }
+
+        const row = formatExpenseRow(expense);
+
+        return {
+            ...row,
+            category: row.category,
+            concept: row.concept,
+        };
+    } catch (error) {
+        console.warn('Could not load expense activity metadata:', error.message);
+        return {};
+    }
+};
+
+const normalizeDateValue = (value) => {
+    if (!value) {
+        return value;
+    }
+
+    if (value instanceof Date) {
+        return value.toISOString().slice(0, 10);
+    }
+
+    return String(value).slice(0, 10);
+};
+
+const buildExpenseChangedFields = (beforeExpense, afterExpense) => {
+    const comparisons = [
+        {
+            field: 'date',
+            from: normalizeDateValue(beforeExpense.date),
+            to: normalizeDateValue(afterExpense.date),
+        },
+        { field: 'type', from: beforeExpense.type, to: afterExpense.type },
+        {
+            field: 'category',
+            from: beforeExpense.category,
+            to: afterExpense.category,
+        },
+        {
+            field: 'concept',
+            from: beforeExpense.concept,
+            to: afterExpense.concept,
+        },
+        {
+            field: 'description',
+            from: beforeExpense.description || '',
+            to: afterExpense.description || '',
+        },
+        {
+            field: 'amount',
+            from: Number(beforeExpense.amount || 0),
+            to: Number(afterExpense.amount || 0),
+        },
+        {
+            field: 'account',
+            from: beforeExpense.account_alias,
+            to: afterExpense.account_alias,
+        },
+    ];
+
+    return comparisons.filter(({ from, to }) => from !== to);
+};
+
+const createExpense = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const {
+            date,
+            type,
+            category_id,
+            concept_id,
+            description,
+            amount,
+            account_id,
+        } = req.body;
+
+        const normalizedAmount = Number(amount);
+
+        if (!date || !type || !category_id || !concept_id || amount === undefined || !account_id) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        if (!['income', 'expense'].includes(type)) {
+            return res.status(400).json({ error: 'type must be income or expense' });
+        }
+
+        if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+            return res.status(400).json({ error: 'amount must be greater than 0' });
+        }
+
+        const expenseCode = await getNextExpenseCode();
+
+        const expense = await Expense.create({
+            expense_code: expenseCode,
+            user_id: userId,
+            date,
+            type,
+            category_id,
+            concept_id,
+            description,
+            amount: normalizedAmount,
+            account_id,
+        });
+
+        const activityDetails = await getExpenseActivityDetails(expense.id, userId);
+
+        logActivity({
+            user: req.user,
+            eventType: 'expense.created',
+            entityType: 'expense',
+            entityId: expense.id,
+            description: 'Expense created',
+            metadata: {
+                expenseCode,
+                categoryName: activityDetails.category,
+                conceptName: activityDetails.concept,
+                amount: normalizedAmount,
+                accountAlias: activityDetails.account_alias,
+                description,
+                date,
+                type,
+            },
+        });
+
+        res.status(201).json({
+            message: 'Expense created successfully',
+            expense_id: expense.id,
+            expense_code: expenseCode,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error creating expense' });
+    }
+};
+
+const getExpenses = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const {
+      year,
+      month,
+      start_date,
+      end_date,
+      category_id,
+      concept_id,
+      account_id,
+      type,
+      limit,
+    } = req.query;
+
+    const where = {
+      user_id: userId,
+    };
+    const andConditions = [];
+
+    if (year) {
+      andConditions.push(sequelizeWhere(fn('YEAR', col('Expense.date')), Number(year)));
+    }
+
+    if (month) {
+      andConditions.push(sequelizeWhere(fn('MONTH', col('Expense.date')), Number(month)));
+    }
+
+    if (start_date) {
+      where.date = {
+        ...(where.date || {}),
+        [Op.gte]: start_date,
+      };
+    }
+
+    if (end_date) {
+      where.date = {
+        ...(where.date || {}),
+        [Op.lte]: end_date,
+      };
+    }
+
+    if (category_id) {
+      where.category_id = category_id;
+    }
+
+    if (concept_id) {
+      where.concept_id = concept_id;
+    }
+
+    if (account_id) {
+      where.account_id = account_id;
+    }
+
+    if (type) {
+      where.type = type;
+    }
+
+    if (andConditions.length > 0) {
+      where[Op.and] = andConditions;
+    }
+
+    const queryOptions = {
+      include: expenseIncludes,
+      where,
+      order: [
+        ['date', 'DESC'],
+        ['id', 'DESC'],
+      ],
+    };
+
+    if (limit && Number(limit) > 0) {
+      queryOptions.limit = Number(limit);
+    }
+
+    const rows = await Expense.findAll(queryOptions);
+
+    res.json(rows.map(formatExpenseRow));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching expenses' });
+  }
+};
+
+const updateExpense = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const {
+      date,
+      type,
+      category_id,
+      concept_id,
+      description,
+      amount,
+      account_id,
+    } = req.body;
+    const beforeDetails = await getExpenseActivityDetails(id, userId);
+
+    const [affectedRows] = await Expense.update(
+      {
+        date,
+        type,
+        category_id,
+        concept_id,
+        description,
+        amount,
+        account_id,
+      },
+      {
+        where: {
+          id,
+          user_id: userId,
+        },
+      }
+    );
+
+    if (affectedRows === 0) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    const activityDetails = await getExpenseActivityDetails(id, userId);
+
+    logActivity({
+      user: req.user,
+      eventType: 'expense.updated',
+      entityType: 'expense',
+      entityId: Number(id),
+      description: 'Expense updated',
+      metadata: {
+        expenseCode: activityDetails.expense_code,
+        categoryName: activityDetails.category,
+        conceptName: activityDetails.concept,
+        amount: Number(activityDetails.amount ?? amount),
+        accountAlias: activityDetails.account_alias,
+        description,
+        date,
+        type,
+        changedFields: buildExpenseChangedFields(beforeDetails, activityDetails),
+      },
+    });
+
+    res.json({ message: 'Expense updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error updating expense' });
+  }
+};
+
+const deleteExpense = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const activityDetails = await getExpenseActivityDetails(id, userId);
+
+    const deletedRows = await Expense.destroy({
+      where: {
+        id,
+        user_id: userId,
+      },
+    });
+
+    if (deletedRows === 0) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    logActivity({
+      user: req.user,
+      eventType: 'expense.deleted',
+      entityType: 'expense',
+      entityId: Number(id),
+      description: 'Expense deleted',
+      metadata: {
+        expenseCode: activityDetails.expense_code,
+        categoryName: activityDetails.category,
+        conceptName: activityDetails.concept,
+        amount: Number(activityDetails.amount || 0),
+        accountAlias: activityDetails.account_alias,
+        description: activityDetails.description,
+        date: activityDetails.date,
+        type: activityDetails.type,
+      },
+    });
+
+    res.json({ message: 'Expense deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error deleting expense' });
+  }
+};
+
+module.exports = {
+    createExpense,
+    getExpenses,
+    updateExpense,
+    deleteExpense,
+};
