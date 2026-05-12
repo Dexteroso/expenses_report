@@ -274,6 +274,7 @@ function RealVsBudgetPage() {
 
   return (
     <div
+      className="page-fill real-vs-budget-page"
       style={{
         display: 'grid',
         gridTemplateRows: 'auto auto minmax(0, 1fr)',
@@ -288,6 +289,7 @@ function RealVsBudgetPage() {
       }}
     >
       <div
+        className="responsive-card"
         style={{
           ...cardStyle,
           display: 'flex',
@@ -300,7 +302,7 @@ function RealVsBudgetPage() {
           Variaciones
         </h1>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, width: '100%', maxWidth: '100%', minWidth: 0 }}>
+        <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, width: '100%', maxWidth: '100%', minWidth: 0 }}>
           <button
             type="button"
             onClick={() => handleViewModeChange('monthly')}
@@ -317,7 +319,7 @@ function RealVsBudgetPage() {
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 30, width: '100%', maxWidth: '100%', minWidth: 0 }}>
+        <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 30, width: '100%', maxWidth: '100%', minWidth: 0 }}>
           <label style={labelStyle}>Año</label>
           <input
             type="number"
@@ -429,7 +431,7 @@ function RealVsBudgetPage() {
       </div>
 
       {!isLoading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+        <div className="responsive-grid real-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
           <KpiGroup
             title="Flujo de Efectivo"
             items={[
@@ -452,6 +454,7 @@ function RealVsBudgetPage() {
       )}
 
       <div
+        className="responsive-card real-table-card"
         style={{
           ...cardStyle,
           display: 'flex',
@@ -464,6 +467,7 @@ function RealVsBudgetPage() {
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando reporte...</p>
         ) : (
           <div
+            className="table-scroll"
             style={{
               width: '100%',
               maxWidth: '100%',
@@ -583,6 +587,7 @@ function getIntegratedSelectStyle(theme, isActive) {
 function KpiGroup({ title, items, theme }) {
   return (
     <div
+      className="responsive-card"
       style={{
         background: theme.surface,
         border: `1px solid ${theme.border}`,

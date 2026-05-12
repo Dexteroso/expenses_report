@@ -200,7 +200,7 @@ function UsersPage() {
 
   if (!isAdmin) {
     return (
-      <div style={cardStyle}>
+      <div className="responsive-card users-card" style={cardStyle}>
         <h1 style={pageTitleStyle}>Usuarios</h1>
         <p style={{ margin: 0, color: theme.textSecondary }}>
           No tienes permisos para ver esta sección.
@@ -210,7 +210,7 @@ function UsersPage() {
   }
 
   return (
-    <div style={cardStyle}>
+    <div className="responsive-card users-card" style={cardStyle}>
       <h1 style={pageTitleStyle}>Usuarios</h1>
 
       {pageMessage && (
@@ -222,7 +222,7 @@ function UsersPage() {
       {isLoading ? (
         <p style={{ margin: 0, color: theme.textSecondary }}>Cargando usuarios...</p>
       ) : (
-        <div style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
+        <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
             <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
               <tr>

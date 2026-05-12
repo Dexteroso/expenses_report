@@ -295,7 +295,7 @@ function AccountsPage() {
 
   return (
     <>
-      <div style={cardStyle}>
+      <div className="responsive-card accounts-card" style={cardStyle}>
         <div style={{ marginBottom: 8 }}>
           <h1 style={pageTitleStyle}>Cuentas</h1>
 
@@ -322,7 +322,7 @@ function AccountsPage() {
           </p>
         )}
 
-        <div style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
+        <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640, tableLayout: 'fixed' }}>
             <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
               <tr>
@@ -370,6 +370,7 @@ function AccountsPage() {
 
       {isModalOpen && (
         <div
+          className="modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -383,6 +384,7 @@ function AccountsPage() {
           }}
         >
           <div
+            className="modal-content"
             style={{
               width: '100%',
               maxWidth: 520,
@@ -399,7 +401,7 @@ function AccountsPage() {
             </h2>
 
             <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 8 }}>
-              <div style={fieldStyle}>
+              <div className="responsive-field" style={fieldStyle}>
                 <label style={fieldLabelStyle}>Banco</label>
                 <input
                   type="text"
@@ -410,7 +412,7 @@ function AccountsPage() {
                 />
               </div>
 
-              <div style={fieldStyle}>
+              <div className="responsive-field" style={fieldStyle}>
                 <label style={fieldLabelStyle}>Últimos 4 dígitos</label>
                 <input
                   type="text"
@@ -423,7 +425,7 @@ function AccountsPage() {
                 />
               </div>
 
-              <div style={fieldStyle}>
+              <div className="responsive-field" style={fieldStyle}>
                 <label style={fieldLabelStyle}>Tipo de cuenta</label>
                 <select
                   name="account_type"
@@ -437,7 +439,7 @@ function AccountsPage() {
               </div>
 
               {formData.account_type === 'credit' && (
-                <div style={fieldStyle}>
+                <div className="responsive-field" style={fieldStyle}>
                   <label style={fieldLabelStyle}>Día de corte</label>
                   <input
                     type="text"
@@ -456,7 +458,7 @@ function AccountsPage() {
                 </p>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+              <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                 {editingAccount && (
                   <button
                     type="button"

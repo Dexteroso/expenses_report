@@ -290,6 +290,7 @@ function BudgetPage() {
 
   return (
     <div
+      className="page-fill budget-page"
       style={{
         display: 'grid',
         gridTemplateRows: 'auto auto minmax(0, 1fr)',
@@ -303,9 +304,9 @@ function BudgetPage() {
         overflow: 'hidden',
       }}
     >
-      <div style={cardStyle}>
+      <div className="responsive-card" style={cardStyle}>
         <h1 style={pageTitleStyle}>Presupuesto</h1>
-        <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+        <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
             <div style={{ display: 'grid', gap: 4 }}>
               <label style={labelStyle}>Año</label>
@@ -348,13 +349,13 @@ function BudgetPage() {
         )}
       </div>
 
-      <div style={cardStyle}>
+      <div className="responsive-card" style={cardStyle}>
         <h2 style={sectionTitleStyle}>Resumen anual</h2>
 
         {isLoading ? (
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
         ) : (
-          <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', boxSizing: 'border-box', display: 'block' }}>
+          <div className="table-scroll" style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', boxSizing: 'border-box', display: 'block' }}>
             <table style={{ width: '100%', minWidth: budgetTableMinWidth, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
               <BudgetTableColGroup />
               <thead style={{ fontSize: 12, color: theme.textSecondary }}>
@@ -401,6 +402,7 @@ function BudgetPage() {
       </div>
 
       <div
+        className="responsive-card budget-detail-card"
         style={{
           ...cardStyle,
           display: 'flex',
@@ -415,6 +417,7 @@ function BudgetPage() {
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
         ) : (
           <div
+            className="table-scroll"
             style={{
               width: '100%',
               maxWidth: '100%',

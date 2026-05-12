@@ -1,4 +1,8 @@
-const pool = require('../config/db');
+const { Op, fn, col, where: sequelizeWhere } = require('sequelize');
+const Budget = require('../models/sequelize/Budget');
+const Category = require('../models/sequelize/Category');
+const Concept = require('../models/sequelize/Concept');
+const Expense = require('../models/sequelize/Expense');
 
 const getRealVsBudgetReport = async (req, res) => {
   try {
@@ -9,44 +13,46 @@ const getRealVsBudgetReport = async (req, res) => {
       return res.status(400).json({ error: 'year is required' });
     }
 
-    const [conceptRows] = await pool.query(
-      `
-      SELECT
-        c.id AS category_id,
-        c.name AS category,
-        c.type AS category_type,
-        co.id AS concept_id,
-        co.name AS concept
-      FROM categories c
-      JOIN concepts co ON co.category_id = c.id
-      ORDER BY c.id, co.id
-      `
-    );
+    const conceptRows = await Concept.findAll({
+      attributes: ['id', 'name'],
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'type'],
+          required: true,
+        },
+      ],
+      order: [
+        [{ model: Category, as: 'category' }, 'id', 'ASC'],
+        ['id', 'ASC'],
+      ],
+    });
 
-    const [budgetRows] = await pool.query(
-      `
-      SELECT
-        concept_id,
-        month,
-        amount
-      FROM budgets
-      WHERE user_id = ? AND year = ?
-      `,
-      [userId, year]
-    );
+    const budgetRows = await Budget.findAll({
+      attributes: ['concept_id', 'month', 'amount'],
+      where: {
+        user_id: userId,
+        year,
+      },
+      raw: true,
+    });
 
-    const [actualRows] = await pool.query(
-      `
-      SELECT
-        concept_id,
-        MONTH(date) AS month,
-        SUM(amount) AS actual
-      FROM expenses
-      WHERE user_id = ? AND YEAR(date) = ?
-      GROUP BY concept_id, MONTH(date)
-      `,
-      [userId, year]
-    );
+    const actualRows = await Expense.findAll({
+      attributes: [
+        'concept_id',
+        [fn('MONTH', col('date')), 'month'],
+        [fn('SUM', col('amount')), 'actual'],
+      ],
+      where: {
+        user_id: userId,
+        [Op.and]: [
+          sequelizeWhere(fn('YEAR', col('date')), Number(year)),
+        ],
+      },
+      group: ['concept_id', fn('MONTH', col('date'))],
+      raw: true,
+    });
 
     const budgetMap = new Map();
     const actualMap = new Map();
@@ -62,17 +68,19 @@ const getRealVsBudgetReport = async (req, res) => {
     const months = Array.from({ length: 12 }, (_, index) => index + 1);
     const result = [];
 
-    conceptRows.forEach((conceptRow) => {
+    conceptRows.forEach((conceptInstance) => {
+      const conceptRow = conceptInstance.get({ plain: true });
+
       months.forEach((month) => {
-        const budget = budgetMap.get(`${conceptRow.concept_id}-${month}`) ?? 0;
-        const actual = actualMap.get(`${conceptRow.concept_id}-${month}`) ?? 0;
+        const budget = budgetMap.get(`${conceptRow.id}-${month}`) ?? 0;
+        const actual = actualMap.get(`${conceptRow.id}-${month}`) ?? 0;
 
         result.push({
-          category_id: conceptRow.category_id,
-          category: conceptRow.category,
-          category_type: conceptRow.category_type,
-          concept_id: conceptRow.concept_id,
-          concept: conceptRow.concept,
+          category_id: conceptRow.category.id,
+          category: conceptRow.category.name,
+          category_type: conceptRow.category.type,
+          concept_id: conceptRow.id,
+          concept: conceptRow.name,
           month,
           budget,
           actual,

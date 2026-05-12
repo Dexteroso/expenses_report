@@ -175,6 +175,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
 
     return (
         <div
+            className="responsive-card expense-form-card"
             style={{
                 position: 'sticky',
                 top: '16px',
@@ -196,6 +197,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
             </h1>
             <form onSubmit={handleSubmit}>
                 <div
+                    className="expense-form-grid"
                     style={{
                         display: 'flex',
                         gap: 30,
@@ -204,8 +206,8 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                         flexWrap: 'wrap',
                     }}
                 >
-                    <div style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
-                        <div style={fieldStyle}>
+                    <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
+                        <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Fecha</label>
                             <input
                                 type="date"
@@ -217,7 +219,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                             />
                         </div>
 
-                        <div style={fieldStyle}>
+                        <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Tipo</label>
                             <select
                                 name="type"
@@ -230,7 +232,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                             </select>
                         </div>
 
-                        <div style={fieldStyle}>
+                        <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Categoría</label>
                             <select
                                 name="category_id"
@@ -250,7 +252,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                             </select>
                         </div>
 
-                        <div style={fieldStyle}>
+                        <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Concepto</label>
                             <select
                                 name="concept_id"
@@ -269,8 +271,8 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
-                        <div style={fieldStyle}>
+                    <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
+                        <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Descripción</label>
                             <input
                                 type="text"
@@ -281,7 +283,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                             />
                         </div>
 
-                        <div style={fieldStyle}>
+                        <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Cantidad</label>
                             <input
                                 type="text"
@@ -294,7 +296,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                             />
                         </div>
 
-                        <div style={fieldStyle}>
+                        <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Cuenta</label>
                             <select
                                 name="account_id"
@@ -313,6 +315,7 @@ function AddExpenseForm({ selectedExpense, onExpenseCreated, onCancelEdit, onDel
                         </div>
 
                         <div
+                            className="form-actions"
                             style={{
                                 display: 'flex',
                                 gap: 10,

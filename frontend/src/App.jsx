@@ -9,7 +9,7 @@ import DashboardPage from './components/DashboardPage';
 import AuthPage from './components/AuthPage';
 import UsersPage from './components/UsersPage';
 import ActivityPage from './components/ActivityPage';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { authFetch, clearAuth, getUser, isAuthenticated } from './utils/auth';
 import { formatCurrencyMXN } from './utils/formatters';
 import { typography } from './styles/typography';
@@ -64,7 +64,7 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
       />
 
       {expenseToDelete && (
-        <div style={{
+        <div className="modal-overlay" style={{
           position: 'fixed',
           inset: 0,
           background: 'rgba(15,23,42,0.45)',
@@ -73,7 +73,7 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
           justifyContent: 'center',
           zIndex: 1000
         }}>
-          <div style={{
+          <div className="modal-content" style={{
             background: '#fff',
             padding: 24,
             borderRadius: 12,
@@ -115,6 +115,7 @@ function ProtectedRoute({ children }) {
 function App() {
   const [refreshExpenses, setRefreshExpenses] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const theme = lightTheme;
   const sidebarWidth = 170;
   const contentMinWidth = 840;
@@ -125,6 +126,17 @@ function App() {
   const currentUser = getUser();
   const isAuthRoute = location.pathname === '/auth';
   const showSidebar = !isAuthRoute && authenticated;
+  const navItems = [
+    { to: '/dashboard', icon: 'bx bx-grid-alt', label: 'Resumen' },
+    { to: '/gastos', icon: 'bx bx-receipt', label: 'Movimientos' },
+    { to: '/presupuesto', icon: 'bx bx-wallet', label: 'Presupuesto' },
+    { to: '/real-vs-presupuesto', icon: 'bx bx-bar-chart-alt-2', label: 'Variaciones' },
+    { to: '/cuentas', icon: 'bx bx-credit-card', label: 'Cuentas' },
+    { to: '/actividad', icon: 'bx bx-history', label: 'Actividad' },
+    ...(currentUser?.role === 'admin'
+      ? [{ to: '/usuarios', icon: 'bx bxs-user-account', label: 'Usuarios' }]
+      : []),
+  ];
 
   const getSidebarLinkStyle = ({ isActive }) => ({
     display: 'flex',
@@ -163,8 +175,49 @@ function App() {
 
   const handleLogout = () => {
     clearAuth();
+    setIsMobileMenuOpen(false);
     navigate('/auth');
   };
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const renderNavigation = ({ onNavigate } = {}) => (
+    <ul
+      className="app-nav-list"
+      style={{
+        listStyle: 'none',
+        padding: 0,
+        margin: '16px 0 0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+      }}
+    >
+      {navItems.map((item) => (
+        <li key={item.to}>
+          <NavLink to={item.to} style={getSidebarLinkStyle} onClick={onNavigate}>
+            <i className={item.icon}></i>
+            {item.label}
+          </NavLink>
+        </li>
+      ))}
+      <li>
+        <button
+          type="button"
+          onClick={() => {
+            if (onNavigate) onNavigate();
+            setIsLogoutModalOpen(true);
+          }}
+          style={getSidebarButtonStyle()}
+        >
+          <i className='bx bx-log-out'></i>
+          Cerrar sesión
+        </button>
+      </li>
+    </ul>
+  );
 
   const todayLabel = new Date().toLocaleDateString('es-MX', {
     weekday: 'long',
@@ -175,6 +228,7 @@ function App() {
 
   return (
     <div
+      className="app-root"
       style={{
         minHeight: '100vh',
         width: '100%',
@@ -184,7 +238,57 @@ function App() {
       }}
     >
       {showSidebar ? (
+        <>
+        <div className="mobile-topbar">
+          <button
+            type="button"
+            className="mobile-menu-button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Abrir menú"
+            aria-expanded={isMobileMenuOpen}
+          >
+            <i className="bx bx-menu"></i>
+          </button>
+          <div className="mobile-topbar-center">
+            <div className="mobile-topbar-title">Control de Gastos</div>
+            {currentUser && (
+              <div className="mobile-topbar-meta">
+                <span>Hola <strong>{currentUser.name}</strong>!</span>
+                <span>{todayLabel}</span>
+              </div>
+            )}
+          </div>
+          <div className="mobile-topbar-version">v1.0</div>
+        </div>
+
+        {isMobileMenuOpen && (
+          <div className="mobile-menu-overlay" onClick={() => setIsMobileMenuOpen(false)}>
+            <div
+              className="mobile-menu-panel"
+              onClick={(event) => event.stopPropagation()}
+              style={{
+                background: theme.sidebarBackground,
+                color: theme.sidebarText,
+              }}
+            >
+              <div className="mobile-menu-header">
+                <h2 style={{ margin: 0, color: theme.sidebarText, fontSize: 20, fontWeight: 600 }}>Control de Gastos</h2>
+                <button
+                  type="button"
+                  className="mobile-menu-close"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-label="Cerrar menú"
+                >
+                  <i className="bx bx-x"></i>
+                </button>
+              </div>
+              {renderNavigation({ onNavigate: () => setIsMobileMenuOpen(false) })}
+            </div>
+          </div>
+        )}
+
         <div
+          className="app-shell"
           style={{
             minHeight: '100vh',
             minWidth: 0,
@@ -199,6 +303,7 @@ function App() {
           }}
         >
           <div
+            className="desktop-sidebar"
             style={{
               position: 'sticky',
               top: 0,
@@ -214,75 +319,11 @@ function App() {
             }}
           >
             <h2 style={{ marginTop: 20, color: theme.sidebarText, fontSize: 25, fontWeight: 600 }}>Control de Gastos</h2>
-
-            <ul
-              style={{
-                listStyle: 'none',
-                padding: 0,
-                margin: '16px 0 0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 5,
-              }}
-            >
-              <li>
-                <NavLink to="/dashboard" style={getSidebarLinkStyle}>
-                  <i className='bx bx-grid-alt'></i>
-                  Resumen
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/gastos" style={getSidebarLinkStyle}>
-                  <i className='bx bx-receipt'></i>
-                  Movimientos
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/presupuesto" style={getSidebarLinkStyle}>
-                  <i className='bx bx-wallet'></i>
-                  Presupuesto
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/real-vs-presupuesto" style={getSidebarLinkStyle}>
-                  <i className='bx bx-bar-chart-alt-2'></i>
-                  Variaciones
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/cuentas" style={getSidebarLinkStyle}>
-                  <i className='bx bx-credit-card'></i>
-                  Cuentas
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/actividad" style={getSidebarLinkStyle}>
-                  <i className='bx bx-history'></i>
-                  Actividad
-                </NavLink>
-              </li>
-              {currentUser?.role === 'admin' && (
-                <li>
-                  <NavLink to="/usuarios" style={getSidebarLinkStyle}>
-                    <i className='bx bxs-user-account'></i>
-                    Usuarios
-                  </NavLink>
-                </li>
-              )}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setIsLogoutModalOpen(true)}
-                  style={getSidebarButtonStyle()}
-                >
-                  <i className='bx bx-log-out'></i>
-                  Cerrar sesión
-                </button>
-              </li>
-            </ul>
+            {renderNavigation()}
           </div>
 
           <div
+            className="app-content"
             style={{
               minWidth: 0,
               width: '100%',
@@ -293,6 +334,7 @@ function App() {
             }}
           >
             <div
+              className="app-content-inner"
               style={{
                 width: '100%',
                 minWidth: 0,
@@ -301,19 +343,20 @@ function App() {
             >
               {currentUser && (
                 <div
+                  className="user-meta"
                   style={{
                     marginBottom: 16,
                     color: theme.textBody,
                   }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                  <div className="user-meta-row" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
                     <div style={{ fontSize: 12, fontWeight: 700 }}>
                       ¡Hola, {currentUser.name}!
                     </div>
                     <div style={{ color: theme.textSecondary, fontSize: 12 }}>
                       {todayLabel}
                     </div>
-                    <div style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 600 }}>v1.0</div>
+                    <div className="user-meta-version" style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 600 }}>v1.0</div>
                   </div>
                 </div>
               )}
@@ -344,6 +387,7 @@ function App() {
             </div>
           </div>
         </div>
+        </>
       ) : (
         <div
           style={{
@@ -364,6 +408,7 @@ function App() {
       )}
       {isLogoutModalOpen && (
         <div
+          className="modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -377,6 +422,7 @@ function App() {
           }}
         >
           <div
+            className="modal-content"
             style={{
               width: '100%',
               maxWidth: 400,

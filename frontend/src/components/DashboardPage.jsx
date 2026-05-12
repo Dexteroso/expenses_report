@@ -22,6 +22,7 @@ const monthOptions = [
 
 function DashboardPage() {
   const theme = lightTheme;
+  const dashboardKpiChartSize = useDashboardKpiChartSize();
   const pageCardStyle = {
     background: theme.surface,
     border: `1px solid ${theme.border}`,
@@ -129,6 +130,9 @@ function DashboardPage() {
     .reduce((sum, row) => sum + Number(row.actual), 0);
 
   const available = expenseBudget - expenseActual;
+  const incomePercent = getPercent(incomeActual, incomeBudget);
+  const expenseUsedPercent = getPercent(expenseActual, expenseBudget);
+  const availablePercent = getPercent(available, expenseBudget);
 
   const topExpenseCategories = useMemo(() => {
     const categoryMap = new Map();
@@ -149,14 +153,15 @@ function DashboardPage() {
   const isLoading = isLoadingReport || isLoadingMovements;
 
   return (
-    <div style={{ display: 'grid', gap: 20, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div className="page-stack dashboard-page" style={{ display: 'grid', gap: 20, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       <div
+        className="responsive-card dashboard-summary-card"
         style={pageCardStyle}
       >
         <h1 style={pageTitleStyle}>
           Resumen
         </h1>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="responsive-filter-bar dashboard-summary-filters" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <label style={labelStyle}>
               Año
@@ -194,11 +199,11 @@ function DashboardPage() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
+      <div className="responsive-grid dashboard-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
         <DonutKpiCard
           theme={theme}
           title="Ingresos"
-          percent={getPercent(incomeActual, incomeBudget)}
+          percent={incomePercent}
           primaryValue={`${formatCurrencyMXN(incomeActual)} de ${formatCurrencyMXN(incomeBudget)}`}
           // secondaryValue={
           //   incomeActual >= incomeBudget
@@ -206,26 +211,32 @@ function DashboardPage() {
           //     : `Te faltan $${Number(Math.max(incomeBudget - incomeActual, 0)).toFixed(2)}`
           // }
           isLoading={isLoading}
+          chartSize={dashboardKpiChartSize}
+          accentColor={getIncomeKpiColor(incomePercent)}
         />
         <DonutKpiCard
           theme={theme}
           title="Presupuesto usado"
-          percent={getPercent(expenseActual, expenseBudget)}
+          percent={expenseUsedPercent}
           primaryValue={`Usaste ${formatCurrencyMXN(expenseActual)} de ${formatCurrencyMXN(expenseBudget)}`}
           secondaryValue=""
           isLoading={isLoading}
+          chartSize={dashboardKpiChartSize}
+          accentColor={getBudgetUsedKpiColor(expenseUsedPercent)}
         />
         <DonutKpiCard
           theme={theme}
           title="Presupuesto disponible"
-          percent={getPercent(available, expenseBudget)}
+          percent={availablePercent}
           primaryValue={`Te quedan ${formatCurrencyMXN(available)}`}
           secondaryValue=""
           isLoading={isLoading}
+          chartSize={dashboardKpiChartSize}
+          accentColor={getAvailableBudgetKpiColor(availablePercent, available)}
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
+      <div className="responsive-grid dashboard-section-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
         <SectionCard title="Top categorías de gasto" theme={theme}>
           {isLoading ? (
             <p style={{ margin: 0, color: theme.textSecondary }}>Cargando...</p>
@@ -235,6 +246,7 @@ function DashboardPage() {
             <div style={{ display: 'grid', gap: 0 }}>
               {topExpenseCategories.map((item, index) => (
                 <div
+                  className="dashboard-list-row"
                   key={item.category}
                   style={{
                     display: 'flex',
@@ -261,10 +273,11 @@ function DashboardPage() {
             <div style={{ display: 'grid', gap: 0 }}>
               {movements.map((movement, index) => (
                 <div
+                  className="dashboard-movement-row"
                   key={movement.id}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '110px 1fr auto',
+                    gridTemplateColumns: '110px 1fr 110px',
                     gap: 12,
                     paddingBottom: 0,
                     borderBottom: index === movements.length - 1 ? 'none' : `1px solid ${theme.border}`,
@@ -275,7 +288,7 @@ function DashboardPage() {
                     <div style={{ color: theme.textBody }}>{movement.category}</div>
                     {/* <div style={{ color: theme.textSecondary }}>{movement.concept}</div> */}
                   </div>
-                  <strong style={{ color: theme.textPrimary }}>{formatCurrencyMXN(movement.amount)}</strong>
+                  <strong style={{ textAlign: 'right', color: theme.textPrimary }}>{formatCurrencyMXN(movement.amount)}</strong>
                 </div>
               ))}
             </div>
@@ -286,16 +299,45 @@ function DashboardPage() {
   );
 }
 
-function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isLoading }) {
+function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isLoading, chartSize, accentColor }) {
   const rawPercent = Number.isFinite(percent) ? percent : 0;
   const chartPercent = Math.max(0, Math.min(100, rawPercent));
+  const usesFixedChartSize = Boolean(chartSize.size);
   const chartData = [
     { name: 'value', value: chartPercent },
     { name: 'rest', value: 100 - chartPercent },
   ];
+  const donutChart = usesFixedChartSize ? (
+    <DashboardMobileDonut
+      percent={chartPercent}
+      size={chartSize.size}
+      innerRadius={chartSize.innerRadius}
+      outerRadius={chartSize.outerRadius}
+      accentColor={accentColor}
+      trackColor={theme.border}
+    />
+  ) : (
+    <PieChart width={chartSize.size} height={chartSize.size}>
+      <Pie
+        data={chartData}
+        dataKey="value"
+        cx="50%"
+        cy="50%"
+        innerRadius={chartSize.innerRadius}
+        outerRadius={chartSize.outerRadius}
+        stroke="none"
+        startAngle={90}
+        endAngle={-270}
+      >
+        <Cell fill={accentColor} />
+        <Cell fill={theme.border} />
+      </Pie>
+    </PieChart>
+  );
 
   return (
     <div
+      className="dashboard-kpi-card"
       style={{
         background: theme.surface,
         border: `1px solid ${theme.border}`,
@@ -312,32 +354,26 @@ function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isL
         fontSize: 12,
       }}
     >
-      <div style={{ ...typography.cardTitle }}>{title}</div>
 
       {isLoading ? (
-        <div style={{ height: 150, display: 'grid', placeItems: 'center', color: theme.textSecondary }}>
+        <div className="dashboard-kpi-chart dashboard-kpi-loading" style={{ height: 150, display: 'grid', placeItems: 'center', color: theme.textSecondary }}>
           Cargando...
         </div>
       ) : (
-        <div style={{ width: '100%', height: 150, position: 'relative' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey="value"
-                cx="50%"
-                cy="50%"
-                innerRadius={48}
-                outerRadius={64}
-                stroke="none"
-                startAngle={90}
-                endAngle={-270}
-              >
-                <Cell fill={theme.sidebarBackground} />
-                <Cell fill={theme.border} />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
+        <div
+          className="dashboard-kpi-chart"
+          style={{
+            width: usesFixedChartSize ? chartSize.size : '100%',
+            height: usesFixedChartSize ? chartSize.size : 150,
+            position: 'relative',
+            overflow: 'visible',
+          }}
+        >
+          {usesFixedChartSize ? donutChart : (
+            <ResponsiveContainer width="100%" height="100%">
+              {donutChart}
+            </ResponsiveContainer>
+          )}
           <div
             style={{
               position: 'absolute',
@@ -348,7 +384,7 @@ function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isL
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <div style={{ color: theme.textPrimary, fontSize: 28, fontWeight: 'bold' }}>
+              <div className="dashboard-kpi-percent" style={{ color: accentColor, fontSize: 28, fontWeight: 'bold' }}>
                 {`${Math.round(rawPercent)}%`}
               </div>
             </div>
@@ -356,21 +392,134 @@ function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isL
         </div>
       )}
 
-      <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12 }}>
-        {isLoading ? '$0.00' : primaryValue}
-      </div>
-      {secondaryValue ? (
-        <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12 }}>
-          {isLoading ? '' : secondaryValue}
+      <div className="dashboard-kpi-text-group"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 5,
+        }}>
+        <div className="dashboard-kpi-title" style={{ ...typography.cardTitle, fontSize: 18}}>{title}</div>
+        <div
+          className="dashboard-kpi-primary"
+          style={{
+            color: theme.textSecondary,
+            textAlign: 'center',
+            fontSize: 15,
+          }}
+        >
+          {isLoading ? '$0.00' : primaryValue}
         </div>
-      ) : null}
+
+        {secondaryValue ? (
+          <div
+            className="dashboard-kpi-secondary"
+            style={{
+              color: theme.textSecondary,
+              textAlign: 'center',
+              fontSize: 12,
+            }}
+          >
+            {isLoading ? '' : secondaryValue}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
+}
+
+function DashboardMobileDonut({ percent, size, innerRadius, outerRadius, accentColor, trackColor }) {
+  const strokeWidth = outerRadius - innerRadius;
+  const radius = innerRadius + strokeWidth / 2;
+  const center = size / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clampedPercent = Math.max(0, Math.min(100, percent));
+  const progressLength = (clampedPercent / 100) * circumference;
+  const gapLength = circumference - progressLength;
+
+  return (
+    <svg
+      className="dashboard-kpi-donut-svg"
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle
+        cx={center}
+        cy={center}
+        r={radius}
+        fill="none"
+        stroke={trackColor}
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={center}
+        cy={center}
+        r={radius}
+        fill="none"
+        stroke={accentColor}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={`${progressLength} ${gapLength}`}
+        transform={`rotate(-90 ${center} ${center})`}
+      />
+    </svg>
+  );
+}
+
+function useDashboardKpiChartSize() {
+  const getChartSize = () => {
+    if (typeof window === 'undefined') {
+      return { innerRadius: 48, outerRadius: 64 };
+    }
+
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      return { size: 62, innerRadius: 17, outerRadius: 25 };
+    }
+
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      return { innerRadius: 42, outerRadius: 56 };
+    }
+
+    return { innerRadius: 48, outerRadius: 64 };
+  };
+
+  const [chartSize, setChartSize] = useState(getChartSize);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => setChartSize(getChartSize());
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return chartSize;
+}
+
+function getIncomeKpiColor(percent) {
+  return percent >= 100 ? '#15803d' : '#384f7f';
+}
+
+function getBudgetUsedKpiColor(percent) {
+  if (percent > 100) return '#991b1b';
+  if (percent > 80) return '#dc2626';
+  if (percent > 50) return '#b45309';
+  return '#15803d';
+}
+
+function getAvailableBudgetKpiColor(percent, amount) {
+  if (Number(amount) <= 0 || percent <= 0) return '#dc2626';
+  if (percent <= 30) return '#b45309';
+  return '#2563eb';
 }
 
 function SectionCard({ title, theme, children }) {
   return (
     <div
+      className="responsive-card dashboard-section-card"
       style={{
         background: theme.surface,
         border: `1px solid ${theme.border}`,

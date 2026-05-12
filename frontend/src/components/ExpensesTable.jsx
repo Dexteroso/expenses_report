@@ -267,6 +267,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
 
     return (
         <div
+            className="responsive-card expenses-table-card"
             style={{
                 background: theme.surface,
                 border: `1px solid ${theme.border}`,
@@ -283,6 +284,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             </h2>
 
             <div
+                className="responsive-filter-bar"
                 style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -364,6 +366,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             </div>
 
             <div
+                className="table-scroll"
                 style={{
                     display: 'flex',
                     flexDirection: 'column',

@@ -52,6 +52,15 @@ function AuthPage() {
     }
   };
 
+  const handleFormKeyDown = (event) => {
+    if (event.key !== 'Enter' || isSubmitting) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.requestSubmit();
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -313,6 +322,7 @@ function AuthPage() {
 
   return (
     <div
+      className="auth-page"
       style={{
         minHeight: '100vh',
         background: theme.background,
@@ -322,6 +332,7 @@ function AuthPage() {
       }}
     >
       <div
+        className="auth-card"
         style={{
           width: '100%',
           maxWidth: 420,
@@ -342,7 +353,7 @@ function AuthPage() {
           {titleByMode[authMode]}
         </h2>
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} style={{ display: 'grid', gap: 14 }}>
           {renderFields()}
 
           {errorMessage && (

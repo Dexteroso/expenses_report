@@ -104,6 +104,7 @@ function ActivityPage() {
 
   return (
     <div
+      className="page-fill activity-page"
       style={{
         display: 'grid',
         gridTemplateRows: 'auto minmax(0, 1fr)',
@@ -117,12 +118,12 @@ function ActivityPage() {
         overflow: 'hidden',
       }}
     >
-      <div style={cardStyle}>
+      <div className="responsive-card" style={cardStyle}>
         <h1 style={{ ...typography.pageTitle, marginTop: 10, marginBottom: 10 }}>
           Actividad
         </h1>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <label style={{ color: theme.textBody, fontSize: 12, fontWeight: 'bold', lineHeight: '30px' }}>
             Periodo
           </label>
@@ -158,6 +159,7 @@ function ActivityPage() {
       </div>
 
       <div
+        className="responsive-card activity-list-card"
         style={{
           ...cardStyle,
           display: 'flex',

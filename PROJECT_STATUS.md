@@ -82,12 +82,14 @@ Main capabilities:
 - Expenses now use Sequelize models/methods while preserving existing `/api/expenses` routes and response shapes.
 - Phase 3 migrated only the Budgets module to Sequelize.
 - Budgets now use Sequelize models/methods while preserving existing `/api/budgets` routes and response shapes.
-- Accounts, Expenses, and Budgets are now on Sequelize.
+- Phase 4 migrated only the Reports module to Sequelize.
+- Reports now use Sequelize for real-vs-budget report queries and aggregations.
+- Accounts, Expenses, Budgets, and Reports are now on Sequelize.
 - Lightweight Sequelize `User` model added only to support `Account belongsTo User` / `User hasMany Accounts` associations.
 - Sequelize `Expense`, `Category`, and `Concept` models added for expense associations.
 - Sequelize `Budget` model added with associations to `User` and `Concept`; category context is still resolved through `Concept -> Category` because the existing `budgets` table has no `category_id` column.
 - No schema regeneration, forced sync, table drops, or core data migration were performed.
-- Auth, reports, and MongoDB activity logs remain on their existing implementations.
+- Auth, Users, Categories/Concepts controllers, and MongoDB Activity remain on existing implementations.
 
 ### Activity / Audit system
 
@@ -180,6 +182,7 @@ Technical implementation:
 - KPI cards
 - Internal table scroll
 - Sticky headers
+- Backend real-vs-budget report migrated from raw mysql2 queries to Sequelize in Phase 4
 
 ### Dashboard (Resumen)
 - KPI donut cards

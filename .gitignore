@@ -48,3 +48,6 @@ sequelize-meta.json
 
 # Testing
 jest-html-reporters-*
+
+# VS Code
+.vscode/
