@@ -494,8 +494,8 @@ body {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr) 44px;
     align-items: center;
-    min-height: 84px;
-    padding: calc(env(safe-area-inset-top, 0px) + 7px) 12px 8px;
+    min-height: 70px;
+    padding: calc(env(safe-area-inset-top, 0px) + 3px) 12px 5px;
     box-sizing: border-box;
     background: rgba(248, 250, 252, 0.96);
     border-bottom: 1px solid #e5e0d8;
@@ -526,14 +526,14 @@ body {
   .mobile-topbar-center {
     display: grid;
     justify-items: center;
-    gap: 2px;
+    gap: 0;
     min-width: 0;
   }
 
   .mobile-topbar-title {
     justify-self: center;
     color: #2d3142;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 700;
     text-align: center;
   }
@@ -542,11 +542,11 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     min-width: 0;
     color: #6b7280;
-    font-size: 12px;
-    line-height: 1.15;
+    font-size: 11px;
+    line-height: 1.1;
     text-align: center;
   }
 
@@ -585,7 +585,7 @@ body {
     grid-template-columns: minmax(0, 1fr) !important;
     max-width: 100% !important;
     gap: 0 !important;
-    padding: calc(env(safe-area-inset-top, 0px) + 96px) 16px 20px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 78px) 16px 20px !important;
   }
 
   .desktop-sidebar {
@@ -880,7 +880,7 @@ body {
 
 @media (max-width: 767px) {
   .app-shell {
-    padding: calc(env(safe-area-inset-top, 0px) + 94px) 10px 16px !important;
+    padding: calc(env(safe-area-inset-top, 0px) + 76px) 10px 16px !important;
   }
 
   .page-stack,
