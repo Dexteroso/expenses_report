@@ -5,8 +5,8 @@ import { API_BASE_URL } from '../utils/api';
 import { formatNumberForInput, parseCurrencyInput } from '../utils/formatters';
 import { typography } from '../styles/typography';
 
-const favoriteEmojis = ['😎', '🛒', '🍕', '⛽', '☕', '🍿', '🛍️', '🏠', '🐶', '🚕', '💊', '🎵', '💳'];
-const favoriteColors = ['#565294', '#9d9d9d', '#005496', '#2dafe6', '#23d2aa', '#ff7f43'];
+const favoriteEmojis = ['😎', '🛒', '🍕', '🥑', '🍎', '🍔', '⛽', '☕', '🍿', '🛍️', '🏠', '🐶', '🚕', '💊', '🎵', '💳'];
+const favoriteColors = ['#ffffff', '#565294', '#9d9d9d', '#005496', '#2dafe6', '#23d2aa', '#ff7f43', '#f3f3f3', '#d9d2e9', '#f3f3f3', '#cfe2f3', '#d0e0e3', '#d9ead3', '#fce5cd'];
 
 function AddExpenseForm({
     selectedExpense,

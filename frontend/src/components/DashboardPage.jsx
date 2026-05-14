@@ -475,6 +475,10 @@ function useDashboardKpiChartSize() {
       return { innerRadius: 48, outerRadius: 64 };
     }
 
+    if (window.matchMedia('(max-width: 430px)').matches) {
+      return { size: 56, innerRadius: 15, outerRadius: 22 };
+    }
+
     if (window.matchMedia('(max-width: 767px)').matches) {
       return { size: 62, innerRadius: 17, outerRadius: 25 };
     }
