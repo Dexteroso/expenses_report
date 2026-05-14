@@ -279,6 +279,11 @@ function App() {
     month: 'long',
     day: 'numeric',
   });
+  const mobileTodayLabel = new Date().toLocaleDateString('es-MX', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
     <div
@@ -308,7 +313,7 @@ function App() {
             {currentUser && (
               <div className="mobile-topbar-meta">
                 <span>Hola <strong>{currentUser.name}</strong>!</span>
-                <span>{todayLabel}</span>
+                <span>{mobileTodayLabel}</span>
               </div>
             )}
           </div>
