@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
 import { typography } from '../styles/typography';
 
@@ -80,14 +81,14 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             params.append('limit', filters.limit);
         }
 
-        authFetch(`http://localhost:3000/api/expenses?${params.toString()}`)
+        authFetch(`${API_BASE_URL}/api/expenses?${params.toString()}`)
             .then((response) => response.json())
             .then((data) => setExpenses(data))
             .catch((error) => console.error('Error fetching expenses:', error));
     };
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/categories')
+        fetch(`${API_BASE_URL}/api/categories`)
             .then((response) => response.json())
             .then((data) => setCategories(data))
             .catch((error) => console.error('Error fetching categories:', error));
@@ -284,7 +285,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             </h2>
 
             <div
-                className="responsive-filter-bar"
+                className="responsive-filter-bar expenses-filter-bar"
                 style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -294,7 +295,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     marginBottom: 10,
                 }}
             >
-                <div>
+                <div className="expenses-filter-field">
                     <label style={filterLabelStyle}>
                         Fecha inicio
                     </label>
@@ -306,7 +307,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     />
                 </div>
 
-                <div>
+                <div className="expenses-filter-field">
                     <label style={filterLabelStyle}>
                         Fecha fin
                     </label>
@@ -318,7 +319,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     />
                 </div>
 
-                <div>
+                <div className="expenses-filter-field expenses-filter-field-category">
                     <label style={filterLabelStyle}>
                         Categoría
                     </label>
@@ -339,34 +340,36 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     </select>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={handleSearch}
-                    disabled={isSearchDisabled}
-                    style={getActionButtonStyle(isSearchDisabled)}
-                >
-                    Buscar
-                </button>
-                <button
-                    type="button"
-                    onClick={handleClear}
-                    disabled={isClearDisabled}
-                    style={getActionButtonStyle(isClearDisabled)}
-                >
-                    Limpiar
-                </button>
-                <button
-                    type="button"
-                    onClick={handleExportCsv}
-                    disabled={isExportDisabled}
-                    style={getActionButtonStyle(isExportDisabled)}
-                >
-                    Exportar
-                </button>
+                <div className="expenses-filter-actions" style={{ display: 'flex', gap: 5, alignItems: 'flex-end' }}>
+                    <button
+                        type="button"
+                        onClick={handleSearch}
+                        disabled={isSearchDisabled}
+                        style={getActionButtonStyle(isSearchDisabled)}
+                    >
+                        Buscar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleClear}
+                        disabled={isClearDisabled}
+                        style={getActionButtonStyle(isClearDisabled)}
+                    >
+                        Limpiar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleExportCsv}
+                        disabled={isExportDisabled}
+                        style={getActionButtonStyle(isExportDisabled)}
+                    >
+                        Exportar
+                    </button>
+                </div>
             </div>
 
             <div
-                className="table-scroll"
+                className="table-scroll expenses-summary-strip"
                 style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -408,6 +411,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             </div>
 
             <div
+                className="expenses-table-scroll"
                 style={{
                     width: '100%',
                     maxWidth: '100%',

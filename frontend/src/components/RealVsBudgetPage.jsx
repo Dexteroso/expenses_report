@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
 import { typography } from '../styles/typography';
 
@@ -79,7 +80,7 @@ function RealVsBudgetPage() {
       setError('');
 
       try {
-        const response = await authFetch(`http://localhost:3000/api/reports/real-vs-budget?year=${year}`);
+        const response = await authFetch(`${API_BASE_URL}/api/reports/real-vs-budget?year=${year}`);
 
         if (!response.ok) {
           throw new Error('Error fetching report');
@@ -466,48 +467,65 @@ function RealVsBudgetPage() {
         {isLoading ? (
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando reporte...</p>
         ) : (
-          <div
-            className="table-scroll"
-            style={{
-              width: '100%',
-              maxWidth: '100%',
-              minWidth: 0,
-              minHeight: 0,
-              flex: 1,
-              overflowX: 'auto',
-              overflowY: 'auto',
-              boxSizing: 'border-box',
-              display: 'block',
-            }}
-          >
-            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 700 }}>
-              <colgroup>
-                <col style={{ width: '40%' }} />
-                <col style={{ width: '20%' }} />
-                <col style={{ width: '20%' }} />
-                <col style={{ width: '20%' }} />
-              </colgroup>
-              <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
-                <tr>
-                  <th style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>Categoría / Concepto</th>
-                  <th style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>Presupuesto</th>
-                  <th style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>Real</th>
-                  <th style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>Desviación</th>
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: 10, color: theme.textBody }}>
-                {groupedReport.map((category) => (
-                  <CategoryRows
-                    key={category.category_id}
-                    category={category}
-                    getCategoryPeriodMetrics={getCategoryPeriodMetrics}
-                    getConceptPeriodMetrics={getConceptPeriodMetrics}
-                    theme={theme}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="real-mobile-detail-header" aria-hidden="true">
+              <span>Concepto</span>
+              <span>Pres.</span>
+              <span>Real</span>
+              <span>Desv.</span>
+            </div>
+            <div
+              className="table-scroll real-details-scroll"
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                minHeight: 0,
+                flex: 1,
+                overflowX: 'auto',
+                overflowY: 'auto',
+                boxSizing: 'border-box',
+                display: 'block',
+              }}
+            >
+              <table className="real-details-table" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 700 }}>
+                <colgroup>
+                  <col className="real-concept-col" style={{ width: '40%' }} />
+                  <col className="real-value-col" style={{ width: '20%' }} />
+                  <col className="real-value-col" style={{ width: '20%' }} />
+                  <col className="real-value-col" style={{ width: '20%' }} />
+                </colgroup>
+                <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
+                  <tr>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
+                      <span className="real-label-desktop">Categoría / Concepto</span>
+                      <span className="real-label-mobile">Concepto</span>
+                    </th>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
+                      <span className="real-label-desktop">Presupuesto</span>
+                      <span className="real-label-mobile">Pres.</span>
+                    </th>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>Real</th>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
+                      <span className="real-label-desktop">Desviación</span>
+                      <span className="real-label-mobile">Desv.</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: 10, color: theme.textBody }}>
+                  {groupedReport.map((category) => (
+                    <CategoryRows
+                      key={category.category_id}
+                      category={category}
+                      getCategoryPeriodMetrics={getCategoryPeriodMetrics}
+                      getConceptPeriodMetrics={getConceptPeriodMetrics}
+                      theme={theme}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -637,17 +655,17 @@ function CategoryRows({
 
   return (
     <>
-      <tr style={{ background: theme.surfaceMuted, borderTop: `1px solid ${theme.border}` }}>
-        <td style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }} title={category.category}>
+      <tr className="real-category-row" style={{ background: theme.surfaceMuted, borderTop: `1px solid ${theme.border}` }}>
+        <td className="real-detail-cell real-concept-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }} title={category.category}>
           {category.category}
         </td>
-        <td style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
           {formatCurrencyMXN(categoryMetrics.budget)}
         </td>
-        <td style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
           {formatCurrencyMXN(categoryMetrics.actual)}
         </td>
-        <td style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
           {formatCurrencyMXN(categoryMetrics.deviation)}
         </td>
       </tr>
@@ -657,16 +675,16 @@ function CategoryRows({
 
         return (
           <tr key={concept.concept_id} style={{ borderTop: `1px solid ${theme.border}` }}>
-            <td style={{ ...getTableCellStyle('center'), color: theme.textBody }} title={concept.concept}>
+            <td className="real-detail-cell real-concept-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }} title={concept.concept}>
               <span style={{ display: 'inline-block', maxWidth: '100%' }}>{concept.concept}</span>
             </td>
-            <td style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
+            <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
               {formatCurrencyMXN(metrics.budget)}
             </td>
-            <td style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
+            <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
               {formatCurrencyMXN(metrics.actual)}
             </td>
-            <td style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
+            <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
               {formatCurrencyMXN(metrics.deviation)}
             </td>
           </tr>

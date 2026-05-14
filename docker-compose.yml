@@ -1,0 +1,76 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: expenses_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-expenses_report}
+      MYSQL_USER: ${MYSQL_USER:-expenses_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-expenses_password}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  mongo:
+    image: mongo:7
+    container_name: expenses_mongo
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend
+    container_name: expenses_backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-expenses_report}
+      DB_USER: ${MYSQL_USER:-expenses_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-expenses_password}
+      JWT_SECRET: ${JWT_SECRET:-change_me_for_local_docker}
+      MONGO_URI: mongodb://mongo:27017/expenses_activity
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      API_URL: ${API_URL:-http://localhost:3000}
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    container_name: expenses_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  mysql_data:
+  mongo_data:

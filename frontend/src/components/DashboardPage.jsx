@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
 import { typography } from '../styles/typography';
 
@@ -60,7 +61,7 @@ function DashboardPage() {
       setError('');
 
       try {
-        const response = await authFetch(`http://localhost:3000/api/reports/real-vs-budget?year=${year}`);
+        const response = await authFetch(`${API_BASE_URL}/api/reports/real-vs-budget?year=${year}`);
 
         if (!response.ok) {
           throw new Error('Error fetching dashboard report');
@@ -89,7 +90,7 @@ function DashboardPage() {
           month: String(month),
         });
 
-        const response = await authFetch(`http://localhost:3000/api/expenses?${params.toString()}`);
+        const response = await authFetch(`${API_BASE_URL}/api/expenses?${params.toString()}`);
 
         if (!response.ok) {
           throw new Error('Error fetching latest movements');
@@ -500,20 +501,43 @@ function useDashboardKpiChartSize() {
 }
 
 function getIncomeKpiColor(percent) {
-  return percent >= 100 ? '#15803d' : '#384f7f';
+if (percent <= 100) return '#086938';
+if (percent <= 95) return '#029348';
+if (percent <= 90) return '#3AB449';
+if (percent <= 85) return '#8CC640';
+if (percent <= 80) return '#DBE026';
+if (percent <= 75) return '#FAED22';
+if (percent <= 70) return '#FBB03A';
+if (percent <= 65) return '#F79420';
+if (percent <= 60) return '#F15A27';
+if (percent <= 50) return '#EE1F28';
+  return '#2563eb';
 }
 
 function getBudgetUsedKpiColor(percent) {
-  if (percent > 100) return '#991b1b';
-  if (percent > 80) return '#dc2626';
-  if (percent > 50) return '#b45309';
-  return '#15803d';
+  if (percent >= 100) return '#EE1F28';
+  if (percent >= 90) return '#F15A27';
+  if (percent >= 85) return '#F79420';
+  if (percent >= 80) return '#FBB03A';
+  if (percent >= 75) return '#FAED22';
+  if (percent >= 70) return '#DBE026';
+  if (percent >= 65) return '#8CC640';
+  if (percent >= 60) return '#3AB449';
+  if (percent >= 50) return '#029348';
+  return '#086938';
 }
 
 function getAvailableBudgetKpiColor(percent, amount) {
-  if (Number(amount) <= 0 || percent <= 0) return '#dc2626';
-  if (percent <= 30) return '#b45309';
-  return '#2563eb';
+if (percent >= 100) return '#086938';
+if (percent >= 90) return '#029348';
+if (percent >= 80) return '#3AB449';
+if (percent >= 70) return '#8CC640';
+if (percent >= 60) return '#DBE026';
+if (percent >= 50) return '#FAED22';
+if (percent >= 40) return '#FBB03A';
+if (percent >= 25) return '#F79420';
+if (percent >= 10) return '#F15A27';
+  return '#EE1F28';
 }
 
 function SectionCard({ title, theme, children }) {

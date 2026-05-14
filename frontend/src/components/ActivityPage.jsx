@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch, getUser } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
 import { typography } from '../styles/typography';
 
@@ -81,7 +82,7 @@ function ActivityPage() {
           params.set('allUsers', 'true');
         }
 
-        const response = await authFetch(`http://localhost:3000/api/activity?${params.toString()}`);
+        const response = await authFetch(`${API_BASE_URL}/api/activity?${params.toString()}`);
 
         if (!response.ok) {
           throw new Error('Error fetching activity');
@@ -205,14 +206,21 @@ function ActivityPage() {
 }
 
 function ActivityRow({ log, theme }) {
-  const parts = [
-    formatActivityTime(log.createdAt),
-    eventLabels[log.eventType] || log.eventType,
-    ...getActivityDetails(log),
+  const time = formatActivityTime(log.createdAt);
+  const action = eventLabels[log.eventType] || log.eventType;
+  const details = getActivityDetails(log).filter(Boolean);
+  const primaryParts = [
+    time,
+    action,
+    getPrimaryActivityDetail(log, details),
   ].filter(Boolean);
+  const secondaryParts = getSecondaryActivityDetails(log, details).filter(Boolean);
+  const parts = [time, action, ...details].filter(Boolean);
+  const iconClass = getActivityIconClass(log.eventType);
 
   return (
     <div
+      className="activity-row"
       style={{
         padding: '4px 8px',
         borderRadius: 8,
@@ -230,9 +238,60 @@ function ActivityRow({ log, theme }) {
       }}
       title={parts.join(' · ')}
     >
-      {parts.join(' · ')}
+      <span className="activity-row-icon" aria-hidden="true">
+        <i className={iconClass}></i>
+      </span>
+      <span className="activity-row-desktop">
+        {parts.join(' · ')}
+      </span>
+      <span className="activity-row-mobile">
+        <span className="activity-row-primary">{primaryParts.join(' · ')}</span>
+        {secondaryParts.length > 0 && (
+          <span className="activity-row-secondary">{secondaryParts.join(' · ')}</span>
+        )}
+      </span>
     </div>
   );
+}
+
+function getActivityIconClass(eventType) {
+  const iconMap = {
+    'auth.login_success': 'bx bx-log-in-circle',
+    'auth.login_failed': 'bx bx-error-circle',
+    'auth.password_reset_requested': 'bx bx-key',
+    'auth.password_reset_completed': 'bx bx-lock-open-alt',
+    'expense.created': 'bx bx-wallet',
+    'expense.updated': 'bx bx-edit-alt',
+    'expense.deleted': 'bx bx-trash',
+    'account.created': 'bx bx-credit-card',
+    'account.updated': 'bx bx-credit-card',
+    'account.deactivated': 'bx bx-block',
+    'account.reactivated': 'bx bx-check-circle',
+    'budget.created': 'bx bx-wallet',
+    'budget.updated': 'bx bx-wallet',
+    'user.created': 'bx bx-user-plus',
+    'user.updated': 'bx bx-user',
+    'user.activated': 'bx bx-user-check',
+    'user.deactivated': 'bx bx-user-x',
+  };
+
+  return iconMap[eventType] || 'bx bx-history';
+}
+
+function getPrimaryActivityDetail(log, details) {
+  if (log.entityType === 'expense') {
+    return details[0];
+  }
+
+  return '';
+}
+
+function getSecondaryActivityDetails(log, details) {
+  if (log.entityType === 'expense') {
+    return details.slice(1);
+  }
+
+  return details;
 }
 
 function formatActivityTime(value) {

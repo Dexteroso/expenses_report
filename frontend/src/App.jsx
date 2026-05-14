@@ -3,6 +3,7 @@ import { Routes, Route, NavLink, useLocation, Navigate, useNavigate } from 'reac
 import ExpensesTable from './components/ExpensesTable';
 import AccountsPage from './components/AccountsPage';
 import AddExpenseForm from './components/AddExpenseForm';
+import FavoriteMovementsCard from './components/FavoriteMovementsCard';
 import BudgetPage from './components/BudgetPage';
 import RealVsBudgetPage from './components/RealVsBudgetPage';
 import DashboardPage from './components/DashboardPage';
@@ -11,6 +12,7 @@ import UsersPage from './components/UsersPage';
 import ActivityPage from './components/ActivityPage';
 import { useEffect, useState } from 'react';
 import { authFetch, clearAuth, getUser, isAuthenticated } from './utils/auth';
+import { API_BASE_URL } from './utils/api';
 import { formatCurrencyMXN } from './utils/formatters';
 import { typography } from './styles/typography';
 
@@ -18,6 +20,15 @@ import { typography } from './styles/typography';
 function Expenses({ refreshExpenses, onExpenseCreated }) {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [favoriteMode, setFavoriteMode] = useState(false);
+  const [favoritePrefill, setFavoritePrefill] = useState(null);
+  const [favoriteRefreshKey, setFavoriteRefreshKey] = useState(0);
+
+  const getTodayInputValue = () => {
+    const today = new Date();
+    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+    return today.toISOString().slice(0, 10);
+  };
 
   const handleCancelEdit = () => {
     setSelectedExpense(null);
@@ -25,7 +36,39 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
 
   const handleExpenseSaved = () => {
     setSelectedExpense(null);
+    setFavoriteMode(false);
+    setFavoritePrefill(null);
     onExpenseCreated();
+  };
+
+  const handleCreateFavorite = () => {
+    setSelectedExpense(null);
+    setFavoritePrefill(null);
+    setFavoriteMode(true);
+  };
+
+  const handleEditExpense = (expense) => {
+    setFavoriteMode(false);
+    setFavoritePrefill(null);
+    setSelectedExpense(expense);
+  };
+
+  const handleFavoriteSaved = () => {
+    setFavoriteRefreshKey((prev) => prev + 1);
+  };
+
+  const handleApplyFavorite = (favorite) => {
+    setSelectedExpense(null);
+    setFavoriteMode(false);
+    setFavoritePrefill({
+      alias: favorite.alias,
+      date: getTodayInputValue(),
+      type: favorite.type,
+      category_id: favorite.category_id,
+      concept_id: favorite.concept_id,
+      description: favorite.description,
+      account_id: favorite.account_id,
+    });
   };
 
   const handleRequestDeleteExpense = (expense) => {
@@ -39,7 +82,7 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
   const handleConfirmDelete = async () => {
     if (!expenseToDelete) return;
 
-    await authFetch(`http://localhost:3000/api/expenses/${expenseToDelete.id}`, {
+    await authFetch(`${API_BASE_URL}/api/expenses/${expenseToDelete.id}`, {
       method: 'DELETE',
     });
 
@@ -55,11 +98,22 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
         onExpenseCreated={handleExpenseSaved}
         onCancelEdit={handleCancelEdit}
         onDeleteExpense={handleRequestDeleteExpense}
+        favoriteMode={favoriteMode}
+        favoritePrefill={favoritePrefill}
+        onFavoriteModeChange={setFavoriteMode}
+        onFavoriteSaved={handleFavoriteSaved}
+        onFavoritePrefillClear={() => setFavoritePrefill(null)}
+      />
+
+      <FavoriteMovementsCard
+        refreshKey={favoriteRefreshKey}
+        onApplyFavorite={handleApplyFavorite}
+        onCreateFavorite={handleCreateFavorite}
       />
 
       <ExpensesTable
         refreshExpenses={refreshExpenses}
-        onEditExpense={setSelectedExpense}
+        onEditExpense={handleEditExpense}
         selectedExpense={selectedExpense}
       />
 

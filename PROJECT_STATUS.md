@@ -55,10 +55,48 @@ Main capabilities:
 ### Middleware
 - express.json()
 - cors
+- CORS allows local Vite frontend (`http://localhost:5173`) and production frontend through `FRONTEND_URL`
 - helmet
 - rate limiting (general + auth)
 - authMiddleware
 - adminMiddleware
+
+### Deployment configuration
+- Backend server port now uses `process.env.PORT || 3000`.
+- Backend CORS supports cloud frontend deployment through `FRONTEND_URL`.
+- Swagger server URL can be configured with `API_URL`.
+- App is prepared for separate frontend/backend cloud deployment without changing API routes.
+
+### Local Docker Compose
+- Docker Compose added for local multi-service execution.
+- Services included:
+  - React/Vite frontend served through nginx
+  - Express backend
+  - MySQL 8
+  - MongoDB 7
+- Frontend container maps to `http://localhost:5173`.
+- Backend container maps to `http://localhost:3000`.
+- MySQL maps host port `3307` to container port `3306` to avoid local MySQL conflicts.
+- MongoDB maps host port `27018` to container port `27017` to avoid local Mongo conflicts.
+- Backend container uses Docker service names for database connections:
+  - `DB_HOST=mysql`
+  - `MONGO_URI=mongodb://mongo:27017/expenses_activity`
+- Docker secrets are not baked into Dockerfiles; local defaults can be overridden with `.env`.
+- Docker usage is documented in `DOCKER.md`.
+- `.env.docker.example` added with local Docker defaults and demo login notes.
+- `backend/sql/init.sql` added as the Docker MySQL fresh-volume initialization script.
+- Docker MySQL initialization creates the existing app tables, category/concept catalog, one demo admin user, demo accounts, demo budgets, and demo expenses.
+- Docker MySQL initialization also creates and seeds `favorite_movements` demo presets for the Movimientos Favoritos feature.
+- `backend/sql/init.sql` is mounted into `/docker-entrypoint-initdb.d/init.sql` and runs only when the MySQL Docker volume is first created.
+- Docker demo data is enough to validate Dashboard, Movimientos, Presupuesto, Variaciones, Cuentas, and Usuarios immediately.
+- Actividad can be validated after first login because the existing MongoDB Activity module records the login event.
+- Demo Docker admin login:
+  - `admin.docker@example.com`
+  - `DockerDemo123!`
+- Validation after Docker setup:
+  - `docker compose config` passes
+  - Backend tests pass: 6 suites / 35 tests
+  - Frontend production build passes
 
 ### Protected routes
 - /api/expenses
@@ -162,11 +200,28 @@ Technical implementation:
 
 ## Frontend status
 
+### Deployment configuration
+- Frontend API calls now use centralized `frontend/src/utils/api.js`.
+- `API_BASE_URL` uses `import.meta.env.VITE_API_URL || 'http://localhost:3000'`.
+- Netlify SPA routing is supported with `frontend/public/_redirects` containing `/* /index.html 200`.
+- Local development continues to work through the localhost fallback.
+
 ### Movimientos
 - Create / Edit / Delete
 - Filters (date + category)
 - CSV export
 - Delete confirmation modal
+- Movimientos Favoritos V1:
+  - users can save up to 5 favorite movement presets
+  - presets store emoji, alias, color, type, category, concept, description, and account
+  - presets do not store amount
+  - clicking a favorite pre-fills the existing movement form with today's date and leaves amount empty
+  - favorite creation reuses the existing AddExpenseForm in a dedicated mode
+- Backend support:
+  - `GET /api/favorite-movements`
+  - `POST /api/favorite-movements`
+  - `DELETE /api/favorite-movements/:id`
+  - favorites are scoped by `req.user.id`
 - Sorted DESC (latest first)
 - Backend controller migrated from raw mysql2 queries to Sequelize in Phase 2
 
@@ -258,6 +313,13 @@ Current issue:
 
 ## Currency
 - MXN formatting implemented
+
+---
+
+## Latest verification
+- Backend `npm test`: 7 suites / 39 tests passing.
+- Frontend `npm run build`: passing.
+- `docker compose config`: passing.
 - Inputs do NOT include currency symbol while editing
 - Display uses: $1,234.56
 
@@ -292,12 +354,19 @@ Stack:
 Files:
 - backend/tests/auth.test.js
 - backend/tests/expenses.test.js
+- backend/tests/favoriteMovements.test.js
 - backend/tests/middleware.test.js
 - backend/tests/activity.test.js
 
 Current status:
-- 6 test suites passing
-- 35 tests passing
+- 7 test suites passing
+- 39 tests passing
+
+### Favorite movements tests
+- GET /api/favorite-movements without token → 401
+- POST /api/favorite-movements creates a preset
+- Regular user favorite query is scoped to own presets
+- Favorite preset limit is enforced at 5 per user
 
 ### Activity tests
 - GET /api/activity without token → 401
@@ -372,6 +441,7 @@ Main tables:
 - concepts
 - expenses
 - budgets
+- favorite_movements
 
 Rules:
 - categories/concepts are shared catalog
@@ -388,7 +458,6 @@ Immediate:
 - BudgetPage scroll behavior alignment
 
 Later (course requirement):
-- Docker
 - Microservices
 - Deployment
 - Monitoring

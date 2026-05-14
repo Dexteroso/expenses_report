@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN, formatNumberForInput, parseCurrencyInput } from '../utils/formatters';
 import { typography } from '../styles/typography';
 
@@ -79,7 +80,7 @@ function BudgetPage() {
     setError('');
 
     try {
-      const response = await authFetch(`http://localhost:3000/api/budgets?year=${targetYear}`);
+      const response = await authFetch(`${API_BASE_URL}/api/budgets?year=${targetYear}`);
 
       if (!response.ok) {
         throw new Error('Error fetching budgets');
@@ -264,7 +265,7 @@ function BudgetPage() {
     });
 
     try {
-      const response = await authFetch('http://localhost:3000/api/budgets', {
+      const response = await authFetch(`${API_BASE_URL}/api/budgets`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -355,8 +356,8 @@ function BudgetPage() {
         {isLoading ? (
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
         ) : (
-          <div className="table-scroll" style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', boxSizing: 'border-box', display: 'block' }}>
-            <table style={{ width: '100%', minWidth: budgetTableMinWidth, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
+          <div className="table-scroll budget-table-scroll" style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', boxSizing: 'border-box', display: 'block' }}>
+            <table className="budget-table" style={{ width: '100%', minWidth: budgetTableMinWidth, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
               <BudgetTableColGroup />
               <thead style={{ fontSize: 12, color: theme.textSecondary }}>
                 <tr>
@@ -416,58 +417,67 @@ function BudgetPage() {
         {isLoading ? (
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
         ) : (
-          <div
-            className="table-scroll"
-            style={{
-              width: '100%',
-              maxWidth: '100%',
-              minWidth: 0,
-              minHeight: 0,
-              flex: 1,
-              overflowX: 'auto',
-              overflowY: 'auto',
-              boxSizing: 'border-box',
-              display: 'block',
-            }}
-          >
-            <table style={{ width: '100%', minWidth: budgetTableMinWidth, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
-              <BudgetTableColGroup />
-              <thead style={{ fontSize: 12, color: theme.textSecondary }}>
-                <tr>
-                  <StickyHeaderCell align="center" sticky="left" stickyTop theme={theme}>
-                    Categoría / Concepto
-                  </StickyHeaderCell>
-                  {monthLabels.map((label) => (
-                    <HeaderCell key={label} align="center" stickyTop theme={theme}>
-                      {label}
-                    </HeaderCell>
-                  ))}
-                  <StickyHeaderCell align="center" sticky="right" stickyTop theme={theme}>
-                    Total anual
-                  </StickyHeaderCell>
-                </tr>
-              </thead>
-              <tbody style={{ fontSize: 10, color: theme.textBody }}>
-                {groupedBudget.map((category) => {
-                  const categoryMonthlyTotals = getCategoryMonthlyTotals(category);
-                  const categoryAnnualTotal = getCategoryAnnualTotal(category);
+          <>
+            <div className="budget-mobile-detail-header" aria-hidden="true">
+              <span>Categoría / Concepto</span>
+              {monthLabels.map((label) => (
+                <span key={`mobile-budget-header-${label}`}>{label}</span>
+              ))}
+              <span>Total anual</span>
+            </div>
+            <div
+              className="table-scroll budget-table-scroll budget-detail-scroll"
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                minHeight: 0,
+                flex: 1,
+                overflowX: 'auto',
+                overflowY: 'auto',
+                boxSizing: 'border-box',
+                display: 'block',
+              }}
+            >
+              <table className="budget-table" style={{ width: '100%', minWidth: budgetTableMinWidth, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
+                <BudgetTableColGroup />
+                <thead style={{ fontSize: 12, color: theme.textSecondary }}>
+                  <tr>
+                    <StickyHeaderCell align="center" sticky="left" stickyTop theme={theme}>
+                      Categoría / Concepto
+                    </StickyHeaderCell>
+                    {monthLabels.map((label) => (
+                      <HeaderCell key={label} align="center" stickyTop theme={theme}>
+                        {label}
+                      </HeaderCell>
+                    ))}
+                    <StickyHeaderCell align="center" sticky="right" stickyTop theme={theme}>
+                      Total anual
+                    </StickyHeaderCell>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: 10, color: theme.textBody }}>
+                  {groupedBudget.map((category) => {
+                    const categoryMonthlyTotals = getCategoryMonthlyTotals(category);
+                    const categoryAnnualTotal = getCategoryAnnualTotal(category);
 
-                  return (
-                    <FragmentRows
-                      key={category.category_id}
-                      category={category}
-                      categoryMonthlyTotals={categoryMonthlyTotals}
-                      categoryAnnualTotal={categoryAnnualTotal}
-                      getCellValue={getCellValue}
-                      getConceptAnnualTotal={getConceptAnnualTotal}
-                      handleCellChange={handleCellChange}
-                      theme={theme}
-                    />
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <FragmentRows
+                        key={category.category_id}
+                        category={category}
+                        categoryMonthlyTotals={categoryMonthlyTotals}
+                        categoryAnnualTotal={categoryAnnualTotal}
+                        getCellValue={getCellValue}
+                        getConceptAnnualTotal={getConceptAnnualTotal}
+                        handleCellChange={handleCellChange}
+                        theme={theme}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -477,11 +487,11 @@ function BudgetPage() {
 function BudgetTableColGroup() {
   return (
     <colgroup>
-      <col style={{ width: firstColumnWidth }} />
+      <col className="budget-first-col" style={{ width: firstColumnWidth }} />
       {monthLabels.map((label) => (
-        <col key={`col-${label}`} style={{ width: monthColumnWidth }} />
+        <col className="budget-month-col" key={`col-${label}`} style={{ width: monthColumnWidth }} />
       ))}
-      <col style={{ width: annualColumnWidth }} />
+      <col className="budget-annual-col" style={{ width: annualColumnWidth }} />
     </colgroup>
   );
 }
@@ -489,6 +499,7 @@ function BudgetTableColGroup() {
 function HeaderCell({ children, align, theme, stickyTop = false }) {
   return (
     <th
+      className="budget-header-cell"
       style={{
         position: stickyTop ? 'sticky' : 'static',
         top: stickyTop ? 0 : 'auto',
@@ -508,6 +519,7 @@ function HeaderCell({ children, align, theme, stickyTop = false }) {
 function StickyHeaderCell({ children, align, sticky, theme, stickyTop = false }) {
   return (
     <th
+      className={`budget-header-cell budget-sticky-cell budget-sticky-${sticky}${stickyTop ? ' budget-sticky-top' : ''}`}
       style={{
         ...getStickyCellStyle(theme, sticky, stickyTop),
         padding: '0px 8px',
@@ -525,6 +537,7 @@ function StickyHeaderCell({ children, align, sticky, theme, stickyTop = false })
 function StickySummaryCell({ children, align, sticky, theme, textColor }) {
   return (
     <td
+      className={sticky ? `budget-summary-cell budget-sticky-cell budget-sticky-${sticky}` : 'budget-summary-cell'}
       style={{
         ...getStickyCellStyle(theme, sticky),
         padding: '0px 8px',
@@ -543,6 +556,7 @@ function StickySummaryCell({ children, align, sticky, theme, textColor }) {
 function StickyBodyCell({ children, align, sticky, theme, bold = false }) {
   return (
     <td
+      className={sticky ? `budget-body-cell budget-sticky-cell budget-sticky-${sticky}` : 'budget-body-cell'}
       style={{
         ...getStickyCellStyle(theme, sticky),
         padding: '0px 8px',
@@ -642,6 +656,7 @@ function FragmentRows({
           </StickyBodyCell>
           {monthLabels.map((_, monthIndex) => (
             <td
+              className="budget-month-cell"
               key={`${concept.concept_id}-${monthIndex + 1}`}
               style={{
                 padding: '4px',
@@ -651,6 +666,7 @@ function FragmentRows({
               }}
             >
               <input
+                className="budget-input"
                 type="text"
                 inputMode="decimal"
                 value={getCellValue(concept.concept_id, monthIndex + 1)}

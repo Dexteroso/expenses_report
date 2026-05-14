@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS favorite_movements (
+  id INT NOT NULL AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  emoji VARCHAR(16) NOT NULL,
+  alias VARCHAR(40) NOT NULL,
+  color VARCHAR(20) NOT NULL,
+  type ENUM('income', 'expense') NOT NULL,
+  category_id INT NOT NULL,
+  concept_id INT NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  account_id INT NOT NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY user_id (user_id),
+  KEY category_id (category_id),
+  KEY concept_id (concept_id),
+  KEY account_id (account_id),
+  CONSTRAINT favorite_movements_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id),
+  CONSTRAINT favorite_movements_ibfk_2 FOREIGN KEY (category_id) REFERENCES categories (id),
+  CONSTRAINT favorite_movements_ibfk_3 FOREIGN KEY (concept_id) REFERENCES concepts (id),
+  CONSTRAINT favorite_movements_ibfk_4 FOREIGN KEY (account_id) REFERENCES accounts (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

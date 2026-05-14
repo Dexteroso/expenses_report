@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { lightTheme } from '../theme/theme';
 import { saveAuth } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 
 function AuthPage() {
   const theme = lightTheme;
@@ -76,7 +77,7 @@ function AuthPage() {
             return;
           }
 
-          const response = await fetch('http://localhost:3000/api/auth/forgot-password', {
+          const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -121,7 +122,7 @@ function AuthPage() {
           return;
         }
 
-        const response = await fetch('http://localhost:3000/api/auth/reset-password', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -174,7 +175,7 @@ function AuthPage() {
 
     try {
       if (authMode === 'login') {
-        const response = await fetch('http://localhost:3000/api/auth/login', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -197,7 +198,7 @@ function AuthPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

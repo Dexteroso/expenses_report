@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 import { typography } from '../styles/typography';
 
 const initialFormState = {
@@ -88,7 +89,7 @@ function AccountsPage() {
   const fetchAccounts = async () => {
     try {
       setPageMessage('');
-      const response = await authFetch('http://localhost:3000/api/accounts');
+      const response = await authFetch(`${API_BASE_URL}/api/accounts`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -226,8 +227,8 @@ function AccountsPage() {
     try {
       const response = await authFetch(
         editingAccount
-          ? `http://localhost:3000/api/accounts/${editingAccount.id}`
-          : 'http://localhost:3000/api/accounts',
+          ? `${API_BASE_URL}/api/accounts/${editingAccount.id}`
+          : `${API_BASE_URL}/api/accounts`,
         {
           method: editingAccount ? 'PUT' : 'POST',
           headers: {
@@ -272,7 +273,7 @@ function AccountsPage() {
     setFormMessage('');
 
     try {
-      const response = await authFetch(`http://localhost:3000/api/accounts/${editingAccount.id}/deactivate`, {
+      const response = await authFetch(`${API_BASE_URL}/api/accounts/${editingAccount.id}/deactivate`, {
         method: 'PATCH',
       });
 
@@ -322,7 +323,47 @@ function AccountsPage() {
           </p>
         )}
 
-        <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
+        <div className="accounts-mobile-list">
+          {accounts.map((account) => (
+            <article className="accounts-mobile-card" key={`mobile-${account.id}`}>
+              <div className="accounts-mobile-card-header">
+                <div>
+                  <div className="accounts-mobile-kicker">Alias</div>
+                  <strong className="accounts-mobile-title">{account.account_alias}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="accounts-mobile-edit"
+                  onClick={() => openEditModal(account)}
+                  aria-label={`Editar ${account.account_alias}`}
+                >
+                  <i className="bx bx-edit-alt" />
+                </button>
+              </div>
+
+              <dl className="accounts-mobile-details">
+                <div>
+                  <dt>Banco</dt>
+                  <dd>{account.bank_name}</dd>
+                </div>
+                <div>
+                  <dt>Día de corte</dt>
+                  <dd>{account.billing_cycle_end_day ?? '-'}</dd>
+                </div>
+                <div>
+                  <dt>Tipo</dt>
+                  <dd>{accountTypeLabels[account.account_type] || account.account_type}</dd>
+                </div>
+                <div>
+                  <dt>Creada</dt>
+                  <dd>{account.created_at || '-'}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+
+        <div className="table-scroll accounts-table-scroll" style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640, tableLayout: 'fixed' }}>
             <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
               <tr>

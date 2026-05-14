@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch, getUser } from '../utils/auth';
+import { API_BASE_URL } from '../utils/api';
 import { typography } from '../styles/typography';
 
 function UsersPage() {
@@ -48,7 +49,7 @@ function UsersPage() {
     setPageMessage('');
 
     try {
-      const response = await authFetch('http://localhost:3000/api/users');
+      const response = await authFetch(`${API_BASE_URL}/api/users`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -98,7 +99,7 @@ function UsersPage() {
     }));
 
     try {
-      const response = await authFetch(`http://localhost:3000/api/users/${user.id}`, {
+      const response = await authFetch(`${API_BASE_URL}/api/users/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +163,7 @@ function UsersPage() {
 
     try {
       const response = await authFetch(
-        `http://localhost:3000/api/users/${user.id}/${user.is_active ? 'deactivate' : 'activate'}`,
+        `${API_BASE_URL}/api/users/${user.id}/${user.is_active ? 'deactivate' : 'activate'}`,
         {
           method: 'PATCH',
         }
@@ -222,134 +223,228 @@ function UsersPage() {
       {isLoading ? (
         <p style={{ margin: 0, color: theme.textSecondary }}>Cargando usuarios...</p>
       ) : (
-        <div className="table-scroll" style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
-            <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
-              <tr>
-                <th style={headerCellStyle}>Nombre</th>
-                <th style={headerCellStyle}>Email</th>
-                <th style={headerCellStyle}>Rol</th>
-                <th style={headerCellStyle}>Estado</th>
-                <th style={headerCellStyle}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody style={{ fontSize: 10, color: theme.textBody }}>
-              {users.map((user) => (
-                <tr key={user.id} style={{ borderTop: `1px solid ${theme.border}` }}>
-                  <td style={rowCellStyle}>
-                    <input
-                      type="text"
-                      value={user.name}
-                      onChange={(event) => handleChange(user.id, 'name', event.target.value)}
-                      style={getInputStyle(theme)}
-                    />
-                  </td>
-                  <td style={rowCellStyle}>
-                    <input
-                      type="email"
-                      value={user.email}
-                      onChange={(event) => handleChange(user.id, 'email', event.target.value)}
-                      style={getInputStyle(theme)}
-                    />
-                  </td>
-                  <td style={rowCellStyle}>
-                    <select
-                      value={user.role}
-                      onChange={(event) => handleChange(user.id, 'role', event.target.value)}
-                      style={getInputStyle(theme)}
-                    >
-                      <option value="admin">admin</option>
-                      <option value="user">user</option>
-                    </select>
-                  </td>
-                  <td style={rowCellStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={Boolean(user.is_active)}
-                        aria-label={Boolean(user.is_active) ? 'Usuario activo' : 'Usuario inactivo'}
-                        title={Boolean(user.is_active) ? 'Activo' : 'Inactivo'}
-                        onClick={() => handleStatusChange(user)}
-                        disabled={Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))}
-                        style={{
-                          width: 42,
-                          height: 24,
-                          borderRadius: 999,
-                          border: `1px solid ${
-                            Boolean(user.is_active) ? theme.sidebarBackground : theme.border
-                          }`,
-                          background: Boolean(user.is_active)
-                            ? theme.sidebarBackground
-                            : theme.inputDisabledBackground,
-                          padding: 0,
-                          position: 'relative',
-                          cursor:
-                            Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))
-                              ? 'not-allowed'
-                              : 'pointer',
-                          opacity:
-                            Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))
-                              ? 0.7
-                              : 1,
-                          transition: 'background 160ms ease, border-color 160ms ease, opacity 160ms ease',
-                          boxSizing: 'border-box',
-                        }}
+        <>
+          <div className="table-scroll users-table-scroll" style={{ width: '100%', overflowX: 'auto', boxSizing: 'border-box' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+              <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
+                <tr>
+                  <th style={headerCellStyle}>Nombre</th>
+                  <th style={headerCellStyle}>Email</th>
+                  <th style={headerCellStyle}>Rol</th>
+                  <th style={headerCellStyle}>Estado</th>
+                  <th style={headerCellStyle}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody style={{ fontSize: 10, color: theme.textBody }}>
+                {users.map((user) => (
+                  <tr key={user.id} style={{ borderTop: `1px solid ${theme.border}` }}>
+                    <td style={rowCellStyle}>
+                      <input
+                        type="text"
+                        value={user.name}
+                        onChange={(event) => handleChange(user.id, 'name', event.target.value)}
+                        style={getInputStyle(theme)}
+                      />
+                    </td>
+                    <td style={rowCellStyle}>
+                      <input
+                        type="email"
+                        value={user.email}
+                        onChange={(event) => handleChange(user.id, 'email', event.target.value)}
+                        style={getInputStyle(theme)}
+                      />
+                    </td>
+                    <td style={rowCellStyle}>
+                      <select
+                        value={user.role}
+                        onChange={(event) => handleChange(user.id, 'role', event.target.value)}
+                        style={getInputStyle(theme)}
                       >
-                        <span
+                        <option value="admin">admin</option>
+                        <option value="user">user</option>
+                      </select>
+                    </td>
+                    <td style={rowCellStyle}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={Boolean(user.is_active)}
+                          aria-label={Boolean(user.is_active) ? 'Usuario activo' : 'Usuario inactivo'}
+                          title={Boolean(user.is_active) ? 'Activo' : 'Inactivo'}
+                          onClick={() => handleStatusChange(user)}
+                          disabled={Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))}
                           style={{
-                            position: 'absolute',
-                            top: 2,
-                            left: Boolean(user.is_active) ? 20 : 2,
-                            width: 18,
-                            height: 18,
-                            borderRadius: '50%',
-                            background: '#fff',
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.22)',
-                            transition: 'left 160ms ease',
-                          }}
-                        />
-                      </button>
-                    </div>
-                  </td>
-                  <td style={rowCellStyle}>
-                    <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleSaveUser(user)}
-                        disabled={Boolean(savingRows[user.id])}
-                        style={{
-                          width: 'fit-content',
-                          padding: '5px 12px',
-                          borderRadius: 8,
-                          border: `1px solid ${theme.border}`,
-                          background: savingRows[user.id] ? theme.inputDisabledBackground : theme.sidebarBackground,
-                          color: savingRows[user.id] ? theme.textSecondary : theme.sidebarText,
-                          fontSize: 12,
-                          // fontWeight: 'bold',
-                          cursor: savingRows[user.id] ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
-                      </button>
-                      {rowMessages[user.id] && (
-                        <span
-                          style={{
-                            color: rowMessages[user.id].includes('No se pudo') ? '#b91c1c' : theme.textPrimary,
-                            fontSize: 12,
-                            textAlign: 'center',
+                            width: 42,
+                            height: 24,
+                            borderRadius: 999,
+                            border: `1px solid ${
+                              Boolean(user.is_active) ? theme.sidebarBackground : theme.border
+                            }`,
+                            background: Boolean(user.is_active)
+                              ? theme.sidebarBackground
+                              : theme.inputDisabledBackground,
+                            padding: 0,
+                            position: 'relative',
+                            cursor:
+                              Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))
+                                ? 'not-allowed'
+                                : 'pointer',
+                            opacity:
+                              Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))
+                                ? 0.7
+                                : 1,
+                            transition: 'background 160ms ease, border-color 160ms ease, opacity 160ms ease',
+                            boxSizing: 'border-box',
                           }}
                         >
-                          {rowMessages[user.id]}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: 2,
+                              left: Boolean(user.is_active) ? 20 : 2,
+                              width: 18,
+                              height: 18,
+                              borderRadius: '50%',
+                              background: '#fff',
+                              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.22)',
+                              transition: 'left 160ms ease',
+                            }}
+                          />
+                        </button>
+                      </div>
+                    </td>
+                    <td style={rowCellStyle}>
+                      <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveUser(user)}
+                          disabled={Boolean(savingRows[user.id])}
+                          style={{
+                            width: 'fit-content',
+                            padding: '5px 12px',
+                            borderRadius: 8,
+                            border: `1px solid ${theme.border}`,
+                            background: savingRows[user.id] ? theme.inputDisabledBackground : theme.sidebarBackground,
+                            color: savingRows[user.id] ? theme.textSecondary : theme.sidebarText,
+                            fontSize: 12,
+                            // fontWeight: 'bold',
+                            cursor: savingRows[user.id] ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        {rowMessages[user.id] && (
+                          <span
+                            style={{
+                              color: rowMessages[user.id].includes('No se pudo') ? '#b91c1c' : theme.textPrimary,
+                              fontSize: 12,
+                              textAlign: 'center',
+                            }}
+                          >
+                            {rowMessages[user.id]}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="users-mobile-list">
+          {users.map((user) => (
+            <article key={user.id} className="users-mobile-card">
+              <div className="users-mobile-card-header">
+                <div style={{ minWidth: 0 }}>
+                  <span className="users-mobile-title">{user.name || 'Sin nombre'}</span>
+                  <span className="users-mobile-email">{user.email}</span>
+                </div>
+                <span className={`users-mobile-status ${Boolean(user.is_active) ? 'is-active' : 'is-inactive'}`}>
+                  {Boolean(user.is_active) ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+
+              <div className="users-mobile-fields">
+                <label>
+                  <span>Nombre</span>
+                  <input
+                    type="text"
+                    value={user.name}
+                    onChange={(event) => handleChange(user.id, 'name', event.target.value)}
+                    style={getInputStyle(theme)}
+                  />
+                </label>
+                <label>
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    value={user.email}
+                    onChange={(event) => handleChange(user.id, 'email', event.target.value)}
+                    style={getInputStyle(theme)}
+                  />
+                </label>
+                <label>
+                  <span>Rol</span>
+                  <select
+                    value={user.role}
+                    onChange={(event) => handleChange(user.id, 'role', event.target.value)}
+                    style={getInputStyle(theme)}
+                  >
+                    <option value="admin">admin</option>
+                    <option value="user">user</option>
+                  </select>
+                </label>
+                <div className="users-mobile-state-row">
+                  <span>Estado</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(user.is_active)}
+                    aria-label={Boolean(user.is_active) ? 'Usuario activo' : 'Usuario inactivo'}
+                    title={Boolean(user.is_active) ? 'Activo' : 'Inactivo'}
+                    onClick={() => handleStatusChange(user)}
+                    disabled={Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))}
+                    className={`users-mobile-switch ${Boolean(user.is_active) ? 'is-active' : 'is-inactive'}`}
+                  >
+                    <span />
+                  </button>
+                </div>
+              </div>
+
+              <div className="users-mobile-actions">
+                <button
+                  type="button"
+                  onClick={() => handleSaveUser(user)}
+                  disabled={Boolean(savingRows[user.id])}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${theme.border}`,
+                    background: savingRows[user.id] ? theme.inputDisabledBackground : theme.sidebarBackground,
+                    color: savingRows[user.id] ? theme.textSecondary : theme.sidebarText,
+                    fontSize: 12,
+                    cursor: savingRows[user.id] ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
+                </button>
+                {rowMessages[user.id] && (
+                  <span
+                    className="users-mobile-message"
+                    style={{
+                      color: rowMessages[user.id].includes('No se pudo') ? '#b91c1c' : theme.textPrimary,
+                    }}
+                  >
+                    {rowMessages[user.id]}
+                  </span>
+                )}
+              </div>
+            </article>
+          ))}
+          </div>
+        </>
       )}
     </div>
   );

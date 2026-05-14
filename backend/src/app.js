@@ -14,8 +14,14 @@ const reportsRoutes = require('./routes/reportsRoutes');
 const authRoutes = require('./routes/authRoutes');
 const usersRoutes = require('./routes/usersRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const favoriteMovementsRoutes = require('./routes/favoriteMovementsRoutes');
 
 const app = express();
+const localFrontendUrl = 'http://localhost:5173';
+const configuredFrontendUrl = process.env.FRONTEND_URL;
+const allowedOrigins = new Set(
+  [localFrontendUrl, configuredFrontendUrl, configuredFrontendUrl?.replace(/\/$/, '')].filter(Boolean)
+);
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -34,7 +40,16 @@ const authLimiter = rateLimit({
 });
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
+}));
 app.use(express.json());
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api', apiLimiter);
@@ -47,6 +62,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/favorite-movements', favoriteMovementsRoutes);
 
 
 app.get('/test-db', async (req, res) => {
