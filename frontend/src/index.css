@@ -2076,12 +2076,12 @@ body {
 
   .dashboard-kpi-chart,
   .dashboard-kpi-donut-svg {
-    width: 64px !important;
-    height: 64px !important;
+    width: 100px !important;
+    height: 100px !important;
   }
 
   .dashboard-kpi-percent {
-    font-size: 11px !important;
+    font-size: 15px !important;
   }
 
   .dashboard-kpi-text-group {
