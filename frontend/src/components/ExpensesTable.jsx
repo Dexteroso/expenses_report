@@ -172,6 +172,30 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
         return monthLabels[monthIndex] || '';
     };
 
+    const getReadableDate = (dateString) => {
+        if (!dateString) return '';
+
+        const [year, month, day] = dateString.split('-').map(Number);
+        const monthNames = [
+            'enero',
+            'febrero',
+            'marzo',
+            'abril',
+            'mayo',
+            'junio',
+            'julio',
+            'agosto',
+            'septiembre',
+            'octubre',
+            'noviembre',
+            'diciembre',
+        ];
+
+        if (!year || !month || !day) return dateString;
+
+        return `${day} ${monthNames[month - 1]} ${year}`;
+    };
+
     const getCreditCardPeriod = (expense) => {
         if (expense.account_type !== 'Crédito' || !expense.billing_cycle_end_day || !expense.date) {
             return '';
@@ -495,6 +519,50 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            <div className="expenses-mobile-list">
+                {expenses.length === 0 ? (
+                    <p className="expenses-mobile-empty">No hay movimientos para mostrar.</p>
+                ) : (
+                    expenses.map((expense) => (
+                        <div
+                            key={expense.expense_code}
+                            className={`expenses-mobile-row ${expense.id === selectedExpense?.id ? 'is-selected' : ''}`}
+                        >
+                            <div className="expenses-mobile-header-row">
+                                <div className="expenses-mobile-line expenses-mobile-line-primary">
+                                    <span>{expense.tipo}</span>
+                                    <span>{expense.expense_code}</span>
+                                    <span>{getReadableDate(expense.date)}</span>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="expenses-mobile-edit-button"
+                                    onClick={() => onEditExpense(expense)}
+                                    aria-label={`Editar movimiento ${expense.expense_code}`}
+                                >
+                                    <i className="bx bx-edit-alt" aria-hidden="true" />
+                                </button>
+                            </div>
+
+                            <div className="expenses-mobile-line expenses-mobile-line-detail">
+                                {[expense.category, expense.concept, expense.description]
+                                    .filter(Boolean)
+                                    .map((item) => (
+                                        <span key={item}>{item}</span>
+                                    ))}
+                            </div>
+
+                            <div className="expenses-mobile-line expenses-mobile-line-amount">
+                                <span>{expense.account_alias || 'Sin cuenta'}</span>
+                                <strong>{formatCurrencyMXN(expense.amount)}</strong>
+                            </div>
+
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
