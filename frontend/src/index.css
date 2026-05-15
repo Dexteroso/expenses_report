@@ -1169,6 +1169,7 @@ body {
 
   .expense-form-card .responsive-field input,
   .expense-form-card .responsive-field select {
+    min-width: 0 !important;
     min-height: 30px;
   }
 
@@ -1646,6 +1647,45 @@ body {
 
   .expenses-filter-actions {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 390px) {
+  .expense-form-card .responsive-field {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+  }
+
+  .expense-form-card .responsive-field input[type="date"] {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .expenses-filter-bar {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .expenses-filter-field,
+  .expenses-filter-field-category,
+  .expenses-filter-actions {
+    grid-column: 1 / -1 !important;
+  }
+
+  .expenses-filter-field input[type="date"],
+  .expenses-filter-field select {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
 
