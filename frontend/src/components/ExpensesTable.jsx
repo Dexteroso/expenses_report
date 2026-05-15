@@ -4,6 +4,7 @@ import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
 import { typography } from '../styles/typography';
+import DateInput from './DateInput';
 
 function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     const theme = lightTheme;
@@ -295,27 +296,28 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     marginBottom: 10,
                 }}
             >
-                <div className="expenses-filter-field">
+                <div className="expenses-filter-field expenses-filter-field-start">
                     <label style={filterLabelStyle}>
-                        Fecha inicio
+                        Inicio
                     </label>
-                    <input
-                        type="date"
+                    <DateInput
                         value={startDate}
-                        onChange={(event) => setStartDate(event.target.value)}
+                        onChange={setStartDate}
+                        placeholder="Inicio"
                         style={filterInputStyle}
                     />
                 </div>
 
-                <div className="expenses-filter-field">
+                <div className="expenses-filter-field expenses-filter-field-end">
                     <label style={filterLabelStyle}>
-                        Fecha fin
+                        Fin
                     </label>
-                    <input
-                        type="date"
+                    <DateInput
                         value={endDate}
-                        onChange={(event) => setEndDate(event.target.value)}
+                        onChange={setEndDate}
+                        placeholder="Fin"
                         style={filterInputStyle}
+                        align="right"
                     />
                 </div>
 
@@ -324,12 +326,10 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                         Categoría
                     </label>
                     <select
+                        className="expenses-category-select"
                         value={categoryId}
                         onChange={(event) => setCategoryId(event.target.value)}
-                        style={{
-                            ...filterInputStyle,
-                            minWidth: 180,
-                        }}
+                        style={filterInputStyle}
                     >
                         <option value="">Todas</option>
                         {categories.map((category) => (

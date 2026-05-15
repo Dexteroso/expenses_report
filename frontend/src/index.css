@@ -416,6 +416,149 @@ body {
   opacity: 1;
 }
 
+.date-input {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.date-input-control {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  font-family: inherit;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.date-input-control span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-input-control i {
+  flex: 0 0 auto;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.date-input-control.is-placeholder span {
+  color: #9ca3af !important;
+}
+
+.date-input-control:disabled {
+  cursor: not-allowed;
+}
+
+.date-picker-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1500;
+  width: min(280px, calc(100vw - 32px));
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.18);
+  box-sizing: border-box;
+}
+
+.date-input-align-right .date-picker-popover {
+  right: 0;
+  left: auto;
+}
+
+.date-picker-header {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.date-picker-header strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-picker-header button,
+.date-picker-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #1f2937;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.date-picker-header button {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 21px;
+}
+
+.date-picker-header button:hover,
+.date-picker-day:hover {
+  background: #eef4ff;
+}
+
+.date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.date-picker-weekdays {
+  margin-bottom: 4px;
+}
+
+.date-picker-weekdays span {
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.date-picker-day,
+.date-picker-day-placeholder {
+  width: 100%;
+  height: 30px;
+}
+
+.date-picker-day {
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.date-picker-day.is-selected {
+  background: #2d7dd2;
+  color: #fff;
+  font-weight: 700;
+}
+
+.expenses-category-select {
+  min-width: 180px;
+}
+
 .expense-form-context-toast {
   position: fixed;
   top: 40px;
@@ -1150,7 +1293,8 @@ body {
 
   .responsive-field input,
   .responsive-field select,
-  .responsive-field textarea {
+  .responsive-field textarea,
+  .responsive-field .date-input-control {
     width: 100% !important;
     max-width: 100%;
     box-sizing: border-box;
@@ -1168,7 +1312,8 @@ body {
   }
 
   .expense-form-card .responsive-field input,
-  .expense-form-card .responsive-field select {
+  .expense-form-card .responsive-field select,
+  .expense-form-card .responsive-field .date-input-control {
     min-width: 0 !important;
     min-height: 30px;
   }
@@ -1269,7 +1414,32 @@ body {
     min-width: 0;
   }
 
-  .expenses-filter-field-category,
+  .expenses-filter-field-start,
+  .expenses-filter-field-end {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+  }
+
+  .expenses-filter-field-category {
+    display: flex !important;
+    align-items: center;
+    justify-self: stretch !important;
+    width: 100% !important;
+    max-width: 100%;
+    margin-top: 5px;
+    gap: 6px;
+    box-sizing: border-box;
+  }
+
+  .expenses-filter-field-category select {
+    flex: 1 1 0;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
   .expenses-filter-actions {
     grid-column: 1 / -1;
   }
@@ -1279,8 +1449,16 @@ body {
     margin-bottom: 2px;
   }
 
+  .expenses-filter-field-start label,
+  .expenses-filter-field-end label,
+  .expenses-filter-field-category label {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
   .expenses-filter-field input,
-  .expenses-filter-field select {
+  .expenses-filter-field select,
+  .expenses-filter-field .date-input-control {
     width: 100% !important;
     min-width: 0 !important;
     min-height: 30px;
@@ -1642,11 +1820,11 @@ body {
   }
 
   .expenses-filter-bar {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .expenses-filter-actions {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1657,7 +1835,9 @@ body {
     gap: 4px !important;
   }
 
-  .expense-form-card .responsive-field input[type="date"] {
+  .expense-form-card .responsive-field input[type="date"],
+  .expense-form-card .responsive-field .date-input,
+  .expense-form-card .responsive-field .date-input-control {
     display: block;
     width: 100% !important;
     min-width: 0 !important;
@@ -1668,17 +1848,26 @@ body {
   }
 
   .expenses-filter-bar {
-    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  .expenses-filter-field,
+  .expenses-filter-field-start {
+    grid-column: 1 / 2 !important;
+  }
+
+  .expenses-filter-field-end {
+    grid-column: 2 / 3 !important;
+  }
+
   .expenses-filter-field-category,
   .expenses-filter-actions {
     grid-column: 1 / -1 !important;
   }
 
   .expenses-filter-field input[type="date"],
-  .expenses-filter-field select {
+  .expenses-filter-field select,
+  .expenses-filter-field .date-input,
+  .expenses-filter-field .date-input-control {
     display: block;
     width: 100% !important;
     min-width: 0 !important;
@@ -1686,6 +1875,30 @@ body {
     box-sizing: border-box;
     -webkit-appearance: none;
     appearance: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .expenses-filter-bar .expenses-filter-field-category {
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    align-items: center !important;
+    grid-column: 1 / -1 !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 6px !important;
+    margin-top: 5px !important;
+    box-sizing: border-box !important;
+  }
+
+  .expenses-filter-bar .expenses-filter-field-category .expenses-category-select {
+    display: block !important;
+    justify-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 

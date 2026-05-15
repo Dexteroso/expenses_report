@@ -4,6 +4,7 @@ import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
 import { formatNumberForInput, parseCurrencyInput } from '../utils/formatters';
 import { typography } from '../styles/typography';
+import DateInput from './DateInput';
 
 const favoriteEmojis = ['😎', '🛒', '🍕', '🥑', '🍎', '🍔', '⛽', '☕', '🍿', '🛍️', '🏠', '🐶', '🚕', '💊', '🎵', '💳'];
 const favoriteColors = ['#ffffff', '#565294', '#9d9d9d', '#005496', '#2dafe6', '#23d2aa', '#ff7f43', '#f3f3f3', '#d9d2e9', '#f3f3f3', '#cfe2f3', '#d0e0e3', '#d9ead3', '#fce5cd'];
@@ -429,11 +430,11 @@ function AddExpenseForm({
                     <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
                         <div className="responsive-field" style={fieldStyle}>
                             <label style={labelStyle}>Fecha</label>
-                            <input
-                                type="date"
+                            <DateInput
                                 name="date"
                                 value={formData.date}
-                                onChange={handleChange}
+                                onChange={(value) => handleChange({ target: { name: 'date', value } })}
+                                placeholder="Selecciona fecha"
                                 required={!favoriteMode}
                                 disabled={favoriteMode}
                                 style={inputStyle}
