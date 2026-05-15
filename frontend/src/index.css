@@ -77,20 +77,24 @@ h1 {
   font-size: 56px;
   letter-spacing: -1.68px;
   margin: 32px 0;
+
   @media (max-width: 1024px) {
     font-size: 36px;
     margin: 20px 0;
   }
 }
+
 h2 {
   font-size: 24px;
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;
+
   @media (max-width: 1024px) {
     font-size: 20px;
   }
 }
+
 p {
   margin: 0;
 }
@@ -194,7 +198,7 @@ body {
   line-height: 1;
 }
 
-.favorite-movement-button > span {
+.favorite-movement-button>span {
   transform: translateY(1px);
 }
 
@@ -566,12 +570,13 @@ body {
 .expense-form-context-toast {
   position: fixed;
   top: 40px;
-  left: 60%;
+  left: calc(50vw + 95px);
   z-index: 1300;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
+  min-width: 210px;
   max-width: calc(100vw - 32px);
   padding: 9px 14px;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -582,6 +587,7 @@ body {
   font-weight: 700;
   line-height: 1.25;
   text-align: center;
+  white-space: nowrap;
   box-sizing: border-box;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
   pointer-events: none;
@@ -619,11 +625,16 @@ body {
 }
 
 @media (max-width: 1023px) {
+
   html,
   body,
   #root {
     max-width: 100%;
     overflow-x: hidden;
+  }
+
+  .expense-form-context-toast {
+    left: 50%;
   }
 
   #root {
@@ -709,23 +720,52 @@ body {
     inset: 0;
     z-index: 1100;
     display: block;
-    background: rgba(15, 23, 42, 0.45);
+    background: rgba(15, 23, 42, 0.28);
   }
 
   .mobile-menu-panel {
-    width: min(320px, calc(100vw - 32px));
+    width: min(190px, 54vw);
     min-height: 100dvh;
-    padding: 20px 16px;
+    padding: 16px 10px;
     box-sizing: border-box;
-    box-shadow: 18px 0 40px rgba(15, 23, 42, 0.22);
+    box-shadow: 12px 0 28px rgba(15, 23, 42, 0.16);
   }
 
   .mobile-menu-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin: 8px 0 16px;
+    gap: 8px;
+    margin: 6px 0 14px;
+  }
+
+  .mobile-menu-header h2 {
+    font-size: 16px !important;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .mobile-menu-panel .mobile-menu-close {
+    width: 34px;
+    height: 34px;
+    font-size: 22px;
+  }
+
+  .mobile-menu-panel .app-nav-list {
+    gap: 6px !important;
+    margin-top: 12px !important;
+  }
+
+  .mobile-menu-panel .app-nav-list a,
+  .mobile-menu-panel .app-nav-list button {
+    min-height: 38px;
+    padding: 8px 9px !important;
+    font-size: 13px !important;
+    box-sizing: border-box;
+  }
+
+  .mobile-menu-panel .app-nav-list i {
+    font-size: 16px !important;
   }
 
   .app-shell {
@@ -1049,10 +1089,10 @@ body {
     margin-right: 0 !important;
   }
 
-  .budget-page > .responsive-card h1,
-  .real-vs-budget-page > .responsive-card h1,
+  .budget-page>.responsive-card h1,
+  .real-vs-budget-page>.responsive-card h1,
   .accounts-card h1,
-  .activity-page > .responsive-card h1,
+  .activity-page>.responsive-card h1,
   .users-card h1 {
     text-align: center;
   }
@@ -1108,7 +1148,7 @@ body {
     width: 138px !important;
   }
 
-  .dashboard-summary-filters > div {
+  .dashboard-summary-filters>div {
     text-align: center;
   }
 
@@ -1224,8 +1264,8 @@ body {
     padding: 2px 0 3px;
   }
 
-  .dashboard-movement-row > span,
-  .dashboard-movement-row > div {
+  .dashboard-movement-row>span,
+  .dashboard-movement-row>div {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1242,7 +1282,7 @@ body {
     justify-content: flex-start !important;
   }
 
-  .responsive-filter-bar > * {
+  .responsive-filter-bar>* {
     max-width: 100%;
   }
 
@@ -1490,7 +1530,7 @@ body {
     text-align: center;
   }
 
-  .expenses-summary-strip > div {
+  .expenses-summary-strip>div {
     justify-content: center;
     gap: 8px !important;
   }
@@ -1793,8 +1833,8 @@ body {
     min-width: 0;
   }
 
-  .users-mobile-fields label > span,
-  .users-mobile-state-row > span {
+  .users-mobile-fields label>span,
+  .users-mobile-state-row>span {
     color: #7c7480;
     font-size: 10px;
     font-weight: 700;
@@ -1830,7 +1870,7 @@ body {
     background: #384f7f;
   }
 
-  .users-mobile-switch > span {
+  .users-mobile-switch>span {
     position: absolute;
     top: 2px;
     left: 2px;
@@ -1842,7 +1882,7 @@ body {
     transition: left 160ms ease;
   }
 
-  .users-mobile-switch.is-active > span {
+  .users-mobile-switch.is-active>span {
     left: 22px;
   }
 
@@ -2021,6 +2061,7 @@ body {
 }
 
 @media (max-width: 430px) {
+
   .dashboard-page,
   .dashboard-page * {
     min-width: 0;
@@ -2047,7 +2088,7 @@ body {
     box-sizing: border-box;
   }
 
-  .dashboard-summary-filters > div {
+  .dashboard-summary-filters>div {
     min-width: 0;
     max-width: 100%;
   }
