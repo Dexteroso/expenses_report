@@ -655,7 +655,7 @@ body {
     min-height: 62px;
     padding: env(safe-area-inset-top, 0px) 12px 4px;
     box-sizing: border-box;
-    background: rgba(248, 250, 252, 0.96);
+    background: #f8fafc;
     border-bottom: 1px solid #e5e0d8;
     box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
   }
@@ -1329,6 +1329,7 @@ body {
     position: static !important;
     top: auto !important;
     margin-bottom: 12px !important;
+    scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 78px);
   }
 
   .expense-form-card h1 {
@@ -1432,6 +1433,14 @@ body {
     flex: 1 1 0;
     min-width: 112px;
     width: auto;
+  }
+
+  .expense-form-card .clear-form-button.is-active {
+    background: #384f7f !important;
+    border-color: #384f7f !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    box-shadow: 0 0 0 2px rgba(56, 79, 127, 0.12);
   }
 
   .favorite-movements-list {

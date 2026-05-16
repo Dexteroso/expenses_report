@@ -102,6 +102,15 @@ function AddExpenseForm({
         parseCurrencyInput(formData.amount) > 0
     );
     const isFormValid = favoriteMode ? isFavoriteValid : isExpenseValid;
+    const hasClearableFormValues = Boolean(
+        formData.date ||
+        formData.category_id ||
+        formData.concept_id ||
+        formData.description ||
+        formData.amount ||
+        formData.account_id
+    );
+    const shouldHighlightClear = Boolean(selectedExpense || favoritePrefill || hasClearableFormValues);
 
     const showFormContextFeedback = (message) => {
         if (contextMessageTimerRef.current) {
@@ -562,7 +571,12 @@ function AddExpenseForm({
                                     </button>
                                 )}
 
-                                <button type="button" onClick={handleClearForm} style={{ ...buttonStyle, background: theme.inputDisabledBackground, color: theme.textPrimary, border: `1px solid ${theme.border}` }}>
+                                <button
+                                    type="button"
+                                    className={`clear-form-button ${shouldHighlightClear ? 'is-active' : ''}`}
+                                    onClick={handleClearForm}
+                                    style={{ ...buttonStyle, background: theme.inputDisabledBackground, color: theme.textPrimary, border: `1px solid ${theme.border}` }}
+                                >
                                     Limpiar
                                 </button>
 
