@@ -344,7 +344,8 @@ function AuthPage() {
           padding: 32,
         }}
       >
-        <div style={{ marginBottom: 24 }}>
+        <div 
+        style={{marginBottom: 24, display: 'flex', justifyContent: 'center'}}>
           <h1 style={{ margin: 0, color: theme.textPrimary, fontSize: 28, fontWeight: 700 }}>
             Expenses Report
           </h1>
