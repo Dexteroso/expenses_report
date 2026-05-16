@@ -428,7 +428,7 @@ function AddExpenseForm({
                     }}
                 >
                     <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
-                        <div className="responsive-field" style={fieldStyle}>
+                        <div className="responsive-field expense-field-date" style={fieldStyle}>
                             <label style={labelStyle}>Fecha</label>
                             <DateInput
                                 name="date"
@@ -441,7 +441,7 @@ function AddExpenseForm({
                             />
                         </div>
 
-                        <div className="responsive-field" style={fieldStyle}>
+                        <div className="responsive-field expense-field-type" style={fieldStyle}>
                             <label style={labelStyle}>Tipo</label>
                             <select
                                 name="type"
@@ -454,7 +454,7 @@ function AddExpenseForm({
                             </select>
                         </div>
 
-                        <div className="responsive-field" style={fieldStyle}>
+                        <div className="responsive-field expense-field-category" style={fieldStyle}>
                             <label style={labelStyle}>Categoría</label>
                             <select
                                 name="category_id"
@@ -474,7 +474,7 @@ function AddExpenseForm({
                             </select>
                         </div>
 
-                        <div className="responsive-field" style={fieldStyle}>
+                        <div className="responsive-field expense-field-concept" style={fieldStyle}>
                             <label style={labelStyle}>Concepto</label>
                             <select
                                 name="concept_id"
@@ -494,7 +494,7 @@ function AddExpenseForm({
                     </div>
 
                     <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
-                        <div className="responsive-field" style={fieldStyle}>
+                        <div className="responsive-field expense-field-description" style={fieldStyle}>
                             <label style={labelStyle}>Descripción</label>
                             <input
                                 type="text"
@@ -507,7 +507,7 @@ function AddExpenseForm({
                         </div>
 
                         {!favoriteMode && (
-                            <div className="responsive-field" style={fieldStyle}>
+                            <div className="responsive-field expense-field-amount" style={fieldStyle}>
                                 <label style={labelStyle}>Cantidad</label>
                                 <input
                                     type="text"
@@ -522,7 +522,7 @@ function AddExpenseForm({
                             </div>
                         )}
 
-                        <div className="responsive-field" style={fieldStyle}>
+                        <div className="responsive-field expense-field-account" style={fieldStyle}>
                             <label style={labelStyle}>Cuenta</label>
                             <select
                                 name="account_id"

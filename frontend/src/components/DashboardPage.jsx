@@ -24,6 +24,7 @@ const monthOptions = [
 function DashboardPage() {
   const theme = lightTheme;
   const dashboardKpiChartSize = useDashboardKpiChartSize();
+  const isMobileDashboard = useIsMobileDashboard();
   const pageCardStyle = {
     background: theme.surface,
     border: `1px solid ${theme.border}`,
@@ -200,41 +201,43 @@ function DashboardPage() {
         )}
       </div>
 
-      <div className="responsive-grid dashboard-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
-        <DonutKpiCard
-          theme={theme}
-          title="Ingresos"
-          percent={incomePercent}
-          primaryValue={`${formatCurrencyMXN(incomeActual)} de ${formatCurrencyMXN(incomeBudget)}`}
-          // secondaryValue={
-          //   incomeActual >= incomeBudget
-          //     ? 'Meta alcanzada'
-          //     : `Te faltan $${Number(Math.max(incomeBudget - incomeActual, 0)).toFixed(2)}`
-          // }
-          isLoading={isLoading}
-          chartSize={dashboardKpiChartSize}
-          accentColor={getIncomeKpiColor(incomePercent)}
-        />
-        <DonutKpiCard
-          theme={theme}
-          title="Presupuesto usado"
-          percent={expenseUsedPercent}
-          primaryValue={`Usaste ${formatCurrencyMXN(expenseActual)} de ${formatCurrencyMXN(expenseBudget)}`}
-          secondaryValue=""
-          isLoading={isLoading}
-          chartSize={dashboardKpiChartSize}
-          accentColor={getBudgetUsedKpiColor(expenseUsedPercent)}
-        />
-        <DonutKpiCard
-          theme={theme}
-          title="Presupuesto disponible"
-          percent={availablePercent}
-          primaryValue={`Te quedan ${formatCurrencyMXN(available)}`}
-          secondaryValue=""
-          isLoading={isLoading}
-          chartSize={dashboardKpiChartSize}
-          accentColor={getAvailableBudgetKpiColor(availablePercent, available)}
-        />
+      <div className="dashboard-kpi-mobile-shell">
+        <div className="responsive-grid dashboard-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
+          <DonutKpiCard
+            theme={theme}
+            title="Ingresos"
+            percent={incomePercent}
+            primaryValue={`${formatCurrencyMXN(incomeActual)} de ${formatCurrencyMXN(incomeBudget)}`}
+            // secondaryValue={
+            //   incomeActual >= incomeBudget
+            //     ? 'Meta alcanzada'
+            //     : `Te faltan $${Number(Math.max(incomeBudget - incomeActual, 0)).toFixed(2)}`
+            // }
+            isLoading={isLoading}
+            chartSize={dashboardKpiChartSize}
+            accentColor={getIncomeKpiColor(incomePercent)}
+          />
+          <DonutKpiCard
+            theme={theme}
+            title={isMobileDashboard ? 'Usado' : 'Presupuesto usado'}
+            percent={expenseUsedPercent}
+            primaryValue={`Usaste ${formatCurrencyMXN(expenseActual)} de ${formatCurrencyMXN(expenseBudget)}`}
+            secondaryValue=""
+            isLoading={isLoading}
+            chartSize={dashboardKpiChartSize}
+            accentColor={getBudgetUsedKpiColor(expenseUsedPercent)}
+          />
+          <DonutKpiCard
+            theme={theme}
+            title={isMobileDashboard ? 'Disponible' : 'Presupuesto disponible'}
+            percent={availablePercent}
+            primaryValue={`Te quedan ${formatCurrencyMXN(available)}`}
+            secondaryValue=""
+            isLoading={isLoading}
+            chartSize={dashboardKpiChartSize}
+            accentColor={getAvailableBudgetKpiColor(availablePercent, available)}
+          />
+        </div>
       </div>
 
       <div className="responsive-grid dashboard-section-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
@@ -504,18 +507,40 @@ function useDashboardKpiChartSize() {
   return chartSize;
 }
 
+function useIsMobileDashboard() {
+  const getIsMobile = () => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+
+  const [isMobile, setIsMobile] = useState(getIsMobile);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleChange = () => setIsMobile(mediaQuery.matches);
+
+    handleChange();
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return isMobile;
+}
+
 function getIncomeKpiColor(percent) {
-if (percent <= 100) return '#086938';
-if (percent <= 95) return '#029348';
-if (percent <= 90) return '#3AB449';
-if (percent <= 85) return '#8CC640';
-if (percent <= 80) return '#DBE026';
-if (percent <= 75) return '#FAED22';
-if (percent <= 70) return '#FBB03A';
-if (percent <= 65) return '#F79420';
-if (percent <= 60) return '#F15A27';
-if (percent <= 50) return '#EE1F28';
-  return '#2563eb';
+  if (percent > 100) return '#2563eb';
+  if (percent >= 95) return '#086938';
+  if (percent >= 90) return '#029348';
+  if (percent >= 85) return '#3AB449';
+  if (percent >= 80) return '#8CC640';
+  if (percent >= 75) return '#e0d426';
+  if (percent >= 70) return '#FAED22';
+  if (percent >= 65) return '#FBB03A';
+  if (percent >= 60) return '#F79420';
+  if (percent > 50) return '#F15A27';
+  return '#EE1F28';
 }
 
 function getBudgetUsedKpiColor(percent) {
@@ -524,7 +549,7 @@ function getBudgetUsedKpiColor(percent) {
   if (percent >= 85) return '#F79420';
   if (percent >= 80) return '#FBB03A';
   if (percent >= 75) return '#FAED22';
-  if (percent >= 70) return '#DBE026';
+  if (percent >= 70) return '#e0d426';
   if (percent >= 65) return '#8CC640';
   if (percent >= 60) return '#3AB449';
   if (percent >= 50) return '#029348';
@@ -536,7 +561,7 @@ if (percent >= 100) return '#086938';
 if (percent >= 90) return '#029348';
 if (percent >= 80) return '#3AB449';
 if (percent >= 70) return '#8CC640';
-if (percent >= 60) return '#DBE026';
+if (percent >= 60) return '#e0d426';
 if (percent >= 50) return '#FAED22';
 if (percent >= 40) return '#FBB03A';
 if (percent >= 25) return '#F79420';

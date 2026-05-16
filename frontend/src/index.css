@@ -1156,6 +1156,18 @@ body {
     text-align: center;
   }
 
+  .dashboard-page .dashboard-kpi-mobile-shell {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  }
+
   .dashboard-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 8px !important;
@@ -1180,16 +1192,19 @@ body {
     gap: 3px !important;
     padding: 7px 5px !important;
     border-radius: 10px !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
   }
 
   .dashboard-kpi-text-group {
     grid-area: text;
     align-self: start;
     justify-self: stretch;
-    justify-content: flex-start;
+    justify-content: flex-start !important;
     align-items: center;
     width: 100%;
-    height: auto;
+    min-height: 42px;
     min-width: 0;
     box-sizing: border-box;
     gap: 2px !important;
@@ -1204,7 +1219,7 @@ body {
   }
 
   .dashboard-kpi-text-group .dashboard-kpi-title {
-    font-size: 10.5px !important;
+    font-size: 12.5px !important;
     line-height: 1.1;
   }
 
@@ -1228,7 +1243,7 @@ body {
   }
 
   .dashboard-kpi-percent {
-    font-size: 15px !important;
+    font-size: 17px !important;
   }
 
   .dashboard-kpi-primary,
@@ -1237,11 +1252,11 @@ body {
   }
 
   .dashboard-kpi-primary {
-    font-size: 10.5px !important;
+    font-size: 12.5px !important;
   }
 
   .dashboard-kpi-secondary {
-    font-size: 10px !important;
+    font-size: 12px !important;
   }
 
   .dashboard-section-grid {
@@ -1255,6 +1270,7 @@ body {
   .dashboard-section-card h2 {
     font-size: 13px !important;
     margin-bottom: 6px !important;
+    padding-left: 12px !important;
   }
 
   .dashboard-list-row,
@@ -1262,6 +1278,8 @@ body {
     align-items: center;
     font-size: 11px;
     padding: 2px 0 3px;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
 
   .dashboard-movement-row>span,
@@ -1318,15 +1336,13 @@ body {
   }
 
   .expense-form-grid {
-    flex-direction: column !important;
-    gap: 6px !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
   }
 
   .expense-form-column {
-    width: 100% !important;
-    max-width: none !important;
-    flex: 1 1 auto !important;
-    gap: 6px !important;
+    display: contents !important;
   }
 
   .responsive-field {
@@ -1345,14 +1361,44 @@ body {
   }
 
   .expense-form-card .responsive-field {
-    grid-template-columns: 86px minmax(0, 1fr) !important;
-    align-items: center !important;
-    gap: 8px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    min-width: 0;
   }
 
   .expense-form-card .responsive-field label {
     min-width: 0;
     line-height: 1.2;
+  }
+
+  .expense-form-card .expense-field-date {
+    order: 1;
+  }
+
+  .expense-form-card .expense-field-type {
+    order: 2;
+  }
+
+  .expense-form-card .expense-field-category {
+    order: 3;
+  }
+
+  .expense-form-card .expense-field-concept {
+    order: 4;
+  }
+
+  .expense-form-card .expense-field-amount {
+    order: 5;
+  }
+
+  .expense-form-card .expense-field-account {
+    order: 6;
+  }
+
+  .expense-form-card .expense-field-description {
+    grid-column: 1 / -1;
+    order: 7;
   }
 
   .expense-form-card .responsive-field input,
@@ -1374,6 +1420,8 @@ body {
   }
 
   .expense-form-card .form-actions {
+    grid-column: 1 / -1;
+    order: 8;
     flex-direction: row !important;
     flex-wrap: wrap;
     gap: 6px !important;
@@ -2122,7 +2170,7 @@ body {
   }
 
   .dashboard-kpi-percent {
-    font-size: 15px !important;
+    font-size: 17px !important;
   }
 
   .dashboard-kpi-text-group {
@@ -2130,14 +2178,14 @@ body {
   }
 
   .dashboard-kpi-text-group .dashboard-kpi-title {
-    font-size: 9.5px !important;
+    font-size: 12px !important;
     line-height: 1.08;
     overflow-wrap: anywhere;
   }
 
   .dashboard-kpi-primary,
   .dashboard-kpi-secondary {
-    font-size: 9px !important;
+    font-size: 11px !important;
     line-height: 1.1;
     overflow-wrap: anywhere;
   }
