@@ -23,7 +23,7 @@ Recently completed:
 - Swagger final route documentation review
 - Mobile navigation redesign
 - Mobile movement list redesign
-- Favorite movements feature
+- Frequent movements feature (`Movimientos Frecuentes`)
 - Financial insights widget
 - Responsive/mobile optimization
 - JWT auth hardening
@@ -133,7 +133,7 @@ Main capabilities:
 - `.env.docker.example` added with local Docker defaults and demo login notes.
 - `backend/sql/init.sql` added as the Docker MySQL fresh-volume initialization script.
 - Docker MySQL initialization creates the existing app tables, category/concept catalog, one demo admin user, demo accounts, demo budgets, and demo expenses.
-- Docker MySQL initialization also creates and seeds `favorite_movements` demo presets for the Movimientos Favoritos feature.
+- Docker MySQL initialization also creates and seeds `favorite_movements` demo presets for the Movimientos Frecuentes feature.
 - `backend/sql/init.sql` is mounted into `/docker-entrypoint-initdb.d/init.sql` and runs only when the MySQL Docker volume is first created.
 - Docker demo data is enough to validate Dashboard, Movimientos, Presupuesto, Variaciones, Cuentas, and Usuarios immediately.
 - Actividad can be validated after first login because the existing MongoDB Activity module records the login event.
@@ -265,12 +265,12 @@ Technical implementation:
 - Filters (date + category)
 - CSV export
 - Delete confirmation modal
-- Movimientos Favoritos V1:
-  - users can save up to 5 favorite movement presets
+- Movimientos Frecuentes V1:
+  - users can save up to 5 frequent movement presets
   - presets store emoji, alias, color, type, category, concept, description, and account
   - presets do not store amount
-  - clicking a favorite pre-fills the existing movement form with today's date and leaves amount empty
-  - favorite creation reuses the existing AddExpenseForm in a dedicated mode
+  - clicking a frequent movement pre-fills the existing movement form with today's date and leaves amount empty
+  - frequent movement creation reuses the existing AddExpenseForm in a dedicated mode
 - Backend support:
   - `GET /api/favorite-movements`
   - `POST /api/favorite-movements`

@@ -1372,6 +1372,7 @@ body {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    padding: 8px;
     box-sizing: border-box;
     overflow: hidden;
     background: #fff;
@@ -1383,6 +1384,10 @@ body {
   .dashboard-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 8px !important;
+    place-items: start center;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .dashboard-movement-row {
@@ -1401,6 +1406,7 @@ body {
       "text";
     align-items: start !important;
     justify-items: center !important;
+    justify-self: stretch !important;
     gap: 3px !important;
     padding: 7px 5px !important;
     border-radius: 10px !important;
@@ -1438,6 +1444,7 @@ body {
   .dashboard-kpi-chart {
     grid-area: chart;
     justify-self: center;
+    margin-inline: auto;
     width: 100px !important;
     height: 100px !important;
     overflow: visible !important;
@@ -1445,6 +1452,7 @@ body {
 
   .dashboard-kpi-donut-svg {
     display: block;
+    margin-inline: auto;
     width: 100px;
     height: 100px;
     overflow: visible;
@@ -1480,7 +1488,7 @@ body {
   }
 
   .dashboard-section-card h2 {
-    font-size: 13px !important;
+    font-size: 20px !important;
     margin-bottom: 6px !important;
     padding-left: 12px !important;
   }
@@ -1645,6 +1653,20 @@ body {
     flex: 1 1 0;
     min-width: 112px;
     width: auto;
+  }
+
+  .expense-form-card .expense-edit-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex-wrap: nowrap !important;
+    width: 100%;
+  }
+
+  .expense-form-card .expense-edit-actions button {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
   }
 
   .expense-form-card .clear-form-button.is-active {
@@ -2047,7 +2069,7 @@ body {
   .users-mobile-title {
     display: block;
     min-width: 0;
-    color: #2d3142;
+    color: #384f7f;
     font-size: 13px;
     font-weight: 700;
     line-height: 1.2;
@@ -2090,22 +2112,23 @@ body {
 
   .users-mobile-fields {
     display: grid;
-    gap: 7px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .users-mobile-fields label,
   .users-mobile-state-row {
     display: grid;
-    grid-template-columns: 66px minmax(0, 1fr);
-    align-items: center;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 4px;
     min-width: 0;
   }
 
   .users-mobile-fields label>span,
   .users-mobile-state-row>span {
-    color: #7c7480;
-    font-size: 10px;
+    color: #384f7f;
+    font-size: 12px;
     font-weight: 700;
     line-height: 1.2;
   }
@@ -2113,6 +2136,28 @@ body {
   .users-mobile-fields input,
   .users-mobile-fields select {
     min-height: 32px;
+    text-align: left !important;
+  }
+
+  .users-mobile-field-name {
+    grid-column: 1 / 4;
+  }
+
+  .users-mobile-field-email {
+    grid-column: 4 / 7;
+  }
+
+  .users-mobile-field-role {
+    grid-column: 1 / 3;
+  }
+
+  .users-mobile-state-row {
+    grid-column: 3 / 5;
+  }
+
+  .users-mobile-save-button {
+    grid-column: 5 / 7;
+    min-width: 0;
   }
 
   .users-mobile-switch {
@@ -2153,6 +2198,11 @@ body {
 
   .users-mobile-switch.is-active>span {
     left: 22px;
+  }
+
+  .users-mobile-state-row,
+  .users-mobile-save-button {
+    align-self: end;
   }
 
   .users-mobile-actions {
@@ -2227,6 +2277,17 @@ body {
   .modal-content {
     width: 100% !important;
     padding: 18px !important;
+  }
+
+  .expense-delete-modal {
+    width: min(300px, calc(100vw - 56px)) !important;
+    text-align: center;
+  }
+
+  .expense-delete-modal h2,
+  .expense-delete-modal p,
+  .expense-delete-details {
+    text-align: center;
   }
 
   .auth-page {
@@ -2375,6 +2436,8 @@ body {
     gap: 5px !important;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
+    place-items: start center;
     overflow-x: hidden;
   }
 

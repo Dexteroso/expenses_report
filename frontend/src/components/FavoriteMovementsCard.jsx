@@ -21,14 +21,14 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error || 'No se pudieron cargar los favoritos.');
+        setMessage(data.error || 'No se pudieron cargar los frecuentes.');
         return;
       }
 
       setFavorites(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(error);
-      setMessage('No se pudieron cargar los favoritos.');
+      setMessage('No se pudieron cargar los frecuentes.');
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +48,7 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
 
       if (!response.ok) {
         const data = await response.json();
-        setMessage(data.error || 'No se pudo eliminar el favorito.');
+        setMessage(data.error || 'No se pudo eliminar el frecuente.');
         return;
       }
 
@@ -56,13 +56,13 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
       await fetchFavorites();
     } catch (error) {
       console.error(error);
-      setMessage('No se pudo eliminar el favorito.');
+      setMessage('No se pudo eliminar el frecuente.');
     }
   };
 
   const favoriteSlots = Array.from({ length: 5 }, (_, index) => favorites[index] || null);
   const firstEmptySlotIndex = favorites.length < 5 ? favorites.length : -1;
-  const deleteAlias = favoriteToDelete?.alias || 'este favorito';
+  const deleteAlias = favoriteToDelete?.alias || 'este frecuente';
 
   return (
     <section
@@ -79,8 +79,8 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
         boxSizing: 'border-box',
       }}
     >
-      <h2 className="favorite-movements-title" style={{ ...typography.cardTitle, marginTop: 0, marginBottom: 20 }}>
-        Movimientos Favoritos
+      <h2 className="favorite-movements-title" style={{ ...typography.sectionTitle, marginTop: 0, marginBottom: 20 }}>
+        Movimientos Frecuentes
       </h2>
 
       {message && (
@@ -89,9 +89,9 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
         </p>
       )}
 
-      <div className="favorite-movements-list" aria-label="Movimientos favoritos">
+      <div className="favorite-movements-list" aria-label="Movimientos frecuentes">
         {isLoading ? (
-          <span style={{ color: theme.textSecondary, fontSize: 12 }}>Cargando favoritos...</span>
+          <span style={{ color: theme.textSecondary, fontSize: 12 }}>Cargando frecuentes...</span>
         ) : (
           favoriteSlots.map((favorite, index) => (
             <div className="favorite-movement-item" key={favorite?.id || `empty-${index}`}>
@@ -104,7 +104,7 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
                       onApplyFavorite(favorite);
                     }
                   }}
-                  aria-label={`Usar favorito ${favorite.alias}`}
+                  aria-label={`Usar movimiento frecuente ${favorite.alias}`}
                   style={{ color: favorite.color }}
                 >
                   <span
@@ -125,7 +125,7 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
                   type="button"
                   className="favorite-movement-slot favorite-movement-empty-slot"
                   onClick={onCreateFavorite}
-                  aria-label="Agregar movimiento favorito"
+                  aria-label="Agregar movimiento frecuente"
                 >
                   <span className="favorite-movement-button favorite-movement-add">
                     <i className="bx bx-plus"></i>
@@ -143,8 +143,8 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
                     event.stopPropagation();
                     setFavoriteToDelete(favorite);
                   }}
-                  aria-label={`Eliminar favorito ${favorite.alias}`}
-                  title="Eliminar favorito"
+                  aria-label={`Eliminar movimiento frecuente ${favorite.alias}`}
+                  title="Eliminar frecuente"
                 >
                   <i className="bx bx-x"></i>
                 </button>
@@ -161,7 +161,7 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
           onClick={() => setIsEditMode((prev) => !prev)}
           disabled={isLoading || favorites.length === 0}
         >
-          {isEditMode ? 'Listo' : 'Editar favoritos'}
+          {isEditMode ? 'Listo' : 'Editar frecuentes'}
         </button>
       </div>
 
@@ -169,7 +169,7 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite }
         <div className="favorite-delete-overlay" role="dialog" aria-modal="true">
           <div className="favorite-delete-modal">
             <p className="favorite-delete-message">
-              Eliminar “{deleteAlias}” de favoritos?
+              Eliminar “{deleteAlias}” de frecuentes?
             </p>
             <div className="favorite-delete-actions">
               <button

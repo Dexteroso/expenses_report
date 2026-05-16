@@ -1,6 +1,6 @@
 # Personal Finance Management Platform
 
-Full-stack personal finance application for tracking movements, accounts, budgets, real-vs-budget variance, favorite movement presets, and audit activity. The project is designed as a production-oriented portfolio application with secure authentication, relational financial data in MySQL, complementary MongoDB activity logs, Dockerized local execution, Swagger API documentation, and responsive mobile UX validated on real iPhone devices.
+Full-stack personal finance application for tracking movements, accounts, budgets, real-vs-budget variance, frequent movement presets, and audit activity. The project is designed as a production-oriented portfolio application with secure authentication, relational financial data in MySQL, complementary MongoDB activity logs, Dockerized local execution, Swagger API documentation, and responsive mobile UX validated on real iPhone devices.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
@@ -52,8 +52,8 @@ Screenshots can be added later under `docs/screenshots/` or any preferred docume
 
 ### Productivity UX
 
-- Favorite movement presets for recurring expenses or income.
-- One-tap favorite prefill that keeps amount empty for safer entry.
+- Frequent movement presets for recurring expenses or income.
+- One-tap frequent movement prefill that keeps amount empty for safer entry.
 - Mobile-native movement list layout instead of compressed desktop tables.
 - Responsive filters, forms, cards, tables, and navigation.
 - Real-device mobile polish for iPhone Safari behavior.
@@ -205,7 +205,7 @@ The Docker MySQL init script is:
 backend/sql/init.sql
 ```
 
-It creates the app schema, category/concept catalog, a demo admin user, demo accounts, budgets, expenses, and favorite movement presets for a fresh Docker volume.
+It creates the app schema, category/concept catalog, a demo admin user, demo accounts, budgets, expenses, and frequent movement presets for a fresh Docker volume.
 
 ## Local Development Setup
 
@@ -293,7 +293,7 @@ Swagger/OpenAPI coverage includes:
 - Budgets
 - Reports
 - Activity
-- Favorite Movements
+- Favorite Movements API (used by Movimientos Frecuentes)
 - Categories
 - Concepts
 
@@ -362,7 +362,7 @@ JWT authentication, bcrypt password hashing, rate limiting, Helmet, role-based m
 
 ### Modular Backend Design
 
-Route, controller, middleware, model, and utility boundaries made it easier to add activity logging, favorite movement presets, Sequelize models, and Swagger documentation without changing unrelated features.
+Route, controller, middleware, model, and utility boundaries made it easier to add activity logging, frequent movement presets, Sequelize models, and Swagger documentation without changing unrelated features.
 
 ## Future Improvements
 
@@ -375,4 +375,3 @@ Route, controller, middleware, model, and utility boundaries made it easier to a
 - Add query performance review and indexes where needed.
 - Add backup/restore documentation for MySQL and MongoDB volumes.
 - Explore service separation or microservice evolution if traffic or ownership boundaries justify it.
-

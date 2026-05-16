@@ -586,7 +586,7 @@ function SectionCard({ title, theme, children }) {
         fontSize: 12,
       }}
     >
-      <h2 style={{ ...typography.cardTitle, marginTop: 0, marginBottom: 10 }}>
+      <h2 style={{ ...typography.sectionTitle, marginTop: 0, marginBottom: 10 }}>
         {title}
       </h2>
       {children}

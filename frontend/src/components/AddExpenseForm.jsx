@@ -213,7 +213,7 @@ function AddExpenseForm({
         });
         setConcepts([]);
         setValidationMessage('');
-        showFormContextFeedback(`Favorito “${favoritePrefill.alias || 'favorito'}” cargado`);
+        showFormContextFeedback(`Frecuente “${favoritePrefill.alias || 'frecuente'}” cargado`);
     }, [favoritePrefill]);
 
     useEffect(() => {
@@ -299,7 +299,7 @@ function AddExpenseForm({
 
         if (favoriteMode) {
             if (!isFavoriteValid) {
-                setValidationMessage('Completa los campos del favorito.');
+                setValidationMessage('Completa los campos del movimiento frecuente.');
                 return;
             }
 
@@ -322,7 +322,7 @@ function AddExpenseForm({
             const data = await response.json();
 
             if (!response.ok) {
-                setValidationMessage(data.error || 'No se pudo guardar el favorito.');
+                setValidationMessage(data.error || 'No se pudo guardar el movimiento frecuente.');
                 return;
             }
 
@@ -420,7 +420,7 @@ function AddExpenseForm({
         >
             <h1 style={{ ...typography.pageTitle, margin: 10 }}>
                 {favoriteMode
-                    ? 'Crear movimiento favorito'
+                    ? 'Crear movimiento frecuente'
                     : selectedExpense
                         ? `Editando: ${selectedExpense.expense_code}`
                         : 'Registro de movimientos'}
@@ -551,7 +551,7 @@ function AddExpenseForm({
 
                         {!favoriteMode && (
                             <div
-                                className="form-actions"
+                                className={`form-actions ${selectedExpense ? 'expense-edit-actions' : ''}`}
                                 style={{
                                     display: 'flex',
                                     gap: 10,
@@ -643,7 +643,7 @@ function AddExpenseForm({
                                     value={favoriteMeta.alias}
                                     onChange={(event) => handleFavoriteMetaChange('alias', event.target.value)}
                                     maxLength={40}
-                                    placeholder="Nombra tu favorito"
+                                    placeholder="Nombre del frecuente"
                                     style={inputStyle}
                                 />
                             </div>
@@ -691,7 +691,7 @@ function AddExpenseForm({
                             }}
                         >
                             <button type="button" onClick={handleCancelFavoriteMode} style={buttonStyle}>
-                                Cancelar favorito
+                                Cancelar
                             </button>
 
                             <button
@@ -705,7 +705,7 @@ function AddExpenseForm({
                                     cursor: !isFormValid ? 'not-allowed' : buttonStyle.cursor,
                                 }}
                             >
-                                Guardar favorito
+                                Guardar
                             </button>
                         </div>
                     </>

@@ -366,7 +366,7 @@ function UsersPage() {
               </div>
 
               <div className="users-mobile-fields">
-                <label>
+                <label className="users-mobile-field-name">
                   <span>Nombre</span>
                   <input
                     type="text"
@@ -375,7 +375,7 @@ function UsersPage() {
                     style={getInputStyle(theme)}
                   />
                 </label>
-                <label>
+                <label className="users-mobile-field-email">
                   <span>Email</span>
                   <input
                     type="email"
@@ -384,7 +384,7 @@ function UsersPage() {
                     style={getInputStyle(theme)}
                   />
                 </label>
-                <label>
+                <label className="users-mobile-field-role">
                   <span>Rol</span>
                   <select
                     value={user.role}
@@ -410,11 +410,10 @@ function UsersPage() {
                     <span />
                   </button>
                 </div>
-              </div>
 
-              <div className="users-mobile-actions">
                 <button
                   type="button"
+                  className="users-mobile-save-button"
                   onClick={() => handleSaveUser(user)}
                   disabled={Boolean(savingRows[user.id])}
                   style={{
@@ -430,6 +429,9 @@ function UsersPage() {
                 >
                   {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
                 </button>
+              </div>
+
+              <div className="users-mobile-actions">
                 {rowMessages[user.id] && (
                   <span
                     className="users-mobile-message"

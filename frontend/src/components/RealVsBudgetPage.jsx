@@ -310,7 +310,7 @@ function RealVsBudgetPage() {
             onClick={() => handleViewModeChange('monthly')}
             style={getToggleButtonStyle(theme, viewMode === 'monthly')}
           >
-            Vista mensual
+            Mensual
           </button>
           <button
             className="real-view-toggle-button"
@@ -318,7 +318,7 @@ function RealVsBudgetPage() {
             onClick={() => handleViewModeChange('annual')}
             style={getToggleButtonStyle(theme, viewMode === 'annual')}
           >
-            Vista anual
+            Acumulado
           </button>
         </div>
 

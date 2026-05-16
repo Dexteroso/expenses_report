@@ -168,7 +168,7 @@ function ActivityPage() {
           minHeight: 0,
         }}
       >
-        <h2 style={{ ...typography.cardTitle, marginTop: 0, marginBottom: 12 }}>
+        <h2 style={{ ...typography.sectionTitle, marginTop: 0, marginBottom: 12 }}>
           {selectedPeriodLabel}
         </h2>
 

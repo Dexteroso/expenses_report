@@ -127,7 +127,7 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
           justifyContent: 'center',
           zIndex: 1000
         }}>
-          <div className="modal-content" style={{
+          <div className="modal-content expense-delete-modal" style={{
             background: '#fff',
             padding: 24,
             borderRadius: 12,
@@ -139,7 +139,7 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
             <p style={{ fontSize: 11, fontWeight: 'bold', marginTop: -8, color: '#e84a4a' }}>
               Este cambio no se puede deshacer.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, fontSize: 11, marginTop: 12, marginBottom: 20 }}>
+            <div className="expense-delete-details" style={{ display: 'flex', flexDirection: 'column', gap: 0, fontSize: 11, marginTop: 12, marginBottom: 20 }}>
               <div style={{ lineHeight: 1.2 }}>ID: {expenseToDelete.expense_code}</div>
               <div style={{ lineHeight: 1.2 }}>Fecha: {expenseToDelete.date}</div>
               <div style={{ lineHeight: 1.2 }}>Concepto: {expenseToDelete.concept}</div>
