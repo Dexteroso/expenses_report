@@ -18,9 +18,20 @@ const favoriteMovementsRoutes = require('./routes/favoriteMovementsRoutes');
 
 const app = express();
 const localFrontendUrl = 'http://localhost:5173';
+const localBackendUrl = 'http://localhost:3000';
+const localBackendIpUrl = 'http://127.0.0.1:3000';
 const configuredFrontendUrl = process.env.FRONTEND_URL;
+const configuredApiUrl = process.env.API_URL;
 const allowedOrigins = new Set(
-  [localFrontendUrl, configuredFrontendUrl, configuredFrontendUrl?.replace(/\/$/, '')].filter(Boolean)
+  [
+    localFrontendUrl,
+    localBackendUrl,
+    localBackendIpUrl,
+    configuredFrontendUrl,
+    configuredFrontendUrl?.replace(/\/$/, ''),
+    configuredApiUrl,
+    configuredApiUrl?.replace(/\/$/, ''),
+  ].filter(Boolean)
 );
 
 const apiLimiter = rateLimit({

@@ -31,8 +31,11 @@ router.use(authMiddleware);
  *                 account_alias: Banamex 1677
  *                 account_type: credit
  *                 billing_cycle_end_day: 9
+ *                 created_at: 2026-05-14
  *       401:
  *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 router.get('/', getAccounts);
 
@@ -58,9 +61,11 @@ router.get('/', getAccounts);
  *                 type: string
  *               account_type:
  *                 type: string
- *                 enum: [debit, credit, cash, savings, investment]
+ *                 enum: [debit, credit]
  *               billing_cycle_end_day:
  *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 31
  *           example:
  *             bank_name: Banamex
  *             last_four: "1677"
@@ -73,11 +78,13 @@ router.get('/', getAccounts);
  *           application/json:
  *             example:
  *               message: Account created successfully
- *               id: 2
+ *               account_id: 2
  *       400:
  *         description: Validation error
  *       401:
  *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 router.post('/', createAccount);
 
@@ -99,6 +106,22 @@ router.post('/', createAccount);
  *       required: true
  *       content:
  *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [bank_name, last_four, account_type]
+ *             properties:
+ *               bank_name:
+ *                 type: string
+ *               last_four:
+ *                 type: string
+ *                 pattern: "^\\d{4}$"
+ *               account_type:
+ *                 type: string
+ *                 enum: [debit, credit]
+ *               billing_cycle_end_day:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 31
  *           example:
  *             bank_name: Santander
  *             last_four: "4603"
@@ -113,6 +136,8 @@ router.post('/', createAccount);
  *         description: Unauthorized
  *       404:
  *         description: Account not found
+ *       500:
+ *         description: Server error
  */
 router.put('/:id', updateAccount);
 
@@ -137,6 +162,8 @@ router.put('/:id', updateAccount);
  *         description: Unauthorized
  *       404:
  *         description: Account not found
+ *       500:
+ *         description: Server error
  */
 router.patch('/:id/deactivate', deactivateAccount);
 

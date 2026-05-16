@@ -4,6 +4,108 @@ const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
 const Expense = require('../models/sequelize/Expense');
 const { logActivity } = require('../utils/activityLogger');
+const {
+    isIntegerValue,
+    isPositiveNumberValue,
+    isValidDateValue,
+    isValidMonthValue,
+} = require('../utils/validators');
+
+const MAX_EXPENSE_QUERY_LIMIT = 100;
+
+const validateExpensePayload = ({
+    date,
+    type,
+    category_id,
+    concept_id,
+    description,
+    amount,
+    account_id,
+}) => {
+    if (!date || !type || !category_id || !concept_id || amount === undefined || !account_id) {
+        return 'Missing required fields';
+    }
+
+    if (!isValidDateValue(date)) {
+        return 'date must be a valid date';
+    }
+
+    if (!['income', 'expense'].includes(type)) {
+        return 'type must be income or expense';
+    }
+
+    if (!isIntegerValue(category_id)) {
+        return 'category_id must be an integer';
+    }
+
+    if (!isIntegerValue(concept_id)) {
+        return 'concept_id must be an integer';
+    }
+
+    if (!isIntegerValue(account_id)) {
+        return 'account_id must be an integer';
+    }
+
+    if (description !== undefined && typeof description !== 'string') {
+        return 'description must be a string';
+    }
+
+    if (!isPositiveNumberValue(amount)) {
+        return 'amount must be greater than 0';
+    }
+
+    return null;
+};
+
+const validateExpenseQuery = ({
+    year,
+    month,
+    start_date,
+    end_date,
+    category_id,
+    concept_id,
+    account_id,
+    type,
+    limit,
+}) => {
+    if (year && !isIntegerValue(year)) {
+        return 'year must be an integer';
+    }
+
+    if (month && !isValidMonthValue(month)) {
+        return 'month must be between 1 and 12';
+    }
+
+    if (start_date && !isValidDateValue(start_date)) {
+        return 'start_date must be a valid date';
+    }
+
+    if (end_date && !isValidDateValue(end_date)) {
+        return 'end_date must be a valid date';
+    }
+
+    if (category_id && !isIntegerValue(category_id)) {
+        return 'category_id must be an integer';
+    }
+
+    if (concept_id && !isIntegerValue(concept_id)) {
+        return 'concept_id must be an integer';
+    }
+
+    if (account_id && !isIntegerValue(account_id)) {
+        return 'account_id must be an integer';
+    }
+
+    if (type && !['income', 'expense'].includes(type)) {
+        return 'type must be income or expense';
+    }
+
+    if (limit && (!isIntegerValue(limit) || Number(limit) <= 0)) {
+        return 'limit must be a positive integer';
+    }
+
+    return null;
+};
 
 const getNextExpenseCode = async () => {
     const captureDate = new Date();
@@ -196,19 +298,21 @@ const createExpense = async (req, res) => {
             account_id,
         } = req.body;
 
+        const validationError = validateExpensePayload({
+            date,
+            type,
+            category_id,
+            concept_id,
+            description,
+            amount,
+            account_id,
+        });
+
+        if (validationError) {
+            return res.status(400).json({ error: validationError });
+        }
+
         const normalizedAmount = Number(amount);
-
-        if (!date || !type || !category_id || !concept_id || amount === undefined || !account_id) {
-            return res.status(400).json({ error: 'Missing required fields' });
-        }
-
-        if (!['income', 'expense'].includes(type)) {
-            return res.status(400).json({ error: 'type must be income or expense' });
-        }
-
-        if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
-            return res.status(400).json({ error: 'amount must be greater than 0' });
-        }
 
         const expenseCode = await getNextExpenseCode();
 
@@ -274,6 +378,11 @@ const getExpenses = async (req, res) => {
       user_id: userId,
     };
     const andConditions = [];
+    const validationError = validateExpenseQuery(req.query);
+
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
 
     if (year) {
       andConditions.push(sequelizeWhere(fn('YEAR', col('Expense.date')), Number(year)));
@@ -298,15 +407,15 @@ const getExpenses = async (req, res) => {
     }
 
     if (category_id) {
-      where.category_id = category_id;
+      where.category_id = Number(category_id);
     }
 
     if (concept_id) {
-      where.concept_id = concept_id;
+      where.concept_id = Number(concept_id);
     }
 
     if (account_id) {
-      where.account_id = account_id;
+      where.account_id = Number(account_id);
     }
 
     if (type) {
@@ -326,8 +435,8 @@ const getExpenses = async (req, res) => {
       ],
     };
 
-    if (limit && Number(limit) > 0) {
-      queryOptions.limit = Number(limit);
+    if (limit) {
+      queryOptions.limit = Math.min(Number(limit), MAX_EXPENSE_QUERY_LIMIT);
     }
 
     const rows = await Expense.findAll(queryOptions);
@@ -352,6 +461,26 @@ const updateExpense = async (req, res) => {
       amount,
       account_id,
     } = req.body;
+
+    if (!isIntegerValue(id)) {
+      return res.status(400).json({ error: 'Invalid expense id' });
+    }
+
+    const validationError = validateExpensePayload({
+      date,
+      type,
+      category_id,
+      concept_id,
+      description,
+      amount,
+      account_id,
+    });
+
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const normalizedAmount = Number(amount);
     const beforeDetails = await getExpenseActivityDetails(id, userId);
 
     const [affectedRows] = await Expense.update(
@@ -361,7 +490,7 @@ const updateExpense = async (req, res) => {
         category_id,
         concept_id,
         description,
-        amount,
+        amount: normalizedAmount,
         account_id,
       },
       {
@@ -408,6 +537,11 @@ const deleteExpense = async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+
+    if (!isIntegerValue(id)) {
+      return res.status(400).json({ error: 'Invalid expense id' });
+    }
+
     const activityDetails = await getExpenseActivityDetails(id, userId);
 
     const deletedRows = await Expense.destroy({

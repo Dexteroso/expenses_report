@@ -3,8 +3,39 @@ const Budget = require('../models/sequelize/Budget');
 const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
 const { logActivity } = require('../utils/activityLogger');
+const {
+  isIntegerValue,
+  isNonNegativeNumberValue,
+  isValidMonthValue,
+} = require('../utils/validators');
 
 const months = Array.from({ length: 12 }, (_, index) => index + 1);
+
+const validateBudgetPayload = (year, items) => {
+  if (!isIntegerValue(year)) {
+    return 'year must be an integer';
+  }
+
+  if (!Array.isArray(items)) {
+    return 'items must be an array';
+  }
+
+  for (const item of items) {
+    if (!isIntegerValue(item?.concept_id)) {
+      return 'Each budget item must include an integer concept_id';
+    }
+
+    if (!isValidMonthValue(item?.month)) {
+      return 'Each budget item month must be between 1 and 12';
+    }
+
+    if (!isNonNegativeNumberValue(item?.amount)) {
+      return 'Each budget item amount must be greater than or equal to 0';
+    }
+  }
+
+  return null;
+};
 
 const getBudgetChangeDetails = async (transaction, userId, year, items) => {
   const changes = [];
@@ -65,6 +96,12 @@ const getBudgets = async (req, res) => {
       return res.status(400).json({ error: 'year is required' });
     }
 
+    if (!isIntegerValue(year)) {
+      return res.status(400).json({ error: 'year must be an integer' });
+    }
+
+    const normalizedYear = Number(year);
+
     const categories = await Category.findAll({
       attributes: ['id', 'name', 'type'],
       include: [
@@ -81,7 +118,7 @@ const getBudgets = async (req, res) => {
               required: false,
               where: {
                 user_id: userId,
-                year,
+                year: normalizedYear,
               },
             },
           ],
@@ -133,32 +170,44 @@ const getBudgets = async (req, res) => {
 };
 
 const saveBudgets = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  let transaction;
 
   try {
     const userId = req.user.id;
     const { year, items } = req.body;
+    const validationError = validateBudgetPayload(year, items);
 
-    if (!year || !Array.isArray(items)) {
-      await transaction.rollback();
-      return res.status(400).json({ error: 'year and items are required' });
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
 
     if (items.length === 0) {
-      await transaction.rollback();
       return res.json({ message: 'No budget changes to save', saved: 0 });
     }
 
-    const budgetChanges = await getBudgetChangeDetails(transaction, userId, year, items);
+    const normalizedYear = Number(year);
+    const normalizedItems = items.map((item) => ({
+      concept_id: Number(item.concept_id),
+      month: Number(item.month),
+      amount: Number(item.amount),
+    }));
+    transaction = await sequelize.transaction();
 
-    for (const item of items) {
+    const budgetChanges = await getBudgetChangeDetails(
+      transaction,
+      userId,
+      normalizedYear,
+      normalizedItems
+    );
+
+    for (const item of normalizedItems) {
       await Budget.upsert(
         {
           user_id: userId,
           concept_id: item.concept_id,
-          year,
+          year: normalizedYear,
           month: item.month,
-          amount: Number(item.amount) || 0,
+          amount: item.amount,
         },
         {
           transaction,
@@ -174,10 +223,10 @@ const saveBudgets = async (req, res) => {
       user: req.user,
       eventType: 'budget.updated',
       entityType: 'budget',
-      entityId: year,
+      entityId: normalizedYear,
       description: 'Budget updated',
       metadata: {
-        year,
+        year: normalizedYear,
         savedCount: items.length,
         changes: budgetChanges,
         month: firstChange?.month,
@@ -193,7 +242,10 @@ const saveBudgets = async (req, res) => {
       saved: items.length,
     });
   } catch (error) {
-    await transaction.rollback();
+    if (transaction) {
+      await transaction.rollback().catch(() => {});
+    }
+
     console.error(error);
     res.status(500).json({ error: 'Error saving budgets' });
   }

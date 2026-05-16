@@ -1,22 +1,41 @@
 # Expenses Report — Project Status
 
 ## Current phase
-Week 3 of 5 (Backend Node.js project)
+Week 5 of 5 (Final integration and delivery phase)
 
 Current focus:
-- Stabilization
-- Backend validation
-- Basic automated testing
-- Middleware audit
-- Documentation readiness
-- Security checklist
-- UI consistency
+- Production stabilization
+- Real-device responsive polish
+- Security hardening
+- Final documentation
+- Presentation readiness
+- Testing expansion
+- Deployment validation
+- Performance and monitoring review
+- UX/UI consistency
 
-Deferred (later course topics):
-- Docker
-- Microservices
-- Deployment
-- Monitoring / profiling
+Recently completed:
+- Minimal backend security hardening from final review
+- npm audit review completed with 0 vulnerabilities
+- Dockerized multi-service architecture
+- VPS production deployment (DigitalOcean)
+- Real iPhone responsive validation
+- Swagger final route documentation review
+- Mobile navigation redesign
+- Mobile movement list redesign
+- Favorite movements feature
+- Financial insights widget
+- Responsive/mobile optimization
+- JWT auth hardening
+- Rate limiting + helmet
+- Activity/audit logging module
+
+Remaining goals before final delivery:
+- README professionalization
+- Final screenshots and demo material
+- Monitoring/profiling documentation
+- Architecture explanation
+- Reflection/documentation deliverables
 
 ---
 
@@ -66,6 +85,34 @@ Main capabilities:
 - Backend CORS supports cloud frontend deployment through `FRONTEND_URL`.
 - Swagger server URL can be configured with `API_URL`.
 - App is prepared for separate frontend/backend cloud deployment without changing API routes.
+- Production startup now validates required environment variables and fails fast without printing secret values.
+- Production deployments must override Docker demo/default secrets with explicit environment values.
+
+### Swagger / OpenAPI documentation
+- Swagger final route documentation review completed.
+- Swagger tags are defined for:
+  - Auth
+  - Users
+  - Expenses
+  - Accounts
+  - Budgets
+  - Reports
+  - Activity
+  - Favorite Movements
+  - Categories
+  - Concepts
+- Missing route docs added for:
+  - Activity
+  - Favorite Movements
+  - Categories
+  - Concepts
+- Protected endpoints document bearer JWT auth.
+- Public catalog/auth endpoints explicitly opt out of bearer auth where appropriate.
+- Request bodies, query parameters, path parameters, examples, and relevant error responses were reviewed.
+- Validation after Swagger review:
+  - OpenAPI spec generates successfully: 20 paths / 25 operations
+  - `/api-docs/` responds with HTTP 200 in local smoke test
+  - Backend tests pass: 7 suites / 39 tests
 
 ### Local Docker Compose
 - Docker Compose added for local multi-service execution.
@@ -205,6 +252,13 @@ Technical implementation:
 - `API_BASE_URL` uses `import.meta.env.VITE_API_URL || 'http://localhost:3000'`.
 - Netlify SPA routing is supported with `frontend/public/_redirects` containing `/* /index.html 200`.
 - Local development continues to work through the localhost fallback.
+- Production frontend successfully deployed on DigitalOcean VPS.
+- Application validated from real iPhone Safari sessions.
+- Mobile navigation drawer redesigned for mobile-native UX.
+- Mobile KPI donut cards optimized for narrow screens.
+- Mobile Movimientos layout redesigned from desktop table into stacked mobile rows.
+- Mobile header/safe-area spacing optimized for iPhone notch devices.
+- Mobile date filter overflow issues corrected.
 
 ### Movimientos
 - Create / Edit / Delete
@@ -224,6 +278,10 @@ Technical implementation:
   - favorites are scoped by `req.user.id`
 - Sorted DESC (latest first)
 - Backend controller migrated from raw mysql2 queries to Sequelize in Phase 2
+- Mobile movement list redesign:
+  - desktop table preserved on desktop
+  - mobile uses stacked responsive movement rows
+  - edit action optimized for touch interaction
 
 ### Presupuesto
 - Editable grid
@@ -243,6 +301,8 @@ Technical implementation:
 - KPI donut cards
 - Top categories
 - Latest movements
+- Financial Insights widget integrated.
+- Mobile KPI donut responsiveness optimized.
 
 ### Cuentas
 - Create
@@ -294,6 +354,22 @@ body {
 - No global horizontal scroll
 - Sticky headers when needed
 
+### Mobile responsiveness
+Implemented and validated on real iPhone devices:
+- responsive header redesign
+- safe-area notch handling
+- responsive dashboard KPI cards
+- responsive filters/forms
+- responsive mobile navigation drawer
+- responsive movement list redesign
+- overflow prevention
+- viewport fixes
+- real-device Safari validation
+
+Important finding:
+- Chrome responsive emulation did not fully match real iPhone Safari behavior.
+- Final responsive validation was performed on real mobile hardware.
+
 ---
 
 ## Typography (pending standardization)
@@ -318,6 +394,7 @@ Current issue:
 
 ## Latest verification
 - Backend `npm test`: 7 suites / 39 tests passing.
+- Backend `npm audit`: 0 vulnerabilities.
 - Frontend `npm run build`: passing.
 - `docker compose config`: passing.
 - Inputs do NOT include currency symbol while editing
@@ -337,11 +414,12 @@ Implemented:
 - SQL placeholders
 - no password in responses
 - soft delete (users/accounts)
+- production startup environment validation
+- stricter expense, budget, report, concept, and user ID validation
+- npm audit completed with 0 vulnerabilities
 
 Pending:
-- npm audit
 - XSS sanitization review
-- middleware audit (all endpoints)
 
 ---
 
@@ -451,18 +529,27 @@ Rules:
 
 ## Known gaps / next steps
 
-Immediate:
-- Middleware audit
-- Backend validation audit (POST/PUT)
-- Typography standardization
-- BudgetPage scroll behavior alignment
+High priority before final delivery:
+- Portfolio-style final PDF
+- Final screenshots and demo video
+- Final responsive QA pass
+- Architecture diagrams/documentation
+- Reflection and technical reasoning write-up
+- Presentation/demo preparation
 
-Later (course requirement):
-- Microservices
-- Deployment
-- Monitoring
-- Final documentation
-- Presentation
+Medium priority:
+- Typography standardization
+- Monitoring/profiling documentation
+- PM2/process management evaluation
+- Backend performance review
+- Query optimization review
+- Centralized logging review
+
+Stretch goals:
+- Service separation planning
+- Future microservice roadmap
+- CI/CD pipeline exploration
+- Automated deployment workflow
 
 ---
 
@@ -489,12 +576,31 @@ Must include:
 - Security explanation
 - Testing explanation
 - Reflection
+- Docker architecture explanation
+- VPS deployment explanation
+- Testing evidence
+- Responsive/mobile validation evidence
+- Security measures implemented
+- Architecture decisions and tradeoffs
+- Reflection on debugging and optimization process
 
 ---
 
 ## Key takeaway
 
-Project is:
-- Functionally complete for current phase
-- Strong in auth, CRUD, and UI
-- Now entering stabilization and quality phase (testing + validation)
+Project status:
+- Full-stack application deployed in production-like infrastructure
+- Dockerized multi-service architecture completed
+- Real-device mobile validation completed
+- Strong authentication/security foundation implemented
+- Modular backend architecture implemented
+- Comprehensive CRUD + reporting functionality completed
+- Automated backend testing implemented
+- Responsive/mobile UX significantly polished
+
+Current final focus:
+- delivery quality
+- documentation quality
+- presentation quality
+- production hardening
+- final validation and polish

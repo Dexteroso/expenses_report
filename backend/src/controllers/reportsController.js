@@ -3,6 +3,7 @@ const Budget = require('../models/sequelize/Budget');
 const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
 const Expense = require('../models/sequelize/Expense');
+const { isIntegerValue } = require('../utils/validators');
 
 const getRealVsBudgetReport = async (req, res) => {
   try {
@@ -12,6 +13,12 @@ const getRealVsBudgetReport = async (req, res) => {
     if (!year) {
       return res.status(400).json({ error: 'year is required' });
     }
+
+    if (!isIntegerValue(year)) {
+      return res.status(400).json({ error: 'year must be an integer' });
+    }
+
+    const normalizedYear = Number(year);
 
     const conceptRows = await Concept.findAll({
       attributes: ['id', 'name'],
@@ -33,7 +40,7 @@ const getRealVsBudgetReport = async (req, res) => {
       attributes: ['concept_id', 'month', 'amount'],
       where: {
         user_id: userId,
-        year,
+        year: normalizedYear,
       },
       raw: true,
     });
@@ -47,7 +54,7 @@ const getRealVsBudgetReport = async (req, res) => {
       where: {
         user_id: userId,
         [Op.and]: [
-          sequelizeWhere(fn('YEAR', col('date')), Number(year)),
+          sequelizeWhere(fn('YEAR', col('date')), normalizedYear),
         ],
       },
       group: ['concept_id', fn('MONTH', col('date'))],

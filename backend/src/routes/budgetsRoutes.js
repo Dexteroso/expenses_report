@@ -41,6 +41,12 @@ router.use(authMiddleware);
  *         description: Validation error
  *       401:
  *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error fetching budgets
  */
 router.get('/', getBudgets);
 
@@ -87,10 +93,17 @@ router.get('/', getBudgets);
  *           application/json:
  *             example:
  *               message: Budgets saved successfully
+ *               saved: 1
  *       400:
  *         description: Validation error
  *       401:
  *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error saving budgets
  */
 router.put('/', saveBudgets);
 

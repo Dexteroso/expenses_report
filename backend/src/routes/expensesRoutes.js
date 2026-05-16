@@ -63,6 +63,12 @@ router.use(authMiddleware);
  *           type: string
  *           enum: [income, expense]
  *         example: expense
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         example: 5
  *     responses:
  *       200:
  *         description: List of expenses
@@ -90,6 +96,12 @@ router.use(authMiddleware);
  *           application/json:
  *             example:
  *               error: Authentication token missing
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error fetching expenses
  */
 router.get('/', getExpenses);
 
@@ -140,7 +152,7 @@ router.get('/', getExpenses);
  *           application/json:
  *             example:
  *               message: Expense created successfully
- *               id: 12
+ *               expense_id: 12
  *               expense_code: EX260428001
  *       400:
  *         description: Validation error
@@ -150,6 +162,12 @@ router.get('/', getExpenses);
  *               error: Missing required fields
  *       401:
  *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error creating expense
  */
 router.post('/', createExpense);
 
@@ -213,6 +231,12 @@ router.post('/', createExpense);
  *         description: Unauthorized
  *       404:
  *         description: Expense not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error updating expense
  */
 router.put('/:id', updateExpense);
 
@@ -242,6 +266,12 @@ router.put('/:id', updateExpense);
  *         description: Unauthorized
  *       404:
  *         description: Expense not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error deleting expense
  */
 router.delete('/:id', deleteExpense);
 

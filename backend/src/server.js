@@ -1,3 +1,7 @@
+const { validateStartupEnv } = require('./config/validateEnv');
+
+validateStartupEnv();
+
 const app = require('./app');
 const connectMongo = require('./config/mongo');
 

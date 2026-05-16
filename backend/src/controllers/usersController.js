@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { logActivity } = require('../utils/activityLogger');
+const { isIntegerValue } = require('../utils/validators');
 
 const buildChangedFields = (beforeUser, afterUser) => {
   const fieldComparisons = [
@@ -45,6 +46,10 @@ const updateUser = async (req, res) => {
     const adminUserId = req.user.id;
     const { id } = req.params;
     const { name, email, role, is_active } = req.body;
+
+    if (!isIntegerValue(id)) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
 
     if (role && !['admin', 'user'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
@@ -198,6 +203,10 @@ const deactivateUser = async (req, res) => {
     const adminUserId = req.user.id;
     const { id } = req.params;
 
+    if (!isIntegerValue(id)) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+
     if (Number(id) === adminUserId) {
       return res.status(400).json({ error: 'Cannot deactivate your own account' });
     }
@@ -249,6 +258,11 @@ const deactivateUser = async (req, res) => {
 const activateUser = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!isIntegerValue(id)) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+
     const [targetRows] = await pool.query(
       `
       SELECT id, name, email, role

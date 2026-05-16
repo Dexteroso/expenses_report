@@ -2,10 +2,23 @@ const mockCreate = jest.fn();
 const mockLean = jest.fn();
 const mockSort = jest.fn(() => ({ lean: mockLean }));
 const mockFind = jest.fn(() => ({ sort: mockSort }));
+const mockExpenseCreate = jest.fn();
+const mockExpenseFindOne = jest.fn();
+const mockExpenseFindAll = jest.fn();
+const mockExpenseUpdate = jest.fn();
+const mockExpenseDestroy = jest.fn();
 
 jest.mock('../src/models/activityLogModel', () => ({
   create: (...args) => mockCreate(...args),
   find: (...args) => mockFind(...args),
+}));
+
+jest.mock('../src/models/sequelize/Expense', () => ({
+  create: (...args) => mockExpenseCreate(...args),
+  findOne: (...args) => mockExpenseFindOne(...args),
+  findAll: (...args) => mockExpenseFindAll(...args),
+  update: (...args) => mockExpenseUpdate(...args),
+  destroy: (...args) => mockExpenseDestroy(...args),
 }));
 
 const mongoose = require('mongoose');
@@ -79,6 +92,15 @@ describe('Activity endpoints', () => {
     mockSort.mockClear();
     mockLean.mockReset();
     mockLean.mockResolvedValue([]);
+    mockExpenseCreate.mockReset();
+    mockExpenseFindOne.mockReset();
+    mockExpenseFindAll.mockReset();
+    mockExpenseUpdate.mockReset();
+    mockExpenseDestroy.mockReset();
+    mockExpenseCreate.mockResolvedValue({
+      id: 900001,
+    });
+    mockExpenseFindOne.mockResolvedValue(null);
   });
 
   afterAll(async () => {

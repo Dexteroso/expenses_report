@@ -40,6 +40,12 @@ router.use(authMiddleware);
  *         description: Validation error
  *       401:
  *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error fetching real vs budget report
  */
 router.get('/real-vs-budget', getRealVsBudgetReport);
 

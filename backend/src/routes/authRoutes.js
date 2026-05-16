@@ -58,9 +58,18 @@ const router = express.Router();
  *               passwordTooShort:
  *                 value:
  *                   error: Password must be at least 8 characters
- *               duplicateEmail:
- *                 value:
- *                   error: Email already exists
+ *       409:
+ *         description: Email already exists
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Email already exists
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error registering user
  */
 router.post('/register', register);
 
@@ -113,13 +122,25 @@ router.post('/register', register);
  *         description: Invalid credentials
  *         content:
  *           application/json:
+ *             example:
+ *               error: Invalid email or password
+ *       403:
+ *         description: User is inactive
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: User is inactive
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
  *             examples:
- *               invalidCredentials:
+ *               jwtSecretMissing:
  *                 value:
- *                   error: Invalid email or password
- *               inactiveUser:
+ *                   error: JWT secret is not configured
+ *               loginError:
  *                 value:
- *                   error: User is inactive
+ *                   error: Error logging in
  */
 router.post('/login', login);
 
@@ -164,6 +185,12 @@ router.post('/login', login);
  *           application/json:
  *             example:
  *               error: Email is required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error generating reset token
  */
 router.post('/forgot-password', forgotPassword);
 
@@ -210,6 +237,12 @@ router.post('/forgot-password', forgotPassword);
  *               invalidToken:
  *                 value:
  *                   error: Invalid or expired reset token
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error resetting password
  */
 router.post('/reset-password', resetPassword);
 

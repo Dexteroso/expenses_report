@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { isIntegerValue } = require('../utils/validators');
 
 const getConcepts = async (req, res) => {
   try {
@@ -12,6 +13,10 @@ const getConcepts = async (req, res) => {
     let params = [];
 
     if (category_id) {
+      if (!isIntegerValue(category_id)) {
+        return res.status(400).json({ error: 'category_id must be an integer' });
+      }
+
       query += ' WHERE category_id = ?';
       params.push(category_id);
     }

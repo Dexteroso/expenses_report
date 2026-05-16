@@ -37,6 +37,12 @@ router.use(adminMiddleware);
  *         description: Unauthorized
  *       403:
  *         description: Admin access required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error fetching users
  */
 router.get('/', getUsers);
 
@@ -98,6 +104,18 @@ router.get('/', getUsers);
  *         description: Admin access required
  *       404:
  *         description: User not found
+ *       409:
+ *         description: Email already exists
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Email already exists
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error updating user
  */
 router.put('/:id', updateUser);
 
@@ -125,10 +143,22 @@ router.put('/:id', updateUser);
  *               message: User deactivated successfully
  *       401:
  *         description: Unauthorized
+ *       400:
+ *         description: Cannot deactivate own account
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Cannot deactivate your own account
  *       403:
  *         description: Admin access required
  *       404:
  *         description: User not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error deactivating user
  */
 router.patch('/:id/deactivate', deactivateUser);
 
@@ -160,6 +190,12 @@ router.patch('/:id/deactivate', deactivateUser);
  *         description: Admin access required
  *       404:
  *         description: User not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             example:
+ *               error: Error activating user
  */
 router.patch('/:id/activate', activateUser);
 
