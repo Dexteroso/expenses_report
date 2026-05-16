@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
@@ -71,9 +71,13 @@ function BudgetPage() {
   const [year, setYear] = useState(2026);
   const [budgetRows, setBudgetRows] = useState([]);
   const [pendingChanges, setPendingChanges] = useState({});
+  const [clearedZeroCells, setClearedZeroCells] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const summaryScrollRef = useRef(null);
+  const detailScrollRef = useRef(null);
+  const isSyncingScrollRef = useRef(false);
 
   const fetchBudgets = async (targetYear) => {
     setIsLoading(true);
@@ -89,6 +93,7 @@ function BudgetPage() {
       const data = await response.json();
       setBudgetRows(data);
       setPendingChanges({});
+      setClearedZeroCells(new Set());
     } catch (fetchError) {
       console.error(fetchError);
       setError('No se pudo cargar el presupuesto.');
@@ -118,6 +123,10 @@ function BudgetPage() {
       return pendingChanges[key];
     }
 
+    if (clearedZeroCells.has(key)) {
+      return '';
+    }
+
     return formatNumberForInput(getOriginalAmount(conceptId, month));
   };
 
@@ -131,6 +140,26 @@ function BudgetPage() {
     const normalizedInput = String(value).replaceAll(',', '').replaceAll('$', '').trim();
     const normalizedValue = parseCurrencyInput(value);
 
+    if (!normalizedInput && originalAmount === 0) {
+      setClearedZeroCells((prev) => {
+        if (prev.has(key)) return prev;
+
+        const nextClearedCells = new Set(prev);
+        nextClearedCells.add(key);
+        return nextClearedCells;
+      });
+    }
+
+    if (normalizedInput) {
+      setClearedZeroCells((prev) => {
+        if (!prev.has(key)) return prev;
+
+        const nextClearedCells = new Set(prev);
+        nextClearedCells.delete(key);
+        return nextClearedCells;
+      });
+    }
+
     setPendingChanges((prev) => {
       const nextChanges = { ...prev };
 
@@ -141,6 +170,49 @@ function BudgetPage() {
 
       nextChanges[key] = formatNumberForInput(normalizedInput);
       return nextChanges;
+    });
+  };
+
+  const handleCellFocus = (conceptId, month) => {
+    const key = getCellKey(conceptId, month);
+    const currentValue = getCellValue(conceptId, month);
+
+    if (String(currentValue).trim() !== '' && parseCurrencyInput(currentValue) === 0) {
+      setClearedZeroCells((prev) => {
+        if (prev.has(key)) return prev;
+
+        const nextClearedCells = new Set(prev);
+        nextClearedCells.add(key);
+        return nextClearedCells;
+      });
+    }
+  };
+
+  const handleCellBlur = (conceptId, month) => {
+    const key = getCellKey(conceptId, month);
+
+    setClearedZeroCells((prev) => {
+      if (!prev.has(key)) return prev;
+
+      const nextClearedCells = new Set(prev);
+      nextClearedCells.delete(key);
+      return nextClearedCells;
+    });
+  };
+
+  const syncBudgetScroll = (source) => {
+    const sourceElement = source === 'summary' ? summaryScrollRef.current : detailScrollRef.current;
+    const targetElement = source === 'summary' ? detailScrollRef.current : summaryScrollRef.current;
+
+    if (!sourceElement || !targetElement || isSyncingScrollRef.current) {
+      return;
+    }
+
+    isSyncingScrollRef.current = true;
+    targetElement.scrollLeft = sourceElement.scrollLeft;
+
+    window.requestAnimationFrame(() => {
+      isSyncingScrollRef.current = false;
     });
   };
 
@@ -305,11 +377,11 @@ function BudgetPage() {
         overflow: 'hidden',
       }}
     >
-      <div className="responsive-card" style={cardStyle}>
+      <div className="responsive-card budget-top-card" style={cardStyle}>
         <h1 style={pageTitleStyle}>Presupuesto</h1>
-        <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
-            <div style={{ display: 'grid', gap: 4 }}>
+        <div className="responsive-filter-bar budget-top-controls" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+          <div className="budget-year-and-pending" style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
+            <div className="budget-year-control" style={{ display: 'grid', gap: 4 }}>
               <label style={labelStyle}>Año</label>
               <input
                 type="number"
@@ -319,12 +391,13 @@ function BudgetPage() {
               />
             </div>
 
-            <span style={{ color: theme.textSecondary, fontSize: 12, paddingBottom: 6 }}>
+            <span className="budget-pending-count" style={{ color: theme.textSecondary, fontSize: 12, paddingBottom: 6 }}>
               Cambios pendientes: {pendingChangesCount}
             </span>
           </div>
 
           <button
+            className="budget-save-button"
             type="button"
             onClick={handleSaveChanges}
             disabled={pendingChangesCount === 0 || isSaving}
@@ -356,7 +429,12 @@ function BudgetPage() {
         {isLoading ? (
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
         ) : (
-          <div className="table-scroll budget-table-scroll" style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', boxSizing: 'border-box', display: 'block' }}>
+          <div
+            ref={summaryScrollRef}
+            className="table-scroll budget-table-scroll"
+            onScroll={() => syncBudgetScroll('summary')}
+            style={{ width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'auto', overflowY: 'hidden', boxSizing: 'border-box', display: 'block' }}
+          >
             <table className="budget-table" style={{ width: '100%', minWidth: budgetTableMinWidth, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
               <BudgetTableColGroup />
               <thead style={{ fontSize: 12, color: theme.textSecondary }}>
@@ -395,6 +473,7 @@ function BudgetPage() {
                   annualTotal={balanceAnnualTotal}
                   theme={theme}
                   textColor={theme.textPrimary}
+                  highlightNegative
                 />
               </tbody>
             </table>
@@ -427,6 +506,8 @@ function BudgetPage() {
             </div>
             <div
               className="table-scroll budget-table-scroll budget-detail-scroll"
+              ref={detailScrollRef}
+              onScroll={() => syncBudgetScroll('detail')}
               style={{
                 width: '100%',
                 maxWidth: '100%',
@@ -470,6 +551,8 @@ function BudgetPage() {
                         getCellValue={getCellValue}
                         getConceptAnnualTotal={getConceptAnnualTotal}
                         handleCellChange={handleCellChange}
+                        handleCellFocus={handleCellFocus}
+                        handleCellBlur={handleCellBlur}
                         theme={theme}
                       />
                     );
@@ -534,10 +617,10 @@ function StickyHeaderCell({ children, align, sticky, theme, stickyTop = false })
   );
 }
 
-function StickySummaryCell({ children, align, sticky, theme, textColor }) {
+function StickySummaryCell({ children, align, sticky, theme, textColor, className = '' }) {
   return (
     <td
-      className={sticky ? `budget-summary-cell budget-sticky-cell budget-sticky-${sticky}` : 'budget-summary-cell'}
+      className={`${sticky ? `budget-summary-cell budget-sticky-cell budget-sticky-${sticky}` : 'budget-summary-cell'}${className ? ` ${className}` : ''}`}
       style={{
         ...getStickyCellStyle(theme, sticky),
         padding: '0px 8px',
@@ -596,10 +679,20 @@ function getStickyCellStyle(theme, sticky, isHeader = false) {
   return {};
 }
 
-function SummaryRow({ label, monthlyTotals, annualTotal, theme, textColor }) {
+function SummaryRow({ label, monthlyTotals, annualTotal, theme, textColor, highlightNegative = false }) {
+  const getValueClassName = (amount) => (
+    highlightNegative && amount < 0 ? 'financial-negative-value' : ''
+  );
+
   return (
     <tr>
-      <StickySummaryCell align="center" sticky="left" theme={theme} textColor={textColor}>
+      <StickySummaryCell
+        align="center"
+        sticky="left"
+        theme={theme}
+        textColor={textColor}
+        className={getValueClassName(annualTotal)}
+      >
         {label}
       </StickySummaryCell>
       {monthlyTotals.map((amount, index) => (
@@ -608,11 +701,18 @@ function SummaryRow({ label, monthlyTotals, annualTotal, theme, textColor }) {
           align="center"
           theme={theme}
           textColor={textColor}
+          className={getValueClassName(amount)}
         >
           {formatCurrencyMXN(amount)}
         </StickySummaryCell>
       ))}
-      <StickySummaryCell align="center" sticky="right" theme={theme} textColor={textColor}>
+      <StickySummaryCell
+        align="center"
+        sticky="right"
+        theme={theme}
+        textColor={textColor}
+        className={getValueClassName(annualTotal)}
+      >
         {formatCurrencyMXN(annualTotal)}
       </StickySummaryCell>
     </tr>
@@ -626,6 +726,8 @@ function FragmentRows({
   getCellValue,
   getConceptAnnualTotal,
   handleCellChange,
+  handleCellFocus,
+  handleCellBlur,
   theme,
 }) {
   return (
@@ -670,9 +772,11 @@ function FragmentRows({
                 type="text"
                 inputMode="decimal"
                 value={getCellValue(concept.concept_id, monthIndex + 1)}
+                onFocus={() => handleCellFocus(concept.concept_id, monthIndex + 1)}
                 onChange={(event) =>
                   handleCellChange(concept.concept_id, monthIndex + 1, event.target.value)
                 }
+                onBlur={() => handleCellBlur(concept.concept_id, monthIndex + 1)}
                 style={{
                   width: '100%',
                   minWidth: 84,

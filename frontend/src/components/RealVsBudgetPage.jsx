@@ -290,7 +290,7 @@ function RealVsBudgetPage() {
       }}
     >
       <div
-        className="responsive-card"
+        className="responsive-card real-top-card"
         style={{
           ...cardStyle,
           display: 'flex',
@@ -303,8 +303,9 @@ function RealVsBudgetPage() {
           Variaciones
         </h1>
 
-        <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, width: '100%', maxWidth: '100%', minWidth: 0 }}>
+        <div className="responsive-filter-bar real-view-toggle-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, width: '100%', maxWidth: '100%', minWidth: 0 }}>
           <button
+            className="real-view-toggle-button"
             type="button"
             onClick={() => handleViewModeChange('monthly')}
             style={getToggleButtonStyle(theme, viewMode === 'monthly')}
@@ -312,6 +313,7 @@ function RealVsBudgetPage() {
             Vista mensual
           </button>
           <button
+            className="real-view-toggle-button"
             type="button"
             onClick={() => handleViewModeChange('annual')}
             style={getToggleButtonStyle(theme, viewMode === 'annual')}
@@ -320,9 +322,10 @@ function RealVsBudgetPage() {
           </button>
         </div>
 
-        <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 30, width: '100%', maxWidth: '100%', minWidth: 0 }}>
-          <label style={labelStyle}>Año</label>
+        <div className={`responsive-filter-bar real-filters-bar real-filters-${viewMode}`} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 30, width: '100%', maxWidth: '100%', minWidth: 0 }}>
+          <label className="real-filter-label real-year-label" style={labelStyle}>Año</label>
           <input
+            className="real-filter-control real-year-input"
             type="number"
             value={year}
             onChange={(event) => setYear(Number(event.target.value) || 2026)}
@@ -331,8 +334,9 @@ function RealVsBudgetPage() {
 
           {viewMode === 'monthly' && (
             <>
-              <label style={labelStyle}>Mes</label>
+              <label className="real-filter-label real-month-label" style={labelStyle}>Mes</label>
               <select
+                className="real-filter-control real-month-input"
                 value={selectedMonth}
                 onChange={(event) => setSelectedMonth(Number(event.target.value))}
                 style={getControlStyle(theme, 180)}
@@ -350,6 +354,7 @@ function RealVsBudgetPage() {
             <>
               {periodType === 'quarter' ? (
                 <select
+                  className="real-period-control real-quarter-control"
                   value={selectedQuarter ?? 1}
                   onChange={(event) => {
                     setPeriodType('quarter');
@@ -365,6 +370,7 @@ function RealVsBudgetPage() {
                 </select>
               ) : (
                 <button
+                  className="real-period-control real-quarter-control"
                   type="button"
                   onClick={() => handlePeriodTypeChange('quarter')}
                   style={getToggleButtonStyle(theme, false)}
@@ -375,6 +381,7 @@ function RealVsBudgetPage() {
 
               {periodType === 'semester' ? (
                 <select
+                  className="real-period-control real-semester-control"
                   value={selectedSemester ?? 1}
                   onChange={(event) => {
                     setPeriodType('semester');
@@ -388,6 +395,7 @@ function RealVsBudgetPage() {
                 </select>
               ) : (
                 <button
+                  className="real-period-control real-semester-control"
                   type="button"
                   onClick={() => handlePeriodTypeChange('semester')}
                   style={getToggleButtonStyle(theme, false)}
@@ -397,17 +405,19 @@ function RealVsBudgetPage() {
               )}
 
               <button
+                className="real-period-control real-ytd-button"
                 type="button"
                 onClick={() => handlePeriodTypeChange('ytd')}
                 style={getToggleButtonStyle(theme, periodType === 'ytd')}
               >
-                YTD
+                Anual
               </button>
 
               {periodType === 'ytd' && (
                 <>
-                  <label style={labelStyle}>Hasta mes</label>
+                  <label className="real-filter-label real-until-label" style={labelStyle}>Hasta mes</label>
                   <select
+                    className="real-period-control real-until-month-input"
                     value={selectedMonth}
                     onChange={(event) => setSelectedMonth(Number(event.target.value))}
                     style={getControlStyle(theme, 180)}
@@ -436,9 +446,9 @@ function RealVsBudgetPage() {
           <KpiGroup
             title="Flujo de Efectivo"
             items={[
-              { label: 'Ingresos reales', value: incomeMetrics.actual },
-              { label: 'Gastos reales', value: expenseMetrics.actual },
-              { label: 'Balance real', value: incomeMetrics.actual - expenseMetrics.actual },
+              { label: 'Ingresos', value: incomeMetrics.actual },
+              { label: 'Gastos', value: expenseMetrics.actual },
+              { label: 'Balance', value: incomeMetrics.actual - expenseMetrics.actual, highlightNegative: true },
             ]}
             theme={theme}
           />
@@ -447,7 +457,7 @@ function RealVsBudgetPage() {
             items={[
               { label: 'Presupuesto', value: expenseMetrics.budget },
               { label: 'Gastos', value: expenseMetrics.actual },
-              { label: 'Disponible', value: availableValue },
+              { label: 'Disponible', value: availableValue, highlightNegative: true },
             ]}
             theme={theme}
           />
@@ -470,9 +480,9 @@ function RealVsBudgetPage() {
           <>
             <div className="real-mobile-detail-header" aria-hidden="true">
               <span>Concepto</span>
-              <span>Pres.</span>
+              <span>Presupuesto</span>
               <span>Real</span>
-              <span>Desv.</span>
+              <span>Variación</span>
             </div>
             <div
               className="table-scroll real-details-scroll"
@@ -503,12 +513,12 @@ function RealVsBudgetPage() {
                     </th>
                     <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
                       <span className="real-label-desktop">Presupuesto</span>
-                      <span className="real-label-mobile">Pres.</span>
+                      <span className="real-label-mobile">Presupuesto</span>
                     </th>
                     <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>Real</th>
                     <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
                       <span className="real-label-desktop">Desviación</span>
-                      <span className="real-label-mobile">Desv.</span>
+                      <span className="real-label-mobile">Variación</span>
                     </th>
                   </tr>
                 </thead>
@@ -622,24 +632,30 @@ function KpiGroup({ title, items, theme }) {
         {title}
       </h2>
       <div style={{ display: 'grid', gap: 5 }}>
-        {items.map((item) => (
-          <div
-            key={item.label}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 16,
-              padding: '0px 8px',
-              borderRadius: 8,
-              background: theme.surfaceMuted,
-              fontSize: 12,
-              border: `1px solid ${theme.border}`,
-            }}
-          >
-            <span style={{ color: theme.textBody }}>{item.label}</span>
-            <strong style={{ color: theme.textPrimary }}>{formatCurrencyMXN(item.value)}</strong>
-          </div>
-        ))}
+        {items.map((item) => {
+          const isNegativeHighlight = item.highlightNegative && Number(item.value) < 0;
+
+          return (
+            <div
+              key={item.label}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 16,
+                padding: '0px 8px',
+                borderRadius: 8,
+                background: theme.surfaceMuted,
+                fontSize: 12,
+                border: `1px solid ${theme.border}`,
+              }}
+            >
+              <span style={{ color: theme.textBody }}>{item.label}</span>
+              <strong className={isNegativeHighlight ? 'financial-negative-value' : undefined} style={{ color: isNegativeHighlight ? undefined : theme.textPrimary }}>
+                {formatCurrencyMXN(item.value)}
+              </strong>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -652,6 +668,7 @@ function CategoryRows({
   theme,
 }) {
   const categoryMetrics = getCategoryPeriodMetrics(category);
+  const isCategoryDeviationNegative = categoryMetrics.deviation < 0;
 
   return (
     <>
@@ -665,13 +682,17 @@ function CategoryRows({
         <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
           {formatCurrencyMXN(categoryMetrics.actual)}
         </td>
-        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
+        <td
+          className={`real-detail-cell real-amount-cell ${isCategoryDeviationNegative ? 'financial-negative-value' : ''}`}
+          style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: isCategoryDeviationNegative ? undefined : theme.textPrimary }}
+        >
           {formatCurrencyMXN(categoryMetrics.deviation)}
         </td>
       </tr>
 
       {category.concepts.map((concept) => {
         const metrics = getConceptPeriodMetrics(concept.concept_id);
+        const isConceptDeviationNegative = metrics.deviation < 0;
 
         return (
           <tr key={concept.concept_id} style={{ borderTop: `1px solid ${theme.border}` }}>
@@ -684,7 +705,10 @@ function CategoryRows({
             <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
               {formatCurrencyMXN(metrics.actual)}
             </td>
-            <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
+            <td
+              className={`real-detail-cell real-amount-cell ${isConceptDeviationNegative ? 'financial-negative-value' : ''}`}
+              style={{ ...getTableCellStyle('center'), color: isConceptDeviationNegative ? undefined : theme.textBody }}
+            >
               {formatCurrencyMXN(metrics.deviation)}
             </td>
           </tr>

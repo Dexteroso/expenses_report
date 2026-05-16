@@ -571,14 +571,16 @@ function AddExpenseForm({
                                     </button>
                                 )}
 
-                                <button
-                                    type="button"
-                                    className={`clear-form-button ${shouldHighlightClear ? 'is-active' : ''}`}
-                                    onClick={handleClearForm}
-                                    style={{ ...buttonStyle, background: theme.inputDisabledBackground, color: theme.textPrimary, border: `1px solid ${theme.border}` }}
-                                >
-                                    Limpiar
-                                </button>
+                                {!selectedExpense && (
+                                    <button
+                                        type="button"
+                                        className={`clear-form-button ${shouldHighlightClear ? 'is-active' : ''}`}
+                                        onClick={handleClearForm}
+                                        style={{ ...buttonStyle, background: theme.inputDisabledBackground, color: theme.textPrimary, border: `1px solid ${theme.border}` }}
+                                    >
+                                        Limpiar
+                                    </button>
+                                )}
 
                                 <button
                                     type="submit"
@@ -591,7 +593,7 @@ function AddExpenseForm({
                                         cursor: !isFormValid ? 'not-allowed' : buttonStyle.cursor,
                                     }}
                                 >
-                                    {selectedExpense ? 'Guardar cambios' : 'Guardar movimiento'}
+                                    {selectedExpense ? 'Guardar' : 'Guardar movimiento'}
                                 </button>
                             </div>
                         )}
