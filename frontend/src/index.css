@@ -1389,11 +1389,11 @@ body {
     order: 4;
   }
 
-  .expense-form-card .expense-field-amount {
+    .expense-form-card .expense-field-account {
     order: 5;
   }
 
-  .expense-form-card .expense-field-account {
+  .expense-form-card .expense-field-amount {
     order: 6;
   }
 
