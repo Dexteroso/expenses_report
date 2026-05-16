@@ -335,8 +335,8 @@ function AuthPage() {
       <div
         className="auth-card"
         style={{
-          width: '100%',
-          maxWidth: 420,
+          width: 'min(300px, calc(100% - 70px))',
+          boxSizing: 'border-box',
           background: theme.surface,
           border: `1px solid ${theme.border}`,
           borderRadius: 24,
@@ -397,7 +397,7 @@ function AuthPage() {
               >
                 ¿Olvidaste tu contraseña?
               </button>
-              <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12}}>
+              <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12 }}>
                 <span>¿No tienes cuenta? </span>
                 <button
                   type="button"
@@ -411,7 +411,7 @@ function AuthPage() {
           )}
 
           {authMode === 'register' && (
-            <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12}}>
+            <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12 }}>
               <span>¿Ya tienes cuenta? </span>
               <button
                 type="button"
