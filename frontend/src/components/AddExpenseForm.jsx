@@ -533,7 +533,7 @@ function AddExpenseForm({
                                 onChange={handleChange}
                                 required={favoriteMode}
                                 style={inputStyle}
-                                placeholder='Supermercado, gasolina, renta...'
+                                placeholder="Opcional"
                             />
                         </div>
 
@@ -549,7 +549,7 @@ function AddExpenseForm({
                                     onChange={handleChange}
                                     required
                                     style={inputStyle}
-                                    placeholder='Monto'
+                                    placeholder="0.00"
                                 />
                             </div>
                         )}

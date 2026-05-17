@@ -1306,6 +1306,13 @@ body {
   .auth-page {
     min-height: 100dvh !important;
   }
+
+  .auth-card input {
+    min-height: 34px;
+    padding: 6px 10px !important;
+    font-size: 16px !important;
+    line-height: 1.2;
+  }
 }
 
 @media (max-width: 767px) {
@@ -1803,6 +1810,7 @@ body {
     min-width: 0 !important;
     min-height: 30px;
     font-size: 16px !important;
+    line-height: 1.2;
   }
 
   .form-actions {
