@@ -19,6 +19,7 @@ function AddExpenseForm({
     onFavoriteModeChange,
     onFavoriteSaved,
     onFavoritePrefillClear,
+    onboardingActive = false,
 }) {
     const theme = lightTheme;
 
@@ -102,13 +103,8 @@ function AddExpenseForm({
         parseCurrencyInput(formData.amount) > 0
     );
     const isFormValid = favoriteMode ? isFavoriteValid : isExpenseValid;
-    const hasClearableFormValues = Boolean(
-        formData.date ||
-        formData.category_id ||
-        formData.concept_id ||
-        formData.description ||
-        formData.amount ||
-        formData.account_id
+    const hasClearableFormValues = Object.keys(initialForm).some(
+        (field) => String(formData[field] ?? '') !== String(initialForm[field] ?? '')
     );
     const shouldHighlightClear = Boolean(selectedExpense || favoritePrefill || hasClearableFormValues);
 
@@ -228,6 +224,27 @@ function AddExpenseForm({
         setIsFormHighlightActive(false);
     }, [favoriteMode]);
 
+    useEffect(() => {
+        if (!onboardingActive) return;
+
+        if (highlightTimerRef.current) {
+            clearTimeout(highlightTimerRef.current);
+        }
+
+        setIsFormHighlightActive(true);
+
+        requestAnimationFrame(() => {
+            cardRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        });
+
+        window.setTimeout(() => {
+            amountInputRef.current?.focus();
+        }, 300);
+    }, [onboardingActive]);
+
     useEffect(() => () => {
         if (contextMessageTimerRef.current) {
             clearTimeout(contextMessageTimerRef.current);
@@ -239,10 +256,13 @@ function AddExpenseForm({
 
     const handleChange = (event) => {
         const { name, value } = event.target;
+        const nextValue = name === 'amount'
+            ? value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1')
+            : value;
 
         setFormData({
             ...formData,
-            [name]: value,
+            [name]: nextValue,
         });
 
         if (validationMessage) {
@@ -425,6 +445,7 @@ function AddExpenseForm({
                         ? `Editando: ${selectedExpense.expense_code}`
                         : 'Registro de movimientos'}
             </h1>
+
             <form onSubmit={handleSubmit}>
                 <div
                     className="expense-form-grid"
@@ -512,6 +533,7 @@ function AddExpenseForm({
                                 onChange={handleChange}
                                 required={favoriteMode}
                                 style={inputStyle}
+                                placeholder='Supermercado, gasolina, renta...'
                             />
                         </div>
 
@@ -527,6 +549,7 @@ function AddExpenseForm({
                                     onChange={handleChange}
                                     required
                                     style={inputStyle}
+                                    placeholder='Monto'
                                 />
                             </div>
                         )}

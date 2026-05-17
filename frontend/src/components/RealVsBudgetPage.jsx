@@ -109,7 +109,7 @@ function RealVsBudgetPage() {
       return;
     }
 
-    setPeriodType('ytd');
+    setPeriodType('null');
     setSelectedQuarter(null);
     setSelectedSemester(null);
   };

@@ -17,12 +17,40 @@ import { formatCurrencyMXN } from './utils/formatters';
 import { typography } from './styles/typography';
 
 
-function Expenses({ refreshExpenses, onExpenseCreated }) {
+function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, onOnboardingDashboard }) {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [favoriteMode, setFavoriteMode] = useState(false);
   const [favoritePrefill, setFavoritePrefill] = useState(null);
   const [favoriteRefreshKey, setFavoriteRefreshKey] = useState(0);
+  const [isMovementOnboardingActive, setIsMovementOnboardingActive] = useState(Boolean(onboardingStart));
+  const [isMovementOnboardingReady, setIsMovementOnboardingReady] = useState(false);
+  const [isMovementOnboardingComplete, setIsMovementOnboardingComplete] = useState(false);
+
+  useEffect(() => {
+    if (onboardingStart) {
+      setIsMovementOnboardingActive(true);
+      setIsMovementOnboardingReady(false);
+      setIsMovementOnboardingComplete(false);
+      return;
+    }
+
+    const checkExistingExpenses = async () => {
+      try {
+        const response = await authFetch(`${API_BASE_URL}/api/expenses`);
+        const data = await response.json();
+
+        if (response.ok && Array.isArray(data) && data.length === 0) {
+          setIsMovementOnboardingActive(true);
+          setIsMovementOnboardingReady(false);
+        }
+      } catch (error) {
+        console.error('Error checking onboarding expenses:', error);
+      }
+    };
+
+    checkExistingExpenses();
+  }, [onboardingStart]);
 
   const getTodayInputValue = () => {
     const today = new Date();
@@ -35,10 +63,21 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
   };
 
   const handleExpenseSaved = () => {
+    if (isMovementOnboardingActive || isMovementOnboardingReady) {
+      setIsMovementOnboardingActive(false);
+      setIsMovementOnboardingReady(false);
+      setIsMovementOnboardingComplete(true);
+    }
+
     setSelectedExpense(null);
     setFavoriteMode(false);
     setFavoritePrefill(null);
     onExpenseCreated();
+  };
+
+  const handleStartMovementOnboarding = () => {
+    setIsMovementOnboardingActive(false);
+    setIsMovementOnboardingReady(true);
   };
 
   const handleCreateFavorite = () => {
@@ -93,6 +132,34 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
 
   return (
     <>
+      {isMovementOnboardingActive && !isMovementOnboardingComplete && (
+        <div className="onboarding-modal-overlay" role="dialog" aria-modal="true">
+          <div className="onboarding-modal-content-area">
+            <div className="onboarding-card movement-onboarding-card">
+              <h2>Registra tu primer movimiento</h2>
+              <p>Captura tu primer ingreso o gasto para comenzar a ver tu resumen financiero.</p>
+              <button type="button" onClick={handleStartMovementOnboarding}>
+                Comenzar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isMovementOnboardingComplete && (
+        <div className="onboarding-modal-overlay" role="dialog" aria-modal="true">
+          <div className="onboarding-modal-content-area">
+            <div className="onboarding-card movement-onboarding-card movement-onboarding-complete">
+              <h2>Primer movimiento registrado 🎉</h2>
+              <p>Ya puedes consultar tu resumen financiero.</p>
+              <button type="button" onClick={onOnboardingDashboard}>
+                Ir al dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AddExpenseForm
         selectedExpense={selectedExpense}
         onExpenseCreated={handleExpenseSaved}
@@ -103,6 +170,7 @@ function Expenses({ refreshExpenses, onExpenseCreated }) {
         onFavoriteModeChange={setFavoriteMode}
         onFavoriteSaved={handleFavoriteSaved}
         onFavoritePrefillClear={() => setFavoritePrefill(null)}
+        onboardingActive={isMovementOnboardingReady}
       />
 
       <FavoriteMovementsCard
@@ -170,6 +238,9 @@ function App() {
   const [refreshExpenses, setRefreshExpenses] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [accountOnboardingChecked, setAccountOnboardingChecked] = useState(false);
+  const [hasOnboardingAccounts, setHasOnboardingAccounts] = useState(null);
+  const [showDashboardOnboardingSuccess, setShowDashboardOnboardingSuccess] = useState(false);
   const theme = lightTheme;
   const sidebarWidth = 170;
   const contentMinWidth = 840;
@@ -236,6 +307,63 @@ function App() {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!authenticated) {
+      setAccountOnboardingChecked(false);
+      setHasOnboardingAccounts(null);
+    }
+  }, [authenticated]);
+
+  useEffect(() => {
+    if (!authenticated || isAuthRoute || accountOnboardingChecked) {
+      return;
+    }
+
+    const checkAccountsForOnboarding = async () => {
+      try {
+        const response = await authFetch(`${API_BASE_URL}/api/accounts`);
+        const data = await response.json();
+
+        if (response.ok && Array.isArray(data)) {
+          const hasAccounts = data.length > 0;
+          setHasOnboardingAccounts(hasAccounts);
+
+          if (!hasAccounts && location.pathname !== '/cuentas') {
+            navigate('/cuentas', { replace: true, state: { onboarding: 'first-account' } });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking onboarding accounts:', error);
+      } finally {
+        setAccountOnboardingChecked(true);
+      }
+    };
+
+    checkAccountsForOnboarding();
+  }, [authenticated, isAuthRoute, accountOnboardingChecked, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (
+      authenticated &&
+      hasOnboardingAccounts === false &&
+      !isAuthRoute &&
+      location.pathname !== '/cuentas'
+    ) {
+      navigate('/cuentas', { replace: true, state: { onboarding: 'first-account' } });
+    }
+  }, [authenticated, hasOnboardingAccounts, isAuthRoute, location.pathname, navigate]);
+
+  const handleFirstAccountCreated = () => {
+    setAccountOnboardingChecked(true);
+    setHasOnboardingAccounts(true);
+    navigate('/gastos', { replace: true, state: { onboarding: 'first-movement' } });
+  };
+
+  const handleOnboardingDashboard = () => {
+    setShowDashboardOnboardingSuccess(true);
+    navigate('/dashboard');
+  };
 
   const renderNavigation = ({ onNavigate } = {}) => (
     <ul
@@ -424,7 +552,17 @@ function App() {
                   path="/auth"
                   element={authenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />}
                 />
-                <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage
+                        onboardingSuccess={showDashboardOnboardingSuccess}
+                        onDismissOnboardingSuccess={() => setShowDashboardOnboardingSuccess(false)}
+                      />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/gastos"
                   element={
@@ -432,11 +570,13 @@ function App() {
                       <Expenses
                         onExpenseCreated={() => setRefreshExpenses(prev => !prev)}
                         refreshExpenses={refreshExpenses}
+                        onboardingStart={location.state?.onboarding === 'first-movement'}
+                        onOnboardingDashboard={handleOnboardingDashboard}
                       />
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/cuentas" element={<ProtectedRoute><AccountsPage /></ProtectedRoute>} />
+                <Route path="/cuentas" element={<ProtectedRoute><AccountsPage onFirstAccountCreated={handleFirstAccountCreated} /></ProtectedRoute>} />
                 <Route path="/actividad" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
                 <Route path="/presupuesto" element={<ProtectedRoute><BudgetPage /></ProtectedRoute>} />
                 <Route path="/real-vs-presupuesto" element={<ProtectedRoute><RealVsBudgetPage /></ProtectedRoute>} />

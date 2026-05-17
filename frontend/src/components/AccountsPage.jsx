@@ -17,7 +17,7 @@ const accountTypeLabels = {
   debit: 'Débito',
 };
 
-function AccountsPage() {
+function AccountsPage({ onFirstAccountCreated }) {
   const theme = lightTheme;
   const cardStyle = {
     background: theme.surface,
@@ -85,6 +85,7 @@ function AccountsPage() {
   const [formMessage, setFormMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [hasLoadedAccounts, setHasLoadedAccounts] = useState(false);
 
   const fetchAccounts = async () => {
     try {
@@ -101,6 +102,8 @@ function AccountsPage() {
     } catch (error) {
       console.error('Error fetching accounts:', error);
       setPageMessage('No se pudieron cargar las cuentas.');
+    } finally {
+      setHasLoadedAccounts(true);
     }
   };
 
@@ -223,6 +226,7 @@ function AccountsPage() {
 
     setIsSubmitting(true);
     setFormMessage('');
+    const isFirstAccountCreation = !editingAccount && accounts.length === 0;
 
     try {
       const response = await authFetch(
@@ -256,6 +260,10 @@ function AccountsPage() {
 
       await fetchAccounts();
       closeModal();
+
+      if (isFirstAccountCreation && onFirstAccountCreated) {
+        onFirstAccountCreated();
+      }
     } catch (error) {
       console.error(error);
       setFormMessage(editingAccount ? 'No se pudo actualizar la cuenta.' : 'No se pudo crear la cuenta.');
@@ -321,6 +329,14 @@ function AccountsPage() {
           <p style={{ color: '#b91c1c', marginTop: 0 }}>
             {pageMessage}
           </p>
+        )}
+
+        {hasLoadedAccounts && accounts.length === 0 && (
+          <div className="onboarding-card accounts-onboarding-card">
+            <h2>Bienvenido 👋</h2>
+            <p>Antes de comenzar, agrega una cuenta para registrar tus movimientos.</p>
+            <p>Puedes agregar cuentas de Débito o Crédito.</p>
+          </div>
         )}
 
         <div className="accounts-mobile-list">
@@ -450,11 +466,12 @@ function AccountsPage() {
                   value={formData.bank_name}
                   onChange={handleChange}
                   style={inputStyle}
+                  placeholder='Nombre del Banco'
                 />
               </div>
 
               <div className="responsive-field" style={fieldStyle}>
-                <label style={fieldLabelStyle}>Últimos 4 dígitos</label>
+                <label style={fieldLabelStyle}>Número de Tarjeta</label>
                 <input
                   type="text"
                   name="last_four"
@@ -463,6 +480,7 @@ function AccountsPage() {
                   inputMode="numeric"
                   maxLength={4}
                   style={inputStyle}
+                  placeholder='Últimos 4 dígitos'
                 />
               </div>
 

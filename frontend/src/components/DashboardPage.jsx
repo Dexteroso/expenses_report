@@ -21,10 +21,11 @@ const monthOptions = [
   'Diciembre',
 ];
 
-function DashboardPage() {
+function DashboardPage({ onboardingSuccess = false, onDismissOnboardingSuccess }) {
   const theme = lightTheme;
   const dashboardKpiChartSize = useDashboardKpiChartSize();
   const isMobileDashboard = useIsMobileDashboard();
+  const onboardingDestinations = ['Presupuesto', 'Variaciones', 'Movimientos', 'Cuentas'];
   const pageCardStyle = {
     background: theme.surface,
     border: `1px solid ${theme.border}`,
@@ -156,6 +157,31 @@ function DashboardPage() {
 
   return (
     <div className="page-stack dashboard-page" style={{ display: 'grid', gap: 20, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+      {onboardingSuccess && (
+        <div className="onboarding-modal-overlay" role="dialog" aria-modal="true">
+          <div className="onboarding-modal-content-area">
+            <div className="onboarding-card dashboard-onboarding-success">
+              <div>
+                <h2>¡Felicidades! Completaste tu registro 😎</h2>
+                <p>
+                  {isMobileDashboard
+                    ? 'Usa el menú ☰ para navegar entre:'
+                    : 'Usa el menú lateral para navegar entre:'}
+                </p>
+                <ul>
+                  {onboardingDestinations.map((destination) => (
+                    <li key={destination}>{destination}</li>
+                  ))}
+                </ul>
+              </div>
+              <button type="button" onClick={onDismissOnboardingSuccess}>
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="responsive-card dashboard-summary-card"
         style={pageCardStyle}
