@@ -1,6 +1,6 @@
-const nodemailer = require('nodemailer');
-
 const LOCAL_FRONTEND_URL = 'http://localhost:5173';
+const RESEND_API_URL = 'https://api.resend.com/emails';
+const EMAIL_SEND_TIMEOUT_MS = 10000;
 
 const getFrontendUrl = () => (process.env.FRONTEND_URL || LOCAL_FRONTEND_URL).replace(/\/$/, '');
 
@@ -12,12 +12,9 @@ const buildPasswordResetUrl = (token) => {
   return resetUrl.toString();
 };
 
-const hasSmtpConfig = () => Boolean(
-  process.env.SMTP_HOST
-  && process.env.SMTP_PORT
-  && process.env.SMTP_USER
-  && process.env.SMTP_PASS
-  && process.env.SMTP_FROM
+const hasEmailConfig = () => Boolean(
+  process.env.RESEND_API_KEY
+  && process.env.EMAIL_FROM
 );
 
 const escapeHtml = (value = '') => String(value)
@@ -26,16 +23,6 @@ const escapeHtml = (value = '') => String(value)
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
-
-const createTransporter = () => nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
 
 const buildPasswordResetText = ({ name, resetUrl, resetToken, expiresInMinutes }) => (
   `Hola${name ? ` ${name}` : ''},
@@ -64,25 +51,46 @@ const buildPasswordResetHtml = ({ name, resetUrl, resetToken, expiresInMinutes }
 );
 
 const sendPasswordResetEmail = async ({ to, name, resetToken, resetUrl, expiresInMinutes }) => {
-  if (!hasSmtpConfig()) {
+  if (!hasEmailConfig()) {
     if (process.env.NODE_ENV !== 'production') {
-      console.info('Password reset email skipped because SMTP is not configured.');
+      console.info('Password reset email skipped because Resend is not configured.');
       console.info(`Password reset URL: ${resetUrl}`);
       console.info(`Password reset token: ${resetToken}`);
       return { skipped: true };
     }
 
-    throw new Error('SMTP configuration is missing');
+    throw new Error('Resend email configuration is missing');
   }
 
-  const transporter = createTransporter();
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
-    to,
-    subject: 'Restablece tu contraseña',
-    text: buildPasswordResetText({ name, resetUrl, resetToken, expiresInMinutes }),
-    html: buildPasswordResetHtml({ name, resetUrl, resetToken, expiresInMinutes }),
+  const response = await fetch(RESEND_API_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: process.env.EMAIL_FROM,
+      to,
+      subject: 'Restablece tu contraseña',
+      text: buildPasswordResetText({ name, resetUrl, resetToken, expiresInMinutes }),
+      html: buildPasswordResetHtml({ name, resetUrl, resetToken, expiresInMinutes }),
+    }),
+    signal: AbortSignal.timeout(EMAIL_SEND_TIMEOUT_MS),
   });
+
+  if (!response.ok) {
+    let responseBody = {};
+
+    try {
+      responseBody = await response.json();
+    } catch (error) {
+      responseBody = { message: 'Resend returned a non-JSON error response' };
+    }
+
+    throw new Error(
+      `Resend email send failed with status ${response.status}: ${responseBody.message || responseBody.name || 'Unknown error'}`
+    );
+  }
 
   return { sent: true };
 };

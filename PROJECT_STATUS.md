@@ -98,7 +98,7 @@ Main capabilities:
 - Swagger server URL can be configured with `API_URL`.
 - App is prepared for separate frontend/backend cloud deployment without changing API routes.
 - Production startup now validates required environment variables and fails fast without printing secret values.
-- Production password reset email requires SMTP environment variables and never returns reset tokens in API responses.
+- Production password reset email requires Resend environment variables and never returns reset tokens in API responses.
 - Production deployments must override Docker demo/default secrets with explicit environment values.
 
 ### Swagger / OpenAPI documentation

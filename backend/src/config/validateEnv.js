@@ -12,11 +12,8 @@ const requiredProductionEnv = [
 ];
 
 const requiredProductionEmailEnv = [
-  'SMTP_HOST',
-  'SMTP_PORT',
-  'SMTP_USER',
-  'SMTP_PASS',
-  'SMTP_FROM',
+  'RESEND_API_KEY',
+  'EMAIL_FROM',
 ];
 
 const validateStartupEnv = () => {
@@ -36,10 +33,6 @@ const validateStartupEnv = () => {
     throw new Error(
       `Missing required production environment variables: ${missingVariables.join(', ')}`
     );
-  }
-
-  if (process.env.SMTP_PORT && Number.isNaN(Number(process.env.SMTP_PORT))) {
-    throw new Error('Invalid production environment variable: SMTP_PORT must be a number');
   }
 };
 
