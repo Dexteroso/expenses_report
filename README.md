@@ -61,6 +61,7 @@ Screenshots can be added later under `docs/screenshots/` or any preferred docume
 ### Administration and Auditability
 
 - JWT authentication with protected backend routes.
+- Password reset emails through SMTP with generic responses to avoid account enumeration.
 - Admin-only user management.
 - Role-based authorization middleware.
 - MongoDB activity/audit log module for login, account, budget, expense, and user events.
@@ -237,7 +238,14 @@ JWT_EXPIRES_IN=1d
 MONGO_URI=mongodb://127.0.0.1:27017/expenses_activity
 FRONTEND_URL=http://localhost:5173
 API_URL=http://localhost:3000
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+SMTP_FROM="Expenses Report <no-reply@example.com>"
 ```
+
+Password reset requests send instructions by email when SMTP is configured. Local non-production runs can still test the flow without SMTP because the API response and server logs include the reset token; production responses never include the token.
 
 Initialize a fresh local MySQL database with the project SQL if needed:
 
@@ -314,6 +322,7 @@ Production-oriented deployment characteristics:
 
 - Frontend is built with Vite and served through nginx.
 - Backend reads `PORT`, `FRONTEND_URL`, `API_URL`, database credentials, and `MONGO_URI` from environment variables.
+- Password reset email requires SMTP configuration: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM`.
 - MySQL remains the primary relational database.
 - MongoDB stores only activity/audit logs.
 - Docker Compose separates frontend, backend, MySQL, and MongoDB services.

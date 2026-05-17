@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.1",
     "mysql2": "^3.22.2",
+    "nodemailer": "^8.0.7",
     "sequelize": "^6.37.8",
     "sequelize-cli": "^6.6.5",
     "swagger-jsdoc": "^6.2.8",

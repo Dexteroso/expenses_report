@@ -148,7 +148,7 @@ router.post('/login', login);
  * @swagger
  * /api/auth/forgot-password:
  *   post:
- *     summary: Generate password reset token
+ *     summary: Send password reset instructions
  *     tags: [Auth]
  *     security: []
  *     requestBody:
@@ -171,14 +171,16 @@ router.post('/login', login);
  *         content:
  *           application/json:
  *             examples:
- *               tokenGenerated:
- *                 value:
- *                   message: Password reset token generated
- *                   resetToken: reset_token_here
- *                   expiresInMinutes: 60
  *               generic:
  *                 value:
- *                   message: If the email exists, reset instructions will be sent
+ *                   message: Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.
+ *               development:
+ *                 summary: Non-production response may include local testing fields
+ *                 value:
+ *                   message: Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.
+ *                   resetToken: reset_token_here
+ *                   resetUrl: http://localhost:5173/auth?mode=forgot&token=reset_token_here
+ *                   expiresInMinutes: 60
  *       400:
  *         description: Validation error
  *         content:

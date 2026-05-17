@@ -3,8 +3,13 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { logActivity } = require('../utils/activityLogger');
+const {
+  buildPasswordResetUrl,
+  sendPasswordResetEmail,
+} = require('../utils/emailSender');
 
 const SALT_ROUNDS = 10;
+const PASSWORD_RESET_RESPONSE_MESSAGE = 'Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.';
 
 const getResetTokenExpiresAt = () => {
   const expiresInMinutes = Number(process.env.RESET_TOKEN_EXPIRES_MINUTES) || 60;
@@ -221,12 +226,13 @@ const forgotPassword = async (req, res) => {
 
     if (rows.length === 0) {
       return res.json({
-        message: 'If the email exists, reset instructions will be sent',
+        message: PASSWORD_RESET_RESPONSE_MESSAGE,
       });
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     const { expiresAt, expiresInMinutes } = getResetTokenExpiresAt();
+    const resetUrl = buildPasswordResetUrl(resetToken);
 
     await pool.query(
       `
@@ -245,12 +251,28 @@ const forgotPassword = async (req, res) => {
       description: 'Password reset requested',
     });
 
+    try {
+      await sendPasswordResetEmail({
+        to: rows[0].email,
+        name: rows[0].name,
+        resetToken,
+        resetUrl,
+        expiresInMinutes,
+      });
+    } catch (emailError) {
+      console.error('Password reset email could not be sent', {
+        userId: rows[0].id,
+        message: emailError.message,
+      });
+    }
+
     const response = {
-      message: 'Password reset token generated',
+      message: PASSWORD_RESET_RESPONSE_MESSAGE,
     };
 
     if (process.env.NODE_ENV !== 'production') {
       response.resetToken = resetToken;
+      response.resetUrl = resetUrl;
       response.expiresInMinutes = expiresInMinutes;
     }
 

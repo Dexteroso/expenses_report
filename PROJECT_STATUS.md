@@ -13,6 +13,9 @@ Current focus:
 - Deployment validation
 - Performance and monitoring review
 - UX/UI consistency
+- Guided first-user onboarding flow
+- iOS Safari mobile UX fixes
+- Real-device onboarding validation
 
 Recently completed:
 - Minimal backend security hardening from final review
@@ -26,6 +29,15 @@ Recently completed:
 - Frequent movements feature (`Movimientos Frecuentes`)
 - Financial insights widget
 - Responsive/mobile optimization
+- Guided onboarding flow for first-time users
+- Dashboard onboarding/navigation helper
+- Mobile onboarding modal overlays
+- Real-device iOS Safari input behavior fixes
+- Mobile financial dashboard polish
+- Variaciones responsive redesign
+- AddExpenseForm mobile UX improvements
+- Frequent movements UX rename (`Movimientos Frecuentes`)
+- iOS input zoom prevention improvements
 - JWT auth hardening
 - Rate limiting + helmet
 - Activity/audit logging module
@@ -66,7 +78,7 @@ Main capabilities:
 ### Auth
 - Register
 - Login
-- Forgot password (dev flow)
+- Forgot password email flow with generic account-safe response
 - Reset password
 - JWT authentication
 - bcrypt hashing
@@ -86,6 +98,7 @@ Main capabilities:
 - Swagger server URL can be configured with `API_URL`.
 - App is prepared for separate frontend/backend cloud deployment without changing API routes.
 - Production startup now validates required environment variables and fails fast without printing secret values.
+- Production password reset email requires SMTP environment variables and never returns reset tokens in API responses.
 - Production deployments must override Docker demo/default secrets with explicit environment values.
 
 ### Swagger / OpenAPI documentation
@@ -259,6 +272,10 @@ Technical implementation:
 - Mobile Movimientos layout redesigned from desktop table into stacked mobile rows.
 - Mobile header/safe-area spacing optimized for iPhone notch devices.
 - Mobile date filter overflow issues corrected.
+- Guided onboarding flow validated on mobile devices.
+- iOS Safari form interaction issues identified and corrected.
+- Dashboard onboarding overlay/modal flow implemented.
+- Real-device onboarding validation completed.
 
 ### Movimientos
 - Create / Edit / Delete
@@ -282,6 +299,14 @@ Technical implementation:
   - desktop table preserved on desktop
   - mobile uses stacked responsive movement rows
   - edit action optimized for touch interaction
+  - first-user onboarding integration added
+  - onboarding form highlight flow implemented
+  - onboarding completion flow implemented
+  - frequent movements UX renamed from "Favoritos" to "Frecuentes"
+  - mobile form action layout optimized for narrow widths
+  - mobile form validation UX improved
+  - amount input sanitization added
+  - iOS Safari mobile form behavior optimized
 
 ### Presupuesto
 - Editable grid
@@ -291,10 +316,14 @@ Technical implementation:
 - Backend controller migrated from raw mysql2 queries to Sequelize in Phase 3
 
 ### Variaciones
-- Monthly / Annual / Trimestre / Semestre / YTD
+- Monthly / Acumulado / Trimestre / Semestre / Anual
 - KPI cards
 - Internal table scroll
 - Sticky headers
+- mobile filter layout redesigned
+- negative financial values highlighted using semantic danger styling
+- responsive financial KPI polish completed
+- mobile table header alignment improved
 - Backend real-vs-budget report migrated from raw mysql2 queries to Sequelize in Phase 4
 
 ### Dashboard (Resumen)
@@ -303,6 +332,11 @@ Technical implementation:
 - Latest movements
 - Financial Insights widget integrated.
 - Mobile KPI donut responsiveness optimized.
+- grouped mobile KPI card layout implemented
+- KPI financial labels simplified for readability
+- negative balance styling added for financial clarity
+- onboarding exploration helper added
+- donut spacing/alignment optimized for narrow screens
 
 ### Cuentas
 - Create
@@ -310,6 +344,8 @@ Technical implementation:
 - Deactivate (soft delete)
 - Modal UX
 - Credit/Debit localized
+- onboarding welcome flow integrated
+- first-account redirect flow implemented
 - Backend controller migrated from raw mysql2 queries to Sequelize in Phase 1
 
 ### Usuarios (Admin)
@@ -365,6 +401,11 @@ Implemented and validated on real iPhone devices:
 - overflow prevention
 - viewport fixes
 - real-device Safari validation
+- onboarding modal/lightbox UX implemented
+- contextual onboarding guidance added
+- responsive onboarding overlays validated on iPhone
+- iOS Safari input zoom issue mitigation implemented
+- mobile-first onboarding flow optimized
 
 Important finding:
 - Chrome responsive emulation did not fully match real iPhone Safari behavior.
@@ -399,6 +440,10 @@ Current issue:
 - `docker compose config`: passing.
 - Inputs do NOT include currency symbol while editing
 - Display uses: $1,234.56
+- Real iPhone Safari onboarding flow validated
+- Mobile onboarding overlays validated
+- iOS Safari input interaction fixes validated
+- Responsive onboarding flow validated across narrow mobile widths
 
 ---
 
@@ -536,6 +581,8 @@ High priority before final delivery:
 - Architecture diagrams/documentation
 - Reflection and technical reasoning write-up
 - Presentation/demo preparation
+- Final onboarding UX polish
+- Final iPhone Safari UX validation
 
 Medium priority:
 - Typography standardization
@@ -580,6 +627,9 @@ Must include:
 - VPS deployment explanation
 - Testing evidence
 - Responsive/mobile validation evidence
+- Onboarding UX explanation
+- Real-device iPhone Safari validation evidence
+- UX/UI decision rationale
 - Security measures implemented
 - Architecture decisions and tradeoffs
 - Reflection on debugging and optimization process
@@ -597,6 +647,11 @@ Project status:
 - Comprehensive CRUD + reporting functionality completed
 - Automated backend testing implemented
 - Responsive/mobile UX significantly polished
+- Guided onboarding UX implemented
+- Real-device onboarding validation completed
+- iPhone Safari UX issues addressed
+- Mobile-first onboarding experience implemented
+- Product-style UX polish significantly expanded
 
 Current final focus:
 - delivery quality
