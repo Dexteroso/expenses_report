@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { lightTheme } from '../theme/theme';
-import { saveAuth } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
-
-const PASSWORD_RESET_RESPONSE_MESSAGE = 'Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.';
+import { saveAuth } from '../utils/auth';
 
 function AuthPage() {
   const theme = lightTheme;
@@ -49,6 +47,11 @@ function AuthPage() {
     setSuccessMessage('');
   };
 
+  const resetPasswordState = () => {
+    setDevResetToken('');
+    setDevResetUrl('');
+  };
+
   const handleModeChange = (mode) => {
     setAuthMode(mode);
     setFormData({
@@ -60,8 +63,7 @@ function AuthPage() {
       newPassword: '',
       confirmNewPassword: '',
     });
-    setDevResetToken('');
-    setDevResetUrl('');
+    resetPasswordState();
     resetMessages();
   };
 
@@ -108,57 +110,60 @@ function AuthPage() {
     event.currentTarget.requestSubmit();
   };
 
+  const requestPasswordResetEmail = async () => {
+    resetMessages();
+    setIsSubmitting(true);
+    resetPasswordState();
+
+    try {
+      if (!formData.email) {
+        setErrorMessage('Completa los campos obligatorios.');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.error || 'No se pudo enviar la solicitud.');
+        return;
+      }
+
+      if (data.resetToken) {
+        setFormData((prev) => ({
+          ...prev,
+          resetToken: data.resetToken,
+        }));
+        setDevResetToken(data.resetToken);
+        setDevResetUrl(data.resetUrl || '');
+      }
+
+      setAuthMode('forgotSent');
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('No se pudo conectar con el servidor.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     resetMessages();
 
     if (authMode === 'forgot') {
-      setIsSubmitting(true);
-      setDevResetToken('');
-      setDevResetUrl('');
-
-      try {
-        if (!formData.email) {
-          setErrorMessage('Completa los campos obligatorios.');
-          return;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setErrorMessage(data.error || 'No se pudo enviar la solicitud.');
-          return;
-        }
-
-        if (data.resetToken) {
-          setFormData((prev) => ({
-            ...prev,
-            resetToken: data.resetToken,
-          }));
-          setDevResetToken(data.resetToken);
-          setDevResetUrl(data.resetUrl || '');
-        }
-
-        setSuccessMessage(data.message || PASSWORD_RESET_RESPONSE_MESSAGE);
-        return;
-      } catch (error) {
-        console.error(error);
-        setErrorMessage('No se pudo conectar con el servidor.');
-        return;
-      } finally {
-        setIsSubmitting(false);
-      }
+      await requestPasswordResetEmail();
+      return;
     }
 
     if (authMode === 'reset') {
@@ -198,7 +203,7 @@ function AuthPage() {
           return;
         }
 
-        setAuthMode('login');
+        setAuthMode('resetSuccess');
         setFormData({
           name: '',
           email: formData.email,
@@ -208,7 +213,7 @@ function AuthPage() {
           newPassword: '',
           confirmNewPassword: '',
         });
-        setSuccessMessage('Contraseña restablecida. Inicia sesión.');
+        resetPasswordState();
         return;
       } catch (error) {
         console.error(error);
@@ -294,9 +299,17 @@ function AuthPage() {
     }
   };
 
+  const handleForgotResend = () => {
+    requestPasswordResetEmail();
+  };
+
   const handleDevContinueToReset = () => {
     setAuthMode('reset');
     resetMessages();
+  };
+
+  const handleBackToLogin = () => {
+    handleModeChange('login');
   };
 
   const renderFields = () => {
@@ -314,7 +327,16 @@ function AuthPage() {
     if (authMode === 'forgot') {
       return (
         <>
-          <FormField placeholder="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
+          <p style={{ margin: '0 auto', maxWidth: 250, color: theme.textBody, fontSize: 13, lineHeight: 1.4, textAlign: 'center' }}>
+            Ingresa el correo asociado a tu cuenta para recibir un enlace de recuperación.
+          </p>
+          <FormField
+            placeholder="Correo electrónico"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+          />
         </>
       );
     }
@@ -322,13 +344,6 @@ function AuthPage() {
     if (authMode === 'reset') {
       return (
         <>
-          <FormField
-            placeholder="Token"
-            name="resetToken"
-            type="text"
-            value={formData.resetToken}
-            onChange={handleChange}
-          />
           <FormField
             placeholder="Nueva contraseña"
             name="newPassword"
@@ -359,17 +374,126 @@ function AuthPage() {
     login: 'Inicia sesión',
     register: 'Crear cuenta',
     forgot: 'Recuperar contraseña',
-    reset: 'Restablecer contraseña',
+    forgotSent: 'Correo enviado',
+    reset: 'Nueva contraseña',
+    resetSuccess: 'Contraseña actualizada',
   };
 
   const buttonByMode = {
     login: 'Iniciar sesión',
     register: 'Crear cuenta',
-    forgot: 'Enviar instrucciones',
-    reset: 'Restablecer contraseña',
+    forgot: 'Solicitar cambio de contraseña',
+    reset: 'Guardar nueva contraseña',
   };
 
   const submitLabel = buttonByMode[authMode];
+  const isResetRequestSubmitting = authMode === 'forgot' && isSubmitting;
+
+  const renderAuthContent = () => {
+    if (authMode === 'forgotSent') {
+      return (
+        <div className="auth-reset-content">
+          <p style={{ margin: '0 auto', maxWidth: 250, color: theme.textBody, fontSize: 13, lineHeight: 1.45, textAlign: 'center' }}>
+            Te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y correo no deseado.
+          </p>
+
+          {import.meta.env.DEV && devResetToken && (
+            <DevResetPanel
+              token={devResetToken}
+              resetUrl={devResetUrl}
+              theme={theme}
+              onContinue={handleDevContinueToReset}
+            />
+          )}
+
+          <button
+            type="button"
+            onClick={handleForgotResend}
+            style={getPrimaryButtonStyle(theme)}
+            className="auth-reset-primary-button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span className="auth-spinner" aria-hidden="true" />
+                Enviando correo...
+              </span>
+            ) : (
+              'Reenviar correo'
+            )}
+          </button>
+        </div>
+      );
+    }
+
+    if (authMode === 'resetSuccess') {
+      return (
+        <div className="auth-reset-content">
+          <p style={{ margin: '0 auto', maxWidth: 250, color: theme.textBody, fontSize: 13, lineHeight: 1.45, textAlign: 'center' }}>
+            Tu contraseña fue actualizada correctamente.
+          </p>
+          <button
+            type="button"
+            onClick={handleBackToLogin}
+            style={getPrimaryButtonStyle(theme)}
+            className="auth-reset-primary-button"
+          >
+            Ir al inicio de sesión
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={handleFormKeyDown}
+        className={authMode === 'forgot' || authMode === 'reset' ? 'auth-reset-content' : undefined}
+        style={{ display: 'grid', gap: 14 }}
+      >
+        {renderFields()}
+
+        {errorMessage && (
+          <p style={{ margin: 0, color: '#b91c1c', fontWeight: 'bold' }}>
+            {errorMessage}
+          </p>
+        )}
+
+        {successMessage && (
+          <p style={{ margin: 0, color: theme.textPrimary, fontWeight: 'bold' }}>
+            {successMessage}
+          </p>
+        )}
+
+        {authMode === 'reset' && import.meta.env.DEV && formData.resetToken && (
+          <details style={{ color: theme.textBody, fontSize: 12, textAlign: 'left' }}>
+            <summary style={{ cursor: 'pointer', color: theme.textSecondary, fontWeight: 600 }}>
+              Modo desarrollo
+            </summary>
+            <div style={{ marginTop: 8 }}>
+              Token: <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{formData.resetToken}</span>
+            </div>
+          </details>
+        )}
+
+        <button
+          type="submit"
+          style={getPrimaryButtonStyle(theme)}
+          className={authMode === 'forgot' || authMode === 'reset' ? 'auth-reset-primary-button' : undefined}
+          disabled={isSubmitting}
+        >
+          {isResetRequestSubmitting ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <span className="auth-spinner" aria-hidden="true" />
+              Enviando correo...
+            </span>
+          ) : (
+            isSubmitting ? 'Procesando...' : submitLabel
+          )}
+        </button>
+      </form>
+    );
+  };
 
   return (
     <div
@@ -401,51 +525,20 @@ function AuthPage() {
           </h1>
         </div>
 
-        <h2 style={{ marginTop: 0, marginBottom: 20, color: theme.textSecondary, fontSize: 20, fontWeight: 600 }}>
+        <h2
+          style={{
+            marginTop: 0,
+            marginBottom: 20,
+            color: theme.textSecondary,
+            fontSize: 20,
+            fontWeight: 600,
+            textAlign: ['forgot', 'forgotSent', 'reset', 'resetSuccess'].includes(authMode) ? 'center' : undefined,
+          }}
+        >
           {titleByMode[authMode]}
         </h2>
 
-        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} style={{ display: 'grid', gap: 14 }}>
-          {renderFields()}
-
-          {errorMessage && (
-            <p style={{ margin: 0, color: '#b91c1c', fontWeight: 'bold' }}>
-              {errorMessage}
-            </p>
-          )}
-
-          {successMessage && (
-            <p style={{ margin: 0, color: theme.textPrimary, fontWeight: 'bold' }}>
-              {successMessage}
-            </p>
-          )}
-
-          {authMode === 'forgot' && import.meta.env.DEV && devResetToken && (
-            <DevResetPanel
-              token={devResetToken}
-              resetUrl={devResetUrl}
-              theme={theme}
-              onContinue={handleDevContinueToReset}
-            />
-          )}
-
-          <button
-            type="submit"
-            style={{
-              marginTop: 8,
-              padding: '5px 16px',
-              borderRadius: 12,
-              border: 'none',
-              background: theme.sidebarBackground,
-              color: theme.sidebarText,
-              fontWeight: 'bold',
-              cursor: 'pointer',
-            }}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Procesando...' : submitLabel}
-          </button>
-        </form>
+        {renderAuthContent()}
 
         <div style={{ display: 'grid', gap: 20, marginTop: 5, justifyItems: 'center' }}>
           {authMode === 'login' && (
@@ -483,10 +576,10 @@ function AuthPage() {
             </div>
           )}
 
-          {(authMode === 'forgot' || authMode === 'reset') && (
+          {(authMode === 'forgot' || authMode === 'forgotSent' || authMode === 'reset') && (
             <button
               type="button"
-              onClick={() => handleModeChange('login')}
+              onClick={handleBackToLogin}
               style={getTextButtonStyle(theme)}
             >
               Volver a iniciar sesión
@@ -504,6 +597,8 @@ function DevResetPanel({ token, resetUrl, theme, onContinue }) {
       style={{
         display: 'grid',
         gap: 8,
+        width: 'min(100%, 260px)',
+        justifySelf: 'center',
         padding: '10px 12px',
         borderRadius: 10,
         border: `1px dashed ${theme.border}`,
@@ -511,10 +606,10 @@ function DevResetPanel({ token, resetUrl, theme, onContinue }) {
         color: theme.textBody,
         fontSize: 12,
         lineHeight: 1.4,
-        textAlign: 'left',
+        textAlign: 'center',
       }}
     >
-      <div style={{ display: 'grid', gap: 2 }}>
+      <div style={{ display: 'grid', gap: 2, justifyItems: 'center' }}>
         <strong style={{ color: theme.textPrimary, fontSize: 12 }}>Modo desarrollo</strong>
         <span>Para pruebas locales, puedes continuar usando el token generado.</span>
       </div>
@@ -523,7 +618,7 @@ function DevResetPanel({ token, resetUrl, theme, onContinue }) {
         type="button"
         onClick={onContinue}
         style={{
-          justifySelf: 'start',
+          justifySelf: 'center',
           padding: '6px 10px',
           borderRadius: 10,
           border: `1px solid ${theme.border}`,
@@ -540,7 +635,7 @@ function DevResetPanel({ token, resetUrl, theme, onContinue }) {
         <summary style={{ cursor: 'pointer', color: theme.textSecondary, fontWeight: 600 }}>
           Ver token de desarrollo
         </summary>
-        <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+        <div style={{ display: 'grid', gap: 6, marginTop: 8, textAlign: 'center' }}>
           <div>
             Token: <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{token}</span>
           </div>
@@ -578,6 +673,20 @@ function FormField({ placeholder, name, type, value, onChange, readOnly = false 
       }}
     />
   );
+}
+
+function getPrimaryButtonStyle(theme) {
+  return {
+    marginTop: 8,
+    minHeight: 25,
+    padding: '5px 16px',
+    borderRadius: 12,
+    border: 'none',
+    background: theme.sidebarBackground,
+    color: theme.sidebarText,
+    fontWeight: 'bold',
+    cursor: 'pointer',
+  };
 }
 
 function getTextButtonStyle(theme) {

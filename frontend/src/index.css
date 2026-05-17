@@ -122,6 +122,34 @@ body {
   overflow-y: scroll;
 }
 
+.auth-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: auth-spin 0.8s linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-reset-content {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+
+.auth-reset-primary-button {
+  justify-self: center;
+  min-width: min(100%, 235px);
+  text-align: center;
+}
+
 .favorite-movements-list {
   display: flex;
   flex-wrap: wrap;
