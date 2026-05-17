@@ -99,6 +99,7 @@ Main capabilities:
 - App is prepared for separate frontend/backend cloud deployment without changing API routes.
 - Production startup now validates required environment variables and fails fast without printing secret values.
 - Production password reset email requires Resend environment variables and never returns reset tokens in API responses.
+- Password reset emails include only the reset link and use a 30-minute default expiration.
 - Production deployments must override Docker demo/default secrets with explicit environment values.
 
 ### Swagger / OpenAPI documentation

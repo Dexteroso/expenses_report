@@ -24,29 +24,25 @@ const escapeHtml = (value = '') => String(value)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-const buildPasswordResetText = ({ name, resetUrl, resetToken, expiresInMinutes }) => (
+const buildPasswordResetText = ({ name, resetUrl, expiresInMinutes }) => (
   `Hola${name ? ` ${name}` : ''},
 
-Recibimos una solicitud para restablecer tu contraseña de Expenses Report.
+Recibimos una solicitud para restablecer tu contraseña.
 
-Abre este enlace para continuar:
+Haz clic en el siguiente enlace para continuar:
 ${resetUrl}
 
-También puedes copiar este token en el formulario de recuperación:
-${resetToken}
-
-Este token expira en ${expiresInMinutes} minutos.
+Este enlace expirará en ${expiresInMinutes} minutos.
 
 Si no solicitaste este cambio, ignora este correo.`
 );
 
-const buildPasswordResetHtml = ({ name, resetUrl, resetToken, expiresInMinutes }) => (
+const buildPasswordResetHtml = ({ name, resetUrl, expiresInMinutes }) => (
   `<p>Hola${name ? ` ${escapeHtml(name)}` : ''},</p>
-<p>Recibimos una solicitud para restablecer tu contraseña de Expenses Report.</p>
-<p><a href="${escapeHtml(resetUrl)}">Restablecer contraseña</a></p>
-<p>También puedes copiar este token en el formulario de recuperación:</p>
-<p><code>${escapeHtml(resetToken)}</code></p>
-<p>Este token expira en ${expiresInMinutes} minutos.</p>
+<p>Recibimos una solicitud para restablecer tu contraseña.</p>
+<p>Haz clic en el siguiente botón para continuar:</p>
+<p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;padding:10px 16px;background:#3c568c;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;">Restablecer contraseña</a></p>
+<p>Este enlace expirará en ${expiresInMinutes} minutos.</p>
 <p>Si no solicitaste este cambio, ignora este correo.</p>`
 );
 
@@ -71,9 +67,9 @@ const sendPasswordResetEmail = async ({ to, name, resetToken, resetUrl, expiresI
     body: JSON.stringify({
       from: process.env.EMAIL_FROM,
       to,
-      subject: 'Restablece tu contraseña',
-      text: buildPasswordResetText({ name, resetUrl, resetToken, expiresInMinutes }),
-      html: buildPasswordResetHtml({ name, resetUrl, resetToken, expiresInMinutes }),
+      subject: 'Restablece tu contraseña de Expenses Report',
+      text: buildPasswordResetText({ name, resetUrl, expiresInMinutes }),
+      html: buildPasswordResetHtml({ name, resetUrl, expiresInMinutes }),
     }),
     signal: AbortSignal.timeout(EMAIL_SEND_TIMEOUT_MS),
   });

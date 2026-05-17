@@ -235,6 +235,7 @@ DB_USER=your_mysql_user
 DB_PASSWORD=your_mysql_password
 JWT_SECRET=replace_with_a_local_secret
 JWT_EXPIRES_IN=1d
+RESET_TOKEN_EXPIRES_MINUTES=30
 MONGO_URI=mongodb://127.0.0.1:27017/expenses_activity
 FRONTEND_URL=http://localhost:5173
 API_URL=http://localhost:3000
@@ -242,7 +243,7 @@ RESEND_API_KEY=your_resend_api_key
 EMAIL_FROM="Expenses Report <support@example.com>"
 ```
 
-Password reset requests send instructions by email when Resend is configured. Local non-production runs can still test the flow without Resend because the API response and server logs include the reset token; production responses never include the token.
+Password reset requests send a link-only email when Resend is configured. Reset links expire after 30 minutes by default. Local non-production runs can still test the flow without Resend because the API response and server logs include the reset token; production responses never include the token.
 
 Initialize a fresh local MySQL database with the project SQL if needed:
 

@@ -10,9 +10,10 @@ const {
 
 const SALT_ROUNDS = 10;
 const PASSWORD_RESET_RESPONSE_MESSAGE = 'Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.';
+const DEFAULT_RESET_TOKEN_EXPIRES_MINUTES = 30;
 
 const getResetTokenExpiresAt = () => {
-  const expiresInMinutes = Number(process.env.RESET_TOKEN_EXPIRES_MINUTES) || 60;
+  const expiresInMinutes = Number(process.env.RESET_TOKEN_EXPIRES_MINUTES) || DEFAULT_RESET_TOKEN_EXPIRES_MINUTES;
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + expiresInMinutes);
 

@@ -180,7 +180,7 @@ router.post('/login', login);
  *                   message: Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.
  *                   resetToken: reset_token_here
  *                   resetUrl: http://localhost:5173/auth?mode=forgot&token=reset_token_here
- *                   expiresInMinutes: 60
+ *                   expiresInMinutes: 30
  *       400:
  *         description: Validation error
  *         content:
