@@ -1,5 +1,6 @@
 const Account = require('../models/sequelize/Account');
 const { logActivity } = require('../utils/activityLogger');
+const { checkIsSystemColumn } = require('../utils/systemAccounts');
 const { sanitizeTextValue } = require('../utils/validators');
 
 const validateAccountPayload = ({
@@ -101,6 +102,16 @@ const getAccountActivityDetails = async (accountId, userId) => {
 const getAccounts = async (req, res) => {
   try {
     const userId = req.user.id;
+    const canFilterSystemAccounts = await checkIsSystemColumn();
+    const includeSystemAccounts = req.query.includeSystem === 'true';
+    const where = {
+      user_id: userId,
+      is_active: true,
+    };
+
+    if (canFilterSystemAccounts && !includeSystemAccounts) {
+      where.is_system = false;
+    }
 
     const rows = await Account.findAll({
       attributes: [
@@ -112,10 +123,7 @@ const getAccounts = async (req, res) => {
         'account_type',
         'billing_cycle_end_day',
       ],
-      where: {
-        user_id: userId,
-        is_active: true,
-      },
+      where,
       order: [['bank_name', 'ASC']],
       raw: true,
     });
@@ -214,6 +222,7 @@ const updateAccount = async (req, res) => {
       where: {
         id: accountId,
         user_id: userId,
+        ...(await checkIsSystemColumn() ? { is_system: false } : {}),
       },
     });
 
@@ -251,6 +260,7 @@ const updateAccount = async (req, res) => {
       where: {
         id: accountId,
         user_id: userId,
+        ...(await checkIsSystemColumn() ? { is_system: false } : {}),
       },
       raw: true,
     });
@@ -300,6 +310,7 @@ const deactivateAccount = async (req, res) => {
           id: accountId,
           user_id: userId,
           is_active: true,
+          ...(await checkIsSystemColumn() ? { is_system: false } : {}),
         },
       }
     );

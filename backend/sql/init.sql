@@ -22,7 +22,13 @@ CREATE TABLE IF NOT EXISTS accounts (
   user_id INT NOT NULL,
   bank_name VARCHAR(100) NOT NULL,
   last_four VARCHAR(4) DEFAULT NULL,
-  account_alias VARCHAR(120) GENERATED ALWAYS AS (CONCAT(bank_name, _utf8mb4'_', last_four)) STORED,
+  is_system TINYINT(1) NOT NULL DEFAULT 0,
+  account_alias VARCHAR(120) GENERATED ALWAYS AS (
+    CASE
+      WHEN is_system THEN bank_name
+      ELSE CONCAT(bank_name, _utf8mb4'_', last_four)
+    END
+  ) STORED,
   account_type ENUM('debit', 'credit', 'cash', 'transfer', 'investment', 'other') NOT NULL,
   billing_cycle_end_day TINYINT DEFAULT NULL,
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
@@ -197,9 +203,10 @@ INSERT IGNORE INTO concepts (id, category_id, name) VALUES
 INSERT IGNORE INTO users (id, name, email, password, role, is_active, onboarding_completed) VALUES
   (1, 'Admin Demo', 'admin.docker@example.com', '$2b$10$lttlitklg0Pu/6YiARfNUeweej.ywkBDxxizdxdXYlK480CLvcKF2', 'admin', 1, 1);
 
-INSERT IGNORE INTO accounts (id, user_id, bank_name, last_four, account_type, billing_cycle_end_day, is_active) VALUES
-  (1, 1, 'BBVA', '1234', 'debit', NULL, 1),
-  (2, 1, 'Santander', '4603', 'credit', 15, 1);
+INSERT IGNORE INTO accounts (id, user_id, bank_name, last_four, account_type, billing_cycle_end_day, is_active, is_system) VALUES
+  (1, 1, 'BBVA', '1234', 'debit', NULL, 1, 0),
+  (2, 1, 'Santander', '4603', 'credit', 15, 1, 0),
+  (3, 1, 'Efectivo', '0000', 'cash', NULL, 1, 1);
 
 INSERT IGNORE INTO favorite_movements (
   id,
@@ -268,7 +275,7 @@ INSERT IGNORE INTO expenses (
 ALTER TABLE categories AUTO_INCREMENT = 16;
 ALTER TABLE concepts AUTO_INCREMENT = 62;
 ALTER TABLE users AUTO_INCREMENT = 2;
-ALTER TABLE accounts AUTO_INCREMENT = 3;
+ALTER TABLE accounts AUTO_INCREMENT = 4;
 ALTER TABLE favorite_movements AUTO_INCREMENT = 4;
 ALTER TABLE expenses AUTO_INCREMENT = 13;
 ALTER TABLE budgets AUTO_INCREMENT = 22;

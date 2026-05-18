@@ -162,7 +162,7 @@ function AddExpenseForm({
             .then((response) => response.json())
             .then((data) => setCategories(data));
 
-        authFetch(`${API_BASE_URL}/api/accounts`)
+        authFetch(`${API_BASE_URL}/api/accounts?includeSystem=true`)
             .then((response) => response.json())
             .then((data) => setAccounts(data));
     }, []);
@@ -558,7 +558,7 @@ function AddExpenseForm({
                         )}
 
                         <div className="responsive-field expense-field-account" style={fieldStyle}>
-                            <label style={labelStyle}>Cuenta</label>
+                            <label style={labelStyle}>Pago</label>
                             <select
                                 name="account_id"
                                 value={formData.account_id}
@@ -566,7 +566,7 @@ function AddExpenseForm({
                                 required
                                 style={inputStyle}
                             >
-                                <option value="">Selecciona cuenta</option>
+                                <option value="">Selecciona pago</option>
                                 {accounts.map((account) => (
                                     <option key={account.id} value={account.id}>
                                         {account.account_alias}

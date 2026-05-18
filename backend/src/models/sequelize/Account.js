@@ -39,10 +39,18 @@ const Account = sequelize.define(
       allowNull: false,
       defaultValue: true,
     },
+    is_system: {
+      type: DataTypes.BOOLEAN,
+    },
   },
   {
     tableName: 'accounts',
     timestamps: false,
+    defaultScope: {
+      attributes: {
+        exclude: ['is_system'],
+      },
+    },
   }
 );
 

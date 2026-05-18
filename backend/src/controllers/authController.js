@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { logActivity } = require('../utils/activityLogger');
 const { getUserOnboardingCompleted } = require('../utils/onboardingStatus');
+const { ensureSystemCashAccountForUser } = require('../utils/systemAccounts');
 const {
   buildPasswordResetUrl,
   sendPasswordResetEmail,
@@ -67,6 +68,7 @@ const register = async (req, res) => {
       `,
       [name, email, hashedPassword]
     );
+    await ensureSystemCashAccountForUser(result.insertId);
 
     logActivity({
       user: {
