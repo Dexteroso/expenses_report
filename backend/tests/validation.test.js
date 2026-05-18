@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../src/app');
 const pool = require('../src/config/db');
+const { sanitizeTextValue } = require('../src/utils/validators');
 
 describe('Backend validation', () => {
   let token;
@@ -225,5 +226,11 @@ describe('Backend validation', () => {
       });
 
     expect(response.statusCode).toBe(400);
+  });
+
+  test('text sanitizer removes hidden control characters without removing user text', () => {
+    const result = sanitizeTextValue('  Café ñandú 💸\u0000<script>alert(1)</script>\u0007  ');
+
+    expect(result).toBe('Café ñandú 💸<script>alert(1)</script>');
   });
 });

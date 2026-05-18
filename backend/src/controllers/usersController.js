@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 const { logActivity } = require('../utils/activityLogger');
-const { isIntegerValue } = require('../utils/validators');
+const { isIntegerValue, sanitizeTextValue } = require('../utils/validators');
 
 const buildChangedFields = (beforeUser, afterUser) => {
   const fieldComparisons = [
@@ -46,6 +46,12 @@ const updateUser = async (req, res) => {
     const adminUserId = req.user.id;
     const { id } = req.params;
     const { name, email, role, is_active } = req.body;
+    const sanitizedName = name !== undefined
+      ? sanitizeTextValue(name, { maxLength: 100 })
+      : undefined;
+    const sanitizedEmail = email !== undefined
+      ? sanitizeTextValue(email, { maxLength: 150 })
+      : undefined;
 
     if (!isIntegerValue(id)) {
       return res.status(400).json({ error: 'Invalid user id' });
@@ -81,7 +87,7 @@ const updateUser = async (req, res) => {
       }
     }
 
-    if (email) {
+    if (sanitizedEmail) {
       const [emailRows] = await pool.query(
         `
         SELECT id
@@ -89,7 +95,7 @@ const updateUser = async (req, res) => {
         WHERE email = ? AND id <> ?
         LIMIT 1
         `,
-        [email, id]
+        [sanitizedEmail, id]
       );
 
       if (emailRows.length > 0) {
@@ -102,12 +108,12 @@ const updateUser = async (req, res) => {
 
     if (name !== undefined) {
       fields.push('name = ?');
-      values.push(name);
+      values.push(sanitizedName);
     }
 
     if (email !== undefined) {
       fields.push('email = ?');
-      values.push(email);
+      values.push(sanitizedEmail);
     }
 
     if (role !== undefined) {

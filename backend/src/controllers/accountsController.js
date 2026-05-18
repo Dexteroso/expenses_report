@@ -1,5 +1,6 @@
 const Account = require('../models/sequelize/Account');
 const { logActivity } = require('../utils/activityLogger');
+const { sanitizeTextValue } = require('../utils/validators');
 
 const validateAccountPayload = ({
   bank_name,
@@ -7,7 +8,7 @@ const validateAccountPayload = ({
   account_type,
   billing_cycle_end_day,
 }) => {
-  if (!bank_name || !last_four || !account_type) {
+  if (!sanitizeTextValue(bank_name) || !last_four || !account_type) {
     return {
       error: 'bank_name, last_four, and account_type are required',
       normalizedBillingCycleEndDay: null,
@@ -146,9 +147,11 @@ const createAccount = async (req, res) => {
       return res.status(400).json({ error: validationResult.error });
     }
 
+    const sanitizedBankName = sanitizeTextValue(bank_name, { maxLength: 100 });
+
     const account = await Account.create({
       user_id: userId,
-      bank_name: String(bank_name).trim(),
+      bank_name: sanitizedBankName,
       last_four: String(last_four),
       account_type,
       billing_cycle_end_day: validationResult.normalizedBillingCycleEndDay,
@@ -164,7 +167,7 @@ const createAccount = async (req, res) => {
       description: 'Account created',
       metadata: {
         accountAlias: activityDetails.account_alias,
-        bankName: String(bank_name).trim(),
+        bankName: sanitizedBankName,
         lastFour: String(last_four),
         accountType: account_type,
       },
@@ -218,9 +221,11 @@ const updateAccount = async (req, res) => {
       return res.status(404).json({ error: 'Account not found' });
     }
 
+    const sanitizedBankName = sanitizeTextValue(bank_name, { maxLength: 100 });
+
     await Account.update(
       {
-        bank_name: String(bank_name).trim(),
+        bank_name: sanitizedBankName,
         last_four: String(last_four),
         account_type,
         billing_cycle_end_day: validationResult.normalizedBillingCycleEndDay,

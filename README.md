@@ -9,7 +9,7 @@ Full-stack personal finance application for tracking movements, accounts, budget
 ![MongoDB](https://img.shields.io/badge/MongoDB-Activity%20Logs-47A248?logo=mongodb&logoColor=white)
 ![Sequelize](https://img.shields.io/badge/Sequelize-ORM-52B0E7?logo=sequelize&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![Jest](https://img.shields.io/badge/Jest-39%20tests-C21325?logo=jest&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-43%20tests-C21325?logo=jest&logoColor=white)
 
 ## Table of Contents
 
@@ -132,6 +132,15 @@ Security features implemented in the backend:
 - Backend uses `req.user.id` from the JWT instead of trusting `user_id` from the frontend.
 - No real production secrets are committed to Dockerfiles or documentation.
 
+### Security Measures
+
+- SQL Injection protection: financial modules use Sequelize ORM query builders, and remaining `mysql2` queries use parameter placeholders instead of concatenating user input.
+- XSS protection: React escapes rendered values by default, and the frontend avoids direct HTML injection APIs such as `dangerouslySetInnerHTML` or `innerHTML`.
+- Input sanitization: backend helpers trim user-generated text and remove hidden control characters while preserving Spanish accents, emojis, and normal punctuation.
+- Security headers: Helmet is enabled on the Express API.
+- Transport/security boundary: production traffic is served behind HTTPS through the nginx reverse proxy.
+- Abuse controls: API-wide rate limiting and stricter auth endpoint rate limiting reduce brute-force and spam attempts.
+
 ## Testing
 
 Backend automated testing uses Jest and Supertest.
@@ -152,7 +161,7 @@ Current result:
 
 ```bash
 Test Suites: 7 passed, 7 total
-Tests:       39 passed, 39 total
+Tests:       43 passed, 43 total
 ```
 
 Run backend tests:

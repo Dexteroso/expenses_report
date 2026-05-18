@@ -7,6 +7,7 @@ const { logActivity } = require('../utils/activityLogger');
 const {
     isIntegerValue,
     isPositiveNumberValue,
+    sanitizeOptionalTextValue,
     isValidDateValue,
     isValidMonthValue,
 } = require('../utils/validators');
@@ -313,6 +314,7 @@ const createExpense = async (req, res) => {
         }
 
         const normalizedAmount = Number(amount);
+        const sanitizedDescription = sanitizeOptionalTextValue(description);
 
         const expenseCode = await getNextExpenseCode();
 
@@ -323,7 +325,7 @@ const createExpense = async (req, res) => {
             type,
             category_id,
             concept_id,
-            description,
+            description: sanitizedDescription,
             amount: normalizedAmount,
             account_id,
         });
@@ -342,7 +344,7 @@ const createExpense = async (req, res) => {
                 conceptName: activityDetails.concept,
                 amount: normalizedAmount,
                 accountAlias: activityDetails.account_alias,
-                description,
+                description: sanitizedDescription,
                 date,
                 type,
             },
@@ -481,6 +483,7 @@ const updateExpense = async (req, res) => {
     }
 
     const normalizedAmount = Number(amount);
+    const sanitizedDescription = sanitizeOptionalTextValue(description);
     const beforeDetails = await getExpenseActivityDetails(id, userId);
 
     const [affectedRows] = await Expense.update(
@@ -489,7 +492,7 @@ const updateExpense = async (req, res) => {
         type,
         category_id,
         concept_id,
-        description,
+        description: sanitizedDescription,
         amount: normalizedAmount,
         account_id,
       },
@@ -519,7 +522,7 @@ const updateExpense = async (req, res) => {
         conceptName: activityDetails.concept,
         amount: Number(activityDetails.amount ?? amount),
         accountAlias: activityDetails.account_alias,
-        description,
+        description: sanitizedDescription,
         date,
         type,
         changedFields: buildExpenseChangedFields(beforeDetails, activityDetails),

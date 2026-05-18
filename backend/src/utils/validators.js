@@ -62,6 +62,36 @@ const isValidDateValue = (value) => {
   );
 };
 
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+const truncateText = (value, maxLength) => {
+  if (!Number.isInteger(maxLength) || maxLength < 0) {
+    return value;
+  }
+
+  return Array.from(value).slice(0, maxLength).join('');
+};
+
+const sanitizeTextValue = (value, { maxLength } = {}) => {
+  if (value === undefined || value === null) {
+    return '';
+  }
+
+  const sanitizedValue = String(value)
+    .replace(CONTROL_CHARACTER_PATTERN, '')
+    .trim();
+
+  return truncateText(sanitizedValue, maxLength);
+};
+
+const sanitizeOptionalTextValue = (value, options) => {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  return sanitizeTextValue(value, options);
+};
+
 module.exports = {
   hasValue,
   isIntegerValue,
@@ -69,4 +99,6 @@ module.exports = {
   isNonNegativeNumberValue,
   isValidMonthValue,
   isValidDateValue,
+  sanitizeTextValue,
+  sanitizeOptionalTextValue,
 };

@@ -2,10 +2,11 @@ const Account = require('../models/sequelize/Account');
 const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
 const FavoriteMovement = require('../models/sequelize/FavoriteMovement');
+const { sanitizeTextValue } = require('../utils/validators');
 
 const MAX_FAVORITES_PER_USER = 5;
 
-const normalizeText = (value) => String(value || '').trim();
+const normalizeText = (value, options) => sanitizeTextValue(value, options);
 
 const validateFavoritePayload = ({
   emoji,
@@ -123,6 +124,10 @@ const createFavoriteMovement = async (req, res) => {
     const normalizedCategoryId = Number(category_id);
     const normalizedConceptId = Number(concept_id);
     const normalizedAccountId = Number(account_id);
+    const sanitizedEmoji = normalizeText(emoji, { maxLength: 16 });
+    const sanitizedAlias = normalizeText(alias, { maxLength: 40 });
+    const sanitizedColor = normalizeText(color, { maxLength: 20 });
+    const sanitizedDescription = normalizeText(description, { maxLength: 255 });
 
     const [category, concept, account] = await Promise.all([
       Category.findOne({
@@ -155,13 +160,13 @@ const createFavoriteMovement = async (req, res) => {
 
     const favorite = await FavoriteMovement.create({
       user_id: userId,
-      emoji: normalizeText(emoji),
-      alias: normalizeText(alias).slice(0, 40),
-      color: normalizeText(color).slice(0, 20),
+      emoji: sanitizedEmoji,
+      alias: sanitizedAlias,
+      color: sanitizedColor,
       type,
       category_id: normalizedCategoryId,
       concept_id: normalizedConceptId,
-      description: normalizeText(description).slice(0, 255),
+      description: sanitizedDescription,
       account_id: normalizedAccountId,
     });
 
