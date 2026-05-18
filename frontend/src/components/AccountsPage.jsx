@@ -86,6 +86,9 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [hasLoadedAccounts, setHasLoadedAccounts] = useState(false);
+  const hasNoAccounts = hasLoadedAccounts && accounts.length === 0;
+  const shouldShowFirstAccountOnboarding = hasNoAccounts && showFirstAccountOnboarding;
+  const shouldShowEmptyAccountsState = hasNoAccounts && !showFirstAccountOnboarding;
 
   const fetchAccounts = async () => {
     try {
@@ -226,7 +229,7 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
 
     setIsSubmitting(true);
     setFormMessage('');
-    const isFirstAccountCreation = showFirstAccountOnboarding && !editingAccount && accounts.length === 0;
+    const shouldCompleteFirstAccountOnboarding = shouldShowFirstAccountOnboarding && !editingAccount;
 
     try {
       const response = await authFetch(
@@ -261,7 +264,7 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
       await fetchAccounts();
       closeModal();
 
-      if (isFirstAccountCreation && onFirstAccountCreated) {
+      if (shouldCompleteFirstAccountOnboarding && onFirstAccountCreated) {
         onFirstAccountCreated();
       }
     } catch (error) {
@@ -331,7 +334,7 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
           </p>
         )}
 
-        {hasLoadedAccounts && accounts.length === 0 && showFirstAccountOnboarding && (
+        {shouldShowFirstAccountOnboarding && (
           <div className="onboarding-card accounts-onboarding-card">
             <h2>Bienvenido 👋</h2>
             <p>Antes de comenzar, agrega una cuenta para registrar tus movimientos.</p>
@@ -339,8 +342,18 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
           </div>
         )}
 
-        {hasLoadedAccounts && accounts.length === 0 && !showFirstAccountOnboarding && (
-          <div className="onboarding-card accounts-onboarding-card">
+        {shouldShowEmptyAccountsState && (
+          <div
+            className="accounts-empty-state"
+            style={{
+              border: `1px solid ${theme.border}`,
+              borderRadius: 12,
+              padding: 18,
+              background: theme.surfaceMuted,
+              textAlign: 'center',
+              color: theme.textBody,
+            }}
+          >
             <h2>No tienes cuentas activas</h2>
             <p>Agrega una cuenta para registrar nuevos movimientos.</p>
           </div>
