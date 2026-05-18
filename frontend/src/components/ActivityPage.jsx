@@ -28,6 +28,10 @@ const eventLabels = {
   'account.reactivated': 'Cuenta reactivada',
   'budget.created': 'Presupuesto creado',
   'budget.updated': 'Presupuesto actualizado',
+  'favorite.created': 'Frecuente creado',
+  'favorite.updated': 'Frecuente actualizado',
+  'favorite.deleted': 'Frecuente eliminado',
+  'favorite.used': 'Frecuente usado',
   'user.created': 'Usuario creado',
   'user.updated': 'Usuario actualizado',
   'user.activated': 'Usuario activado',
@@ -269,6 +273,10 @@ function getActivityIconClass(eventType) {
     'account.reactivated': 'bx bx-check-circle',
     'budget.created': 'bx bx-wallet',
     'budget.updated': 'bx bx-wallet',
+    'favorite.created': 'bx bx-star',
+    'favorite.updated': 'bx bx-edit-alt',
+    'favorite.deleted': 'bx bx-trash',
+    'favorite.used': 'bx bx-star',
     'user.created': 'bx bx-user-plus',
     'user.updated': 'bx bx-user',
     'user.activated': 'bx bx-user-check',
@@ -333,11 +341,24 @@ function getActivityDetails(log) {
     return getBudgetDetails(metadata);
   }
 
+  if (log.entityType === 'favorite') {
+    return getFavoriteDetails(metadata);
+  }
+
   if (log.entityType === 'user') {
     return getUserDetails(log, metadata);
   }
 
   return [];
+}
+
+function getFavoriteDetails(metadata) {
+  return [
+    metadata.favoriteAlias,
+    metadata.categoryName || metadata.conceptName,
+    metadata.accountAlias,
+    metadata.expenseCode,
+  ];
 }
 
 function getAuthDetails(log, metadata) {

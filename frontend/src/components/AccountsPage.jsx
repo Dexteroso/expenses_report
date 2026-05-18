@@ -17,7 +17,7 @@ const accountTypeLabels = {
   debit: 'Débito',
 };
 
-function AccountsPage({ onFirstAccountCreated }) {
+function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = false }) {
   const theme = lightTheme;
   const cardStyle = {
     background: theme.surface,
@@ -226,7 +226,7 @@ function AccountsPage({ onFirstAccountCreated }) {
 
     setIsSubmitting(true);
     setFormMessage('');
-    const isFirstAccountCreation = !editingAccount && accounts.length === 0;
+    const isFirstAccountCreation = showFirstAccountOnboarding && !editingAccount && accounts.length === 0;
 
     try {
       const response = await authFetch(
@@ -331,11 +331,18 @@ function AccountsPage({ onFirstAccountCreated }) {
           </p>
         )}
 
-        {hasLoadedAccounts && accounts.length === 0 && (
+        {hasLoadedAccounts && accounts.length === 0 && showFirstAccountOnboarding && (
           <div className="onboarding-card accounts-onboarding-card">
             <h2>Bienvenido 👋</h2>
             <p>Antes de comenzar, agrega una cuenta para registrar tus movimientos.</p>
             <p>Puedes agregar cuentas de Débito o Crédito.</p>
+          </div>
+        )}
+
+        {hasLoadedAccounts && accounts.length === 0 && !showFirstAccountOnboarding && (
+          <div className="onboarding-card accounts-onboarding-card">
+            <h2>No tienes cuentas activas</h2>
+            <p>Agrega una cuenta para registrar nuevos movimientos.</p>
           </div>
         )}
 

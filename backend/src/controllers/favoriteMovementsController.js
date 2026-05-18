@@ -2,6 +2,7 @@ const Account = require('../models/sequelize/Account');
 const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
 const FavoriteMovement = require('../models/sequelize/FavoriteMovement');
+const { logActivity } = require('../utils/activityLogger');
 const { sanitizeTextValue } = require('../utils/validators');
 
 const MAX_FAVORITES_PER_USER = 5;
@@ -62,6 +63,36 @@ const formatFavoriteMovement = (favorite) => {
     created_at: row.created_at,
   };
 };
+
+const buildFavoriteActivityMetadata = (favorite) => ({
+  favoriteAlias: favorite.alias,
+  categoryName: favorite.category?.name,
+  conceptName: favorite.concept?.name,
+  type: favorite.type,
+  accountAlias: favorite.account?.account_alias,
+  description: favorite.description,
+});
+
+const favoriteActivityIncludes = [
+  {
+    model: Category,
+    as: 'category',
+    attributes: ['name'],
+    required: false,
+  },
+  {
+    model: Concept,
+    as: 'concept',
+    attributes: ['name'],
+    required: false,
+  },
+  {
+    model: Account,
+    as: 'account',
+    attributes: ['account_alias'],
+    required: false,
+  },
+];
 
 const getFavoriteMovements = async (req, res) => {
   try {
@@ -169,6 +200,28 @@ const createFavoriteMovement = async (req, res) => {
       description: sanitizedDescription,
       account_id: normalizedAccountId,
     });
+    const activityFavorite = await FavoriteMovement.findOne({
+      where: {
+        id: favorite.id,
+        user_id: userId,
+      },
+      include: favoriteActivityIncludes,
+    });
+    const activityDetails = activityFavorite?.get({ plain: true }) || {
+      ...formatFavoriteMovement(favorite),
+      category,
+      concept,
+      account,
+    };
+
+    logActivity({
+      user: req.user,
+      eventType: 'favorite.created',
+      entityType: 'favorite',
+      entityId: favorite.id,
+      description: 'Favorite movement created',
+      metadata: buildFavoriteActivityMetadata(activityDetails),
+    });
 
     res.status(201).json({
       message: 'Favorite movement created successfully',
@@ -188,6 +241,19 @@ const deleteFavoriteMovement = async (req, res) => {
       return res.status(400).json({ error: 'Invalid favorite movement id' });
     }
 
+    const favorite = await FavoriteMovement.findOne({
+      where: {
+        id: favoriteId,
+        user_id: req.user.id,
+      },
+      include: favoriteActivityIncludes,
+    });
+
+    if (!favorite) {
+      return res.status(404).json({ error: 'Favorite movement not found' });
+    }
+
+    const activityDetails = favorite.get({ plain: true });
     const deletedCount = await FavoriteMovement.destroy({
       where: {
         id: favoriteId,
@@ -198,6 +264,15 @@ const deleteFavoriteMovement = async (req, res) => {
     if (!deletedCount) {
       return res.status(404).json({ error: 'Favorite movement not found' });
     }
+
+    logActivity({
+      user: req.user,
+      eventType: 'favorite.deleted',
+      entityType: 'favorite',
+      entityId: favoriteId,
+      description: 'Favorite movement deleted',
+      metadata: buildFavoriteActivityMetadata(activityDetails),
+    });
 
     res.json({ message: 'Favorite movement deleted successfully' });
   } catch (error) {

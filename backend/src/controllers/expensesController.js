@@ -3,7 +3,9 @@ const Account = require('../models/sequelize/Account');
 const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
 const Expense = require('../models/sequelize/Expense');
+const FavoriteMovement = require('../models/sequelize/FavoriteMovement');
 const { logActivity } = require('../utils/activityLogger');
+const { markUserOnboardingCompleted } = require('../utils/onboardingStatus');
 const {
     isIntegerValue,
     isPositiveNumberValue,
@@ -164,6 +166,53 @@ const expenseIncludes = [
     },
 ];
 
+const getFavoriteActivityDetails = async (favoriteId, userId) => {
+    if (!isIntegerValue(favoriteId)) {
+        return null;
+    }
+
+    const favorite = await FavoriteMovement.findOne({
+        attributes: ['id', 'alias', 'type', 'description'],
+        include: [
+            {
+                model: Category,
+                as: 'category',
+                attributes: ['name'],
+                required: false,
+            },
+            {
+                model: Concept,
+                as: 'concept',
+                attributes: ['name'],
+                required: false,
+            },
+            {
+                model: Account,
+                as: 'account',
+                attributes: ['account_alias'],
+                required: false,
+            },
+        ],
+        where: {
+            id: Number(favoriteId),
+            user_id: userId,
+        },
+    });
+
+    return favorite?.get({ plain: true }) || null;
+};
+
+const buildFavoriteActivityMetadata = (favorite, expense = {}) => ({
+    favoriteAlias: favorite.alias,
+    categoryName: favorite.category?.name,
+    conceptName: favorite.concept?.name,
+    type: favorite.type,
+    accountAlias: favorite.account?.account_alias,
+    description: favorite.description,
+    expenseId: expense.id,
+    expenseCode: expense.expense_code,
+});
+
 const formatDateOnly = (value) => {
     if (!value) {
         return value;
@@ -297,6 +346,7 @@ const createExpense = async (req, res) => {
             description,
             amount,
             account_id,
+            source_favorite_id,
         } = req.body;
 
         const validationError = validateExpensePayload({
@@ -331,6 +381,9 @@ const createExpense = async (req, res) => {
         });
 
         const activityDetails = await getExpenseActivityDetails(expense.id, userId);
+        const favoriteDetails = await getFavoriteActivityDetails(source_favorite_id, userId);
+
+        await markUserOnboardingCompleted(userId);
 
         logActivity({
             user: req.user,
@@ -349,6 +402,20 @@ const createExpense = async (req, res) => {
                 type,
             },
         });
+
+        if (favoriteDetails) {
+            logActivity({
+                user: req.user,
+                eventType: 'favorite.used',
+                entityType: 'favorite',
+                entityId: Number(favoriteDetails.id),
+                description: 'Favorite movement used',
+                metadata: buildFavoriteActivityMetadata(favoriteDetails, {
+                    id: expense.id,
+                    expense_code: expenseCode,
+                }),
+            });
+        }
 
         res.status(201).json({
             message: 'Expense created successfully',

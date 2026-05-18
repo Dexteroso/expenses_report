@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { logActivity } = require('../utils/activityLogger');
+const { getUserOnboardingCompleted } = require('../utils/onboardingStatus');
 const {
   buildPasswordResetUrl,
   sendPasswordResetEmail,
@@ -28,6 +29,7 @@ const buildSafeUser = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  onboarding_completed: Boolean(user.onboarding_completed),
 });
 
 const register = async (req, res) => {
@@ -88,6 +90,7 @@ const register = async (req, res) => {
         name,
         email,
         role: 'user',
+        onboarding_completed: false,
       },
     });
   } catch (error) {
@@ -134,6 +137,7 @@ const login = async (req, res) => {
     }
 
     const user = rows[0];
+    user.onboarding_completed = await getUserOnboardingCompleted(user.id);
 
     if (!user.is_active) {
       logActivity({

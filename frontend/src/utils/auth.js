@@ -36,6 +36,31 @@ export function saveAuth(token, user) {
   window.localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
+export function updateStoredUser(updates) {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const currentUser = getUser();
+
+  if (!currentUser) {
+    return null;
+  }
+
+  const nextUser = {
+    ...currentUser,
+    ...updates,
+  };
+
+  window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+
+  return nextUser;
+}
+
+export function markOnboardingCompleted() {
+  return updateStoredUser({ onboarding_completed: true });
+}
+
 export function clearAuth() {
   if (typeof window === 'undefined') {
     return;

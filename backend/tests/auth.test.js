@@ -37,6 +37,7 @@ describe('Auth endpoints', () => {
     expect(registerResponse.body).toHaveProperty('user');
     expect(registerResponse.body.user).toHaveProperty('id', testUserId);
     expect(registerResponse.body.user).toHaveProperty('email', testUser.email);
+    expect(registerResponse.body.user).toHaveProperty('onboarding_completed', false);
     expect(registerResponse.body.user).not.toHaveProperty('password');
   });
 
@@ -52,6 +53,7 @@ describe('Auth endpoints', () => {
     expect(response.body).toHaveProperty('token');
     expect(response.body).toHaveProperty('user');
     expect(response.body.user).toHaveProperty('email', testUser.email);
+    expect(response.body.user).toHaveProperty('onboarding_completed', false);
   });
 
   test('login with invalid password returns error', async () => {

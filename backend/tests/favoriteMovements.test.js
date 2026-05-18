@@ -182,4 +182,26 @@ describe('Favorite movements endpoints', () => {
     expect(limitRes.statusCode).toBe(400);
     expect(limitRes.body.error).toBe('Maximum favorite movements reached');
   });
+
+  test('DELETE /api/favorite-movements/:id removes the current user favorite', async () => {
+    const [favoriteRows] = await pool.query(
+      'SELECT id FROM favorite_movements WHERE user_id = ? LIMIT 1',
+      [testUserId]
+    );
+    const favoriteId = favoriteRows[0].id;
+
+    const res = await request(app)
+      .delete(`/api/favorite-movements/${favoriteId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Favorite movement deleted successfully');
+
+    const [remainingRows] = await pool.query(
+      'SELECT id FROM favorite_movements WHERE id = ? AND user_id = ?',
+      [favoriteId, testUserId]
+    );
+
+    expect(remainingRows.length).toBe(0);
+  });
 });

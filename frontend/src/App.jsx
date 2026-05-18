@@ -11,23 +11,32 @@ import AuthPage from './components/AuthPage';
 import UsersPage from './components/UsersPage';
 import ActivityPage from './components/ActivityPage';
 import { useEffect, useState } from 'react';
-import { authFetch, clearAuth, getUser, isAuthenticated } from './utils/auth';
+import { authFetch, clearAuth, getUser, isAuthenticated, markOnboardingCompleted } from './utils/auth';
 import { API_BASE_URL } from './utils/api';
 import { formatCurrencyMXN } from './utils/formatters';
 import { typography } from './styles/typography';
 
 
 function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, onOnboardingDashboard }) {
+  const hasCompletedOnboarding = Boolean(getUser()?.onboarding_completed);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [favoriteMode, setFavoriteMode] = useState(false);
   const [favoritePrefill, setFavoritePrefill] = useState(null);
   const [favoriteRefreshKey, setFavoriteRefreshKey] = useState(0);
-  const [isMovementOnboardingActive, setIsMovementOnboardingActive] = useState(Boolean(onboardingStart));
+  const [isMovementOnboardingActive, setIsMovementOnboardingActive] = useState(
+    Boolean(onboardingStart && !hasCompletedOnboarding)
+  );
   const [isMovementOnboardingReady, setIsMovementOnboardingReady] = useState(false);
   const [isMovementOnboardingComplete, setIsMovementOnboardingComplete] = useState(false);
 
   useEffect(() => {
+    if (hasCompletedOnboarding) {
+      setIsMovementOnboardingActive(false);
+      setIsMovementOnboardingReady(false);
+      return;
+    }
+
     if (onboardingStart) {
       setIsMovementOnboardingActive(true);
       setIsMovementOnboardingReady(false);
@@ -50,7 +59,7 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
     };
 
     checkExistingExpenses();
-  }, [onboardingStart]);
+  }, [onboardingStart, hasCompletedOnboarding]);
 
   const getTodayInputValue = () => {
     const today = new Date();
@@ -64,6 +73,7 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
 
   const handleExpenseSaved = () => {
     if (isMovementOnboardingActive || isMovementOnboardingReady) {
+      markOnboardingCompleted();
       setIsMovementOnboardingActive(false);
       setIsMovementOnboardingReady(false);
       setIsMovementOnboardingComplete(true);
@@ -100,6 +110,7 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
     setSelectedExpense(null);
     setFavoriteMode(false);
     setFavoritePrefill({
+      id: favorite.id,
       alias: favorite.alias,
       date: getTodayInputValue(),
       type: favorite.type,
@@ -249,6 +260,7 @@ function App() {
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
   const currentUser = getUser();
+  const hasCompletedOnboarding = Boolean(currentUser?.onboarding_completed);
   const isAuthRoute = location.pathname === '/auth';
   const showSidebar = !isAuthRoute && authenticated;
   const navItems = [
@@ -320,6 +332,12 @@ function App() {
       return;
     }
 
+    if (hasCompletedOnboarding) {
+      setHasOnboardingAccounts(null);
+      setAccountOnboardingChecked(true);
+      return;
+    }
+
     const checkAccountsForOnboarding = async () => {
       try {
         const response = await authFetch(`${API_BASE_URL}/api/accounts`);
@@ -341,18 +359,19 @@ function App() {
     };
 
     checkAccountsForOnboarding();
-  }, [authenticated, isAuthRoute, accountOnboardingChecked, location.pathname, navigate]);
+  }, [authenticated, isAuthRoute, accountOnboardingChecked, hasCompletedOnboarding, location.pathname, navigate]);
 
   useEffect(() => {
     if (
       authenticated &&
+      !hasCompletedOnboarding &&
       hasOnboardingAccounts === false &&
       !isAuthRoute &&
       location.pathname !== '/cuentas'
     ) {
       navigate('/cuentas', { replace: true, state: { onboarding: 'first-account' } });
     }
-  }, [authenticated, hasOnboardingAccounts, isAuthRoute, location.pathname, navigate]);
+  }, [authenticated, hasCompletedOnboarding, hasOnboardingAccounts, isAuthRoute, location.pathname, navigate]);
 
   const handleFirstAccountCreated = () => {
     setAccountOnboardingChecked(true);
@@ -361,6 +380,7 @@ function App() {
   };
 
   const handleOnboardingDashboard = () => {
+    markOnboardingCompleted();
     setShowDashboardOnboardingSuccess(true);
     navigate('/dashboard');
   };
@@ -576,7 +596,17 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/cuentas" element={<ProtectedRoute><AccountsPage onFirstAccountCreated={handleFirstAccountCreated} /></ProtectedRoute>} />
+                <Route
+                  path="/cuentas"
+                  element={
+                    <ProtectedRoute>
+                      <AccountsPage
+                        onFirstAccountCreated={handleFirstAccountCreated}
+                        showFirstAccountOnboarding={!hasCompletedOnboarding}
+                      />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/actividad" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
                 <Route path="/presupuesto" element={<ProtectedRoute><BudgetPage /></ProtectedRoute>} />
                 <Route path="/real-vs-presupuesto" element={<ProtectedRoute><RealVsBudgetPage /></ProtectedRoute>} />

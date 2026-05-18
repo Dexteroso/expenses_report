@@ -9,7 +9,7 @@ Full-stack personal finance application for tracking movements, accounts, budget
 ![MongoDB](https://img.shields.io/badge/MongoDB-Activity%20Logs-47A248?logo=mongodb&logoColor=white)
 ![Sequelize](https://img.shields.io/badge/Sequelize-ORM-52B0E7?logo=sequelize&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![Jest](https://img.shields.io/badge/Jest-43%20tests-C21325?logo=jest&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-46%20tests-C21325?logo=jest&logoColor=white)
 
 ## Table of Contents
 
@@ -161,7 +161,7 @@ Current result:
 
 ```bash
 Test Suites: 7 passed, 7 total
-Tests:       43 passed, 43 total
+Tests:       46 passed, 46 total
 ```
 
 Run backend tests:

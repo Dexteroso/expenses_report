@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
   is_active TINYINT(1) NOT NULL DEFAULT 1,
+  onboarding_completed TINYINT(1) NOT NULL DEFAULT 0,
   reset_token VARCHAR(255) DEFAULT NULL,
   reset_token_expires DATETIME DEFAULT NULL,
   updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -193,8 +194,8 @@ INSERT IGNORE INTO concepts (id, category_id, name) VALUES
   (60, 15, 'Internet/Cable'),
   (61, 15, 'Otros');
 
-INSERT IGNORE INTO users (id, name, email, password, role, is_active) VALUES
-  (1, 'Admin Demo', 'admin.docker@example.com', '$2b$10$lttlitklg0Pu/6YiARfNUeweej.ywkBDxxizdxdXYlK480CLvcKF2', 'admin', 1);
+INSERT IGNORE INTO users (id, name, email, password, role, is_active, onboarding_completed) VALUES
+  (1, 'Admin Demo', 'admin.docker@example.com', '$2b$10$lttlitklg0Pu/6YiARfNUeweej.ywkBDxxizdxdXYlK480CLvcKF2', 'admin', 1, 1);
 
 INSERT IGNORE INTO accounts (id, user_id, bank_name, last_four, account_type, billing_cycle_end_day, is_active) VALUES
   (1, 1, 'BBVA', '1234', 'debit', NULL, 1),

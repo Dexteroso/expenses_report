@@ -391,6 +391,9 @@ function AddExpenseForm({
             ...formData,
             amount: parseCurrencyInput(formData.amount),
             account_id: formData.account_id || null,
+            ...(!selectedExpense && favoritePrefill?.id
+                ? { source_favorite_id: favoritePrefill.id }
+                : {}),
         };
 
         const url = selectedExpense
