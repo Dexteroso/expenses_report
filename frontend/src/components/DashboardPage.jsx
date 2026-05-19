@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
 import { lightTheme } from '../theme/theme';
-import { authFetch } from '../utils/auth';
+import { authFetch, getUser } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
-import { typography } from '../styles/typography';
+import financeHeroIllustration from '../assets/image2.png';
+import DashboardCard from './ui/DashboardCard';
+import DashboardHero from './ui/DashboardHero';
+import KpiCard from './ui/KpiCard';
+import QuickActionCard from './ui/QuickActionCard';
 
 const monthOptions = [
   'Enero',
@@ -25,29 +29,8 @@ function DashboardPage({ onboardingSuccess = false, onDismissOnboardingSuccess }
   const theme = lightTheme;
   const dashboardKpiChartSize = useDashboardKpiChartSize();
   const isMobileDashboard = useIsMobileDashboard();
+  const currentUser = getUser();
   const onboardingDestinations = ['Presupuesto', 'Variaciones', 'Movimientos', 'Cuentas'];
-  const pageCardStyle = {
-    background: theme.surface,
-    border: `1px solid ${theme.border}`,
-    borderRadius: '12px',
-    padding: '16px',
-    boxShadow: theme.shadow,
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-  };
-  const pageTitleStyle = {
-    ...typography.pageTitle,
-    marginTop: 10,
-    marginBottom: 10,
-  };
-  const labelStyle = {
-    display: 'block',
-    color: theme.textBody,
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  };
   const currentMonth = new Date().getMonth() + 1;
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(currentMonth || 5);
@@ -154,9 +137,48 @@ function DashboardPage({ onboardingSuccess = false, onDismissOnboardingSuccess }
   }, [selectedMonthRows]);
 
   const isLoading = isLoadingReport || isLoadingMovements;
+  const firstName = currentUser?.name?.split(' ')[0] || currentUser?.name || 'ahí';
+
+  const renderDashboardKpis = () => (
+    <div className="responsive-grid dashboard-kpi-grid dashboard-modern-kpi-grid">
+      <DonutKpiCard
+        theme={theme}
+        title="Ingresos"
+        icon="bx bx-trending-up"
+        percent={incomePercent}
+        primaryValue={`${Math.round(incomePercent)}%`}
+        secondaryValue={`${formatCurrencyMXN(incomeActual)} de ${formatCurrencyMXN(incomeBudget)}`}
+        isLoading={isLoading}
+        chartSize={dashboardKpiChartSize}
+        accentColor={getIncomeKpiColor(incomePercent)}
+      />
+      <DonutKpiCard
+        theme={theme}
+        title={isMobileDashboard ? 'Usado' : 'Presupuesto usado'}
+        icon="bx bxs-pie-chart-alt-2"
+        percent={expenseUsedPercent}
+        primaryValue={`${Math.round(expenseUsedPercent)}%`}
+        secondaryValue={`Usaste ${formatCurrencyMXN(expenseActual)} de ${formatCurrencyMXN(expenseBudget)}`}
+        isLoading={isLoading}
+        chartSize={dashboardKpiChartSize}
+        accentColor={getBudgetUsedKpiColor(expenseUsedPercent)}
+      />
+      <DonutKpiCard
+        theme={theme}
+        title={isMobileDashboard ? 'Disponible' : 'Presupuesto disponible'}
+        icon="bx bxs-wallet"
+        percent={availablePercent}
+        primaryValue={`${Math.round(availablePercent)}%`}
+        secondaryValue={`Te quedan ${formatCurrencyMXN(available)}`}
+        isLoading={isLoading}
+        chartSize={dashboardKpiChartSize}
+        accentColor={getAvailableBudgetKpiColor(availablePercent, available)}
+      />
+    </div>
+  );
 
   return (
-    <div className="page-stack dashboard-page" style={{ display: 'grid', gap: 20, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div className="page-stack dashboard-page dashboard-redesign">
       {onboardingSuccess && (
         <div className="onboarding-modal-overlay" role="dialog" aria-modal="true">
           <div className="onboarding-modal-content-area">
@@ -182,154 +204,189 @@ function DashboardPage({ onboardingSuccess = false, onDismissOnboardingSuccess }
         </div>
       )}
 
-      <div
-        className="responsive-card dashboard-summary-card"
-        style={pageCardStyle}
+      <DashboardHero
+        greeting={`Hola, ${firstName} 👋`}
+        illustrationSrc={financeHeroIllustration}
+        subtitle="Aquí está tu resumen de hoy"
       >
-        <h1 style={pageTitleStyle}>
-          Resumen
-        </h1>
-        <div className="responsive-filter-bar dashboard-summary-filters" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <label style={labelStyle}>
-              Año
-            </label>
-            <input
-              type="number"
-              value={year}
-              onChange={(event) => setYear(Number(event.target.value) || 2026)}
-              style={getControlStyle(theme, 120)}
+        <div className="dashboard-hero-panel">
+          <div className="dashboard-hero-filters">
+            <div>
+              <label>
+                Año
+              </label>
+              <input
+                type="number"
+                value={year}
+                onChange={(event) => setYear(Number(event.target.value) || 2026)}
+              />
+            </div>
+
+            <div>
+              <label>
+                Mes
+              </label>
+              <select
+                value={month}
+                onChange={(event) => setMonth(Number(event.target.value))}
+              >
+                {monthOptions.map((monthName, index) => (
+                  <option key={monthName} value={index + 1}>
+                    {monthName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="dashboard-hero-mobile-kpis">
+            <MobileHeroKpi
+              icon="bx bx-trending-up"
+              label="Ingresos"
+              percent={incomePercent}
+              value={isLoading ? '$0.00' : formatCurrencyMXN(incomeActual)}
+              accentColor={getIncomeKpiColor(incomePercent)}
+            />
+            <MobileHeroKpi
+              icon="bx bxs-pie-chart-alt-2"
+              label="Usado"
+              percent={expenseUsedPercent}
+              value={isLoading ? '$0.00' : formatCurrencyMXN(expenseActual)}
+              accentColor={getBudgetUsedKpiColor(expenseUsedPercent)}
+            />
+            <MobileHeroKpi
+              icon="bx bxs-wallet"
+              label="Disponible"
+              percent={availablePercent}
+              value={isLoading ? '$0.00' : formatCurrencyMXN(available)}
+              accentColor={getAvailableBudgetKpiColor(availablePercent, available)}
             />
           </div>
-
-          <div>
-            <label style={labelStyle}>
-              Mes
-            </label>
-            <select
-              value={month}
-              onChange={(event) => setMonth(Number(event.target.value))}
-              style={getControlStyle(theme, 180)}
-            >
-              {monthOptions.map((monthName, index) => (
-                <option key={monthName} value={index + 1}>
-                  {monthName}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        {error && (
-          <p style={{ color: '#b91c1c', marginBottom: 0 }}>
-            {error}
-          </p>
-        )}
-      </div>
+        <div className="dashboard-hero-desktop-kpis">
+          {renderDashboardKpis()}
+        </div>
+      </DashboardHero>
+
+      {error && (
+        <DashboardCard className="dashboard-error-card">
+          <p>No se pudo cargar el dashboard.</p>
+        </DashboardCard>
+      )}
 
       <div className="dashboard-kpi-mobile-shell">
-        <div className="responsive-grid dashboard-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
-          <DonutKpiCard
-            theme={theme}
-            title="Ingresos"
-            percent={incomePercent}
-            primaryValue={`${formatCurrencyMXN(incomeActual)} de ${formatCurrencyMXN(incomeBudget)}`}
-            // secondaryValue={
-            //   incomeActual >= incomeBudget
-            //     ? 'Meta alcanzada'
-            //     : `Te faltan $${Number(Math.max(incomeBudget - incomeActual, 0)).toFixed(2)}`
-            // }
-            isLoading={isLoading}
-            chartSize={dashboardKpiChartSize}
-            accentColor={getIncomeKpiColor(incomePercent)}
-          />
-          <DonutKpiCard
-            theme={theme}
-            title={isMobileDashboard ? 'Usado' : 'Presupuesto usado'}
-            percent={expenseUsedPercent}
-            primaryValue={`Usaste ${formatCurrencyMXN(expenseActual)} de ${formatCurrencyMXN(expenseBudget)}`}
-            secondaryValue=""
-            isLoading={isLoading}
-            chartSize={dashboardKpiChartSize}
-            accentColor={getBudgetUsedKpiColor(expenseUsedPercent)}
-          />
-          <DonutKpiCard
-            theme={theme}
-            title={isMobileDashboard ? 'Disponible' : 'Presupuesto disponible'}
-            percent={availablePercent}
-            primaryValue={`Te quedan ${formatCurrencyMXN(available)}`}
-            secondaryValue=""
-            isLoading={isLoading}
-            chartSize={dashboardKpiChartSize}
-            accentColor={getAvailableBudgetKpiColor(availablePercent, available)}
-          />
-        </div>
+        {renderDashboardKpis()}
       </div>
 
-      <div className="responsive-grid dashboard-section-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, minWidth: 0 }}>
-        <SectionCard title="Top categorías de gasto" theme={theme}>
+      <div className="responsive-grid dashboard-section-grid dashboard-modern-section-grid">
+        <DashboardCard title="Top categorías de gasto">
           {isLoading ? (
-            <p style={{ margin: 0, color: theme.textSecondary }}>Cargando...</p>
+            <p className="dashboard-empty-state">Cargando...</p>
           ) : topExpenseCategories.length === 0 ? (
-            <p style={{ margin: 0, color: theme.textSecondary }}>No hay datos disponibles</p>
+            <p className="dashboard-empty-state">No hay datos disponibles</p>
           ) : (
-            <div style={{ display: 'grid', gap: 0 }}>
+            <div className="dashboard-feed-list">
               {topExpenseCategories.map((item, index) => (
                 <div
                   className="dashboard-list-row"
                   key={item.category}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 16,
-                    paddingBottom: 0,
-                    borderBottom: index === topExpenseCategories.length - 1 ? 'none' : `1px solid ${theme.border}`,
-                  }}
                 >
-                  <span style={{ color: theme.textBody }}>{item.category}</span>
-                  <strong style={{ color: theme.textPrimary }}>{formatCurrencyMXN(item.total)}</strong>
+                  <div className="dashboard-feed-left">
+                    <span
+                      className="dashboard-feed-dot"
+                      style={{
+                        '--dashboard-feed-accent': getDashboardAccent(index),
+                        '--dashboard-feed-accent-tint': getDashboardAccentTint(index),
+                      }}
+                      aria-hidden="true"
+                    >
+                      {index + 1}
+                    </span>
+                    <span>{item.category}</span>
+                  </div>
+                  <strong>{formatCurrencyMXN(item.total)}</strong>
                 </div>
               ))}
             </div>
           )}
-        </SectionCard>
+        </DashboardCard>
 
-        <SectionCard title="Últimos movimientos" theme={theme}>
+        <DashboardCard title="Últimos movimientos">
           {isLoading ? (
-            <p style={{ margin: 0, color: theme.textSecondary }}>Cargando...</p>
+            <p className="dashboard-empty-state">Cargando...</p>
           ) : movements.length === 0 ? (
-            <p style={{ margin: 0, color: theme.textSecondary }}>No hay datos disponibles</p>
+            <p className="dashboard-empty-state">No hay datos disponibles</p>
           ) : (
-            <div style={{ display: 'grid', gap: 0 }}>
+            <div className="dashboard-feed-list">
               {movements.map((movement, index) => (
                 <div
                   className="dashboard-movement-row"
                   key={movement.id}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '110px 1fr 110px',
-                    gap: 12,
-                    paddingBottom: 0,
-                    borderBottom: index === movements.length - 1 ? 'none' : `1px solid ${theme.border}`,
-                  }}
                 >
-                  <span style={{ color: theme.textSecondary }}>{movement.date}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ color: theme.textBody }}>{movement.category}</div>
-                    {/* <div style={{ color: theme.textSecondary }}>{movement.concept}</div> */}
+                  <span
+                    className="dashboard-movement-icon"
+                    style={{ '--dashboard-feed-accent': getDashboardAccent(index) }}
+                    aria-hidden="true"
+                  >
+                    <i className={getMovementIcon(movement.category)} />
+                  </span>
+                  <div className="dashboard-movement-content">
+                    <div className="dashboard-movement-top-row">
+                      <span className="dashboard-movement-description">
+                        {movement.description || movement.concept || movement.category}
+                      </span>
+                      <strong className={movement.type === 'income' ? 'dashboard-movement-amount-income' : undefined}>
+                        {formatCurrencyMXN(movement.amount)}
+                      </strong>
+                    </div>
+                    <div className="dashboard-movement-meta-row">
+                      <span>{movement.category}</span>
+                      <span>{movement.date}</span>
+                    </div>
                   </div>
-                  <strong style={{ textAlign: 'right', color: theme.textPrimary }}>{formatCurrencyMXN(movement.amount)}</strong>
                 </div>
               ))}
             </div>
           )}
-        </SectionCard>
+        </DashboardCard>
+      </div>
+
+      <div className="dashboard-quick-actions">
+        <QuickActionCard
+          accentColor="#2563EB"
+          description="Agrega o edita tus movimientos"
+          icon="bx bx-plus-circle"
+          label="Movimientos"
+          to="/gastos"
+        />
+        <QuickActionCard
+          accentColor="#10B981"
+          description="Administra tus formas de pago"
+          icon="bx bx-credit-card"
+          label="Cuentas"
+          to="/cuentas"
+        />
+        <QuickActionCard
+          accentColor="#F59E0B"
+          description="Actualiza tu presupuesto mensual"
+          icon="bx bx-wallet"
+          label="Presupuesto"
+          to="/presupuesto"
+        />
+        <QuickActionCard
+          accentColor="#8B5CF6"
+          description="Analiza tus finanzas"
+          icon="bx bx-bar-chart-alt-2"
+          label="Reportes"
+          to="/real-vs-presupuesto"
+        />
       </div>
     </div>
   );
 }
 
-function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isLoading, chartSize, accentColor }) {
+function DonutKpiCard({ theme, title, icon, percent, primaryValue, secondaryValue, isLoading, chartSize, accentColor }) {
   const rawPercent = Number.isFinite(percent) ? percent : 0;
   const chartPercent = Math.max(0, Math.min(100, rawPercent));
   const usesFixedChartSize = Boolean(chartSize.size);
@@ -366,27 +423,15 @@ function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isL
   );
 
   return (
-    <div
+    <KpiCard
+      accentColor={accentColor}
       className="dashboard-kpi-card"
-      style={{
-        background: theme.surface,
-        border: `1px solid ${theme.border}`,
-        borderRadius: '12px',
-        padding: '5px',
-        boxShadow: theme.shadow,
-        display: 'grid',
-        justifyItems: 'center',
-        gap: 0,
-        width: '100%',
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        minWidth: 0,
-        fontSize: 12,
-      }}
+      icon={icon}
+      title={title}
     >
 
       {isLoading ? (
-        <div className="dashboard-kpi-chart dashboard-kpi-loading" style={{ height: 150, display: 'grid', placeItems: 'center', color: theme.textSecondary }}>
+        <div className="dashboard-kpi-chart dashboard-kpi-loading">
           Cargando...
         </div>
       ) : (
@@ -422,37 +467,41 @@ function DonutKpiCard({ theme, title, percent, primaryValue, secondaryValue, isL
         </div>
       )}
 
-      <div className="dashboard-kpi-text-group"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 5,
-        }}>
-        <div className="dashboard-kpi-title" style={{ ...typography.cardTitle, fontSize: 18}}>{title}</div>
+      <div className="dashboard-kpi-text-group">
         <div
           className="dashboard-kpi-primary"
-          style={{
-            color: theme.textSecondary,
-            textAlign: 'center',
-            fontSize: 15,
-          }}
         >
           {isLoading ? '$0.00' : primaryValue}
         </div>
 
         {secondaryValue ? (
-          <div
-            className="dashboard-kpi-secondary"
-            style={{
-              color: theme.textSecondary,
-              textAlign: 'center',
-              fontSize: 12,
-            }}
-          >
+          <div className="dashboard-kpi-secondary">
             {isLoading ? '' : secondaryValue}
           </div>
         ) : null}
       </div>
+    </KpiCard>
+  );
+}
+
+function MobileHeroKpi({ accentColor, icon, label, percent, value }) {
+  const rawPercent = Number.isFinite(percent) ? percent : 0;
+  const visualPercent = Math.max(0, Math.min(100, rawPercent));
+
+  return (
+    <div className="dashboard-hero-kpi" style={{ '--dashboard-hero-kpi-accent': accentColor }}>
+      <span className="dashboard-hero-kpi-icon" aria-hidden="true">
+        <i className={icon} />
+      </span>
+      <span className="dashboard-hero-kpi-label">{label}</span>
+      <strong>{`${Math.round(rawPercent)}%`}</strong>
+      <span className="dashboard-hero-kpi-track" aria-hidden="true">
+        <span
+          className="dashboard-hero-kpi-fill"
+          style={{ width: `${visualPercent}%` }}
+        />
+      </span>
+      <span className="dashboard-hero-kpi-value">{value}</span>
     </div>
   );
 }
@@ -556,80 +605,87 @@ function useIsMobileDashboard() {
 }
 
 function getIncomeKpiColor(percent) {
-  if (percent > 100) return '#2563eb';
-  if (percent >= 95) return '#086938';
-  if (percent >= 90) return '#029348';
-  if (percent >= 85) return '#3AB449';
-  if (percent >= 80) return '#8CC640';
-  if (percent >= 75) return '#e0d426';
-  if (percent >= 70) return '#FAED22';
-  if (percent >= 65) return '#FBB03A';
+  if (percent > 100) return '#2563EB';
+  if (percent >= 95) return '#0A7A3D';
+  if (percent >= 90) return '#22A447';
+  if (percent >= 85) return '#22A447';
+  if (percent >= 80) return '#7DBE3C';
+  if (percent >= 75) return '#D4A800';
+  if (percent >= 70) return '#D4A800';
+  if (percent >= 65) return '#F79420';
   if (percent >= 60) return '#F79420';
-  if (percent > 50) return '#F15A27';
+  if (percent > 50) return '#F79420';
   return '#EE1F28';
 }
 
 function getBudgetUsedKpiColor(percent) {
   if (percent >= 100) return '#EE1F28';
-  if (percent >= 90) return '#F15A27';
+  if (percent >= 90) return '#F79420';
   if (percent >= 85) return '#F79420';
-  if (percent >= 80) return '#FBB03A';
-  if (percent >= 75) return '#FAED22';
-  if (percent >= 70) return '#e0d426';
-  if (percent >= 65) return '#8CC640';
-  if (percent >= 60) return '#3AB449';
-  if (percent >= 50) return '#029348';
-  return '#086938';
+  if (percent >= 80) return '#F79420';
+  if (percent >= 75) return '#D4A800';
+  if (percent >= 70) return '#D4A800';
+  if (percent >= 65) return '#7DBE3C';
+  if (percent >= 60) return '#22A447';
+  if (percent >= 50) return '#22A447';
+  return '#0A7A3D';
 }
 
 function getAvailableBudgetKpiColor(percent, amount) {
-if (percent >= 100) return '#086938';
-if (percent >= 90) return '#029348';
-if (percent >= 80) return '#3AB449';
-if (percent >= 70) return '#8CC640';
-if (percent >= 60) return '#e0d426';
-if (percent >= 50) return '#FAED22';
-if (percent >= 40) return '#FBB03A';
-if (percent >= 25) return '#F79420';
-if (percent >= 10) return '#F15A27';
+  if (percent >= 100) return '#0A7A3D';
+  if (percent >= 90) return '#0A7A3D';
+  if (percent >= 80) return '#22A447';
+  if (percent >= 70) return '#7DBE3C';
+  if (percent >= 60) return '#D4A800';
+  if (percent >= 50) return '#D4A800';
+  if (percent >= 40) return '#F79420';
+  if (percent >= 25) return '#F79420';
+  if (percent >= 10) return '#F79420';
   return '#EE1F28';
 }
 
-function SectionCard({ title, theme, children }) {
-  return (
-    <div
-      className="responsive-card dashboard-section-card"
-      style={{
-        background: theme.surface,
-        border: `1px solid ${theme.border}`,
-        borderRadius: '12px',
-        padding: '16px',
-        boxShadow: theme.shadow,
-        width: '100%',
-        maxWidth: '100%',
-        boxSizing: 'border-box',
-        minWidth: 0,
-        fontSize: 12,
-      }}
-    >
-      <h2 style={{ ...typography.sectionTitle, marginTop: 0, marginBottom: 10 }}>
-        {title}
-      </h2>
-      {children}
-    </div>
-  );
+function getDashboardAccent(index) {
+  const accents = ['#11A9CC', '#2563EB', '#8B5CF6', '#10B981', '#F59E0B', '#F97316', '#EC4899'];
+  return accents[index % accents.length];
 }
 
-function getControlStyle(theme, width) {
-  return {
-    width,
-    padding: '5px 10px',
-    borderRadius: 8,
-    border: `1px solid ${theme.inputBorder}`,
-    background: theme.inputBackground,
-    color: theme.inputText,
-    fontSize: 12,
-  };
+function getDashboardAccentTint(index) {
+  const tints = [
+    'rgba(17, 169, 204, 0.12)',
+    'rgba(37, 99, 235, 0.12)',
+    'rgba(139, 92, 246, 0.12)',
+    'rgba(16, 185, 129, 0.12)',
+    'rgba(245, 158, 11, 0.12)',
+    'rgba(249, 115, 22, 0.12)',
+    'rgba(236, 72, 153, 0.12)',
+  ];
+  return tints[index % tints.length];
+}
+
+function getMovementIcon(category = '') {
+  const normalizedCategory = category.toLowerCase();
+
+  if (normalizedCategory.includes('comida') || normalizedCategory.includes('super')) {
+    return 'bx bx-bowl-hot';
+  }
+
+  if (normalizedCategory.includes('transporte') || normalizedCategory.includes('auto')) {
+    return 'bx bx-car';
+  }
+
+  if (normalizedCategory.includes('casa') || normalizedCategory.includes('renta')) {
+    return 'bx bx-home-alt';
+  }
+
+  if (normalizedCategory.includes('salud')) {
+    return 'bx bx-plus-medical';
+  }
+
+  if (normalizedCategory.includes('entretenimiento')) {
+    return 'bx bx-movie-play';
+  }
+
+  return 'bx bx-receipt';
 }
 
 function getPercent(value, total) {

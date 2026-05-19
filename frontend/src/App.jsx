@@ -15,6 +15,7 @@ import { authFetch, clearAuth, getUser, isAuthenticated, markOnboardingCompleted
 import { API_BASE_URL } from './utils/api';
 import { formatCurrencyMXN } from './utils/formatters';
 import { typography } from './styles/typography';
+import dexforgeIcon from './assets/brand/dexforge-icon-transparent.png';
 
 
 function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, onOnboardingDashboard }) {
@@ -262,6 +263,7 @@ function App() {
   const currentUser = getUser();
   const hasCompletedOnboarding = Boolean(currentUser?.onboarding_completed);
   const isAuthRoute = location.pathname === '/auth';
+  const isDashboardRoute = location.pathname === '/dashboard';
   const showSidebar = !isAuthRoute && authenticated;
   const navItems = [
     { to: '/dashboard', icon: 'bx bx-grid-alt', label: 'Resumen' },
@@ -385,6 +387,44 @@ function App() {
     navigate('/dashboard');
   };
 
+  const getUserInitials = (name = '') => {
+    const initials = name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('');
+
+    return initials || 'U';
+  };
+
+  const renderSidebarProfile = (extraClassName = '') => {
+    if (!currentUser) {
+      return null;
+    }
+
+    const roleLabel = currentUser.role === 'admin' ? 'Admin' : 'Usuario';
+
+    return (
+      <div className={`desktop-sidebar-profile ${extraClassName}`.trim()}>
+        <div className="desktop-sidebar-avatar" aria-hidden="true">
+          {getUserInitials(currentUser.name)}
+        </div>
+        <div className="desktop-sidebar-profile-copy">
+          <span className="desktop-sidebar-profile-name">{currentUser.name}</span>
+          <span className="desktop-sidebar-profile-role">{roleLabel}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderBrandMark = (className = '') => (
+    <div className={`brand-logo ${className}`.trim()} aria-label="DexForge">
+      <img className="brand-logo-icon" src={dexforgeIcon} alt="" aria-hidden="true" />
+      <span className="brand-logo-text">DexForge</span>
+    </div>
+  );
+
   const renderNavigation = ({ onNavigate } = {}) => (
     <ul
       className="app-nav-list"
@@ -421,18 +461,6 @@ function App() {
     </ul>
   );
 
-  const todayLabel = new Date().toLocaleDateString('es-MX', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-  const mobileTodayLabel = new Date().toLocaleDateString('es-MX', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
   return (
     <div
       className="app-root"
@@ -456,16 +484,8 @@ function App() {
           >
             <i className="bx bx-menu"></i>
           </button>
-          <div className="mobile-topbar-center">
-            <div className="mobile-topbar-title">Control de Gastos</div>
-            {currentUser && (
-              <div className="mobile-topbar-meta">
-                <span>Hola <strong>{currentUser.name}</strong>!</span>
-                <span>{mobileTodayLabel}</span>
-              </div>
-            )}
-          </div>
-          <div className="mobile-topbar-version">v1.0</div>
+          {renderBrandMark('mobile-topbar-logo')}
+          <span className="mobile-topbar-spacer" aria-hidden="true" />
         </div>
 
         {isMobileMenuOpen && (
@@ -474,12 +494,12 @@ function App() {
               className="mobile-menu-panel"
               onClick={(event) => event.stopPropagation()}
               style={{
-                background: theme.sidebarBackground,
+                background: 'linear-gradient(180deg, #582888 0%, #557EFA 100%)',
                 color: theme.sidebarText,
               }}
             >
               <div className="mobile-menu-header">
-                <h2 style={{ margin: 0, color: theme.sidebarText, fontSize: 20, fontWeight: 600 }}>Control de Gastos</h2>
+                {renderBrandMark('mobile-menu-logo')}
                 <button
                   type="button"
                   className="mobile-menu-close"
@@ -490,6 +510,7 @@ function App() {
                 </button>
               </div>
               {renderNavigation({ onNavigate: () => setIsMobileMenuOpen(false) })}
+              {renderSidebarProfile('mobile-sidebar-profile')}
             </div>
           </div>
         )}
@@ -518,15 +539,16 @@ function App() {
               overflowY: 'auto',
               width: '100%',
               boxSizing: 'border-box',
-              background: theme.sidebarBackground,
+              background: 'linear-gradient(180deg, #582888 0%, #557EFA 100%)',
               color: theme.sidebarText,
               padding: '20px 16px',
               display: 'flex',
               flexDirection: 'column',
             }}
           >
-            <h2 style={{ marginTop: 20, color: theme.sidebarText, fontSize: 25, fontWeight: 600 }}>Control de Gastos</h2>
+            <div className="desktop-sidebar-brand">{renderBrandMark('desktop-sidebar-logo')}</div>
             {renderNavigation()}
+            {renderSidebarProfile()}
           </div>
 
           <div
@@ -534,7 +556,7 @@ function App() {
             style={{
               minWidth: 0,
               width: '100%',
-              background: theme.background,
+              background: isDashboardRoute ? 'transparent' : theme.background,
               padding: '20px 0',
               boxSizing: 'border-box',
               overflowX: 'hidden',
@@ -548,25 +570,6 @@ function App() {
                 boxSizing: 'border-box',
               }}
             >
-              {currentUser && (
-                <div
-                  className="user-meta"
-                  style={{
-                    marginBottom: 16,
-                    color: theme.textBody,
-                  }}
-                >
-                  <div className="user-meta-row" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>
-                      ¡Hola, {currentUser.name}!
-                    </div>
-                    <div style={{ color: theme.textSecondary, fontSize: 12 }}>
-                      {todayLabel}
-                    </div>
-                    <div className="user-meta-version" style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 600 }}>v1.0</div>
-                  </div>
-                </div>
-              )}
               <Routes>
                 <Route
                   path="/auth"

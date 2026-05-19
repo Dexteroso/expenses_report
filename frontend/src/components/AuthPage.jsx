@@ -1,11 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { lightTheme } from '../theme/theme';
 import { API_BASE_URL } from '../utils/api';
 import { saveAuth } from '../utils/auth';
+import authIllustration from '../assets/Authentication-2-25.png';
+import emailIllustration from '../assets/Email-1.png';
+import passwordIllustration from '../assets/Password-1.png';
+import registerIllustration from '../assets/Register-1.png';
+import AuthLayout from './ui/AuthLayout';
+import PrimaryButton from './ui/PrimaryButton';
+import TextInput from './ui/TextInput';
+
+const illustrationByMode = {
+  login: authIllustration,
+  register: registerIllustration,
+  forgot: passwordIllustration,
+  forgotSent: emailIllustration,
+  reset: passwordIllustration,
+  resetSuccess: emailIllustration,
+};
 
 function AuthPage() {
-  const theme = lightTheme;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [authMode, setAuthMode] = useState('login');
@@ -316,10 +330,10 @@ function AuthPage() {
     if (authMode === 'register') {
       return (
         <>
-          <FormField placeholder="Nombre" name="name" type="text" value={formData.name} onChange={handleChange} />
-          <FormField placeholder="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
-          <FormField placeholder="Contraseña" name="password" type="password" value={formData.password} onChange={handleChange} />
-          <FormField placeholder="Confirmar contraseña" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} />
+          <TextInput placeholder="Nombre" name="name" type="text" value={formData.name} onChange={handleChange} />
+          <TextInput placeholder="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
+          <TextInput placeholder="Contraseña" name="password" type="password" value={formData.password} onChange={handleChange} />
+          <TextInput placeholder="Confirmar contraseña" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} />
         </>
       );
     }
@@ -327,10 +341,10 @@ function AuthPage() {
     if (authMode === 'forgot') {
       return (
         <>
-          <p style={{ margin: '0 auto', maxWidth: 250, color: theme.textBody, fontSize: 13, lineHeight: 1.4, textAlign: 'center' }}>
+          <p className="auth-helper-text">
             Ingresa el correo asociado a tu cuenta para recibir un enlace de recuperación.
           </p>
-          <FormField
+          <TextInput
             placeholder="Correo electrónico"
             name="email"
             type="email"
@@ -344,14 +358,14 @@ function AuthPage() {
     if (authMode === 'reset') {
       return (
         <>
-          <FormField
+          <TextInput
             placeholder="Nueva contraseña"
             name="newPassword"
             type="password"
             value={formData.newPassword}
             onChange={handleChange}
           />
-          <FormField
+          <TextInput
             placeholder="Confirmar nueva contraseña"
             name="confirmNewPassword"
             type="password"
@@ -364,8 +378,8 @@ function AuthPage() {
 
     return (
       <>
-        <FormField placeholder="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
-        <FormField placeholder="Contraseña" name="password" type="password" value={formData.password} onChange={handleChange} />
+        <TextInput placeholder="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
+        <TextInput placeholder="Contraseña" name="password" type="password" value={formData.password} onChange={handleChange} />
       </>
     );
   };
@@ -373,10 +387,19 @@ function AuthPage() {
   const titleByMode = {
     login: 'Inicia sesión',
     register: 'Crear cuenta',
-    forgot: 'Recuperar contraseña',
-    forgotSent: 'Correo enviado',
+    forgot: 'Recupera tu acceso',
+    forgotSent: 'Revisa tu correo',
     reset: 'Nueva contraseña',
     resetSuccess: 'Contraseña actualizada',
+  };
+
+  const subtitleByMode = {
+    login: 'Administra tus finanzas en un solo lugar',
+    register: 'Administra tus finanzas en un solo lugar',
+    forgot: 'Te enviaremos un enlace seguro para restablecer tu contraseña',
+    forgotSent: 'Te enviamos un enlace seguro para continuar',
+    reset: 'Crea una contraseña segura para proteger tu cuenta',
+    resetSuccess: 'Ya puedes iniciar sesión con tu nueva contraseña',
   };
 
   const buttonByMode = {
@@ -393,7 +416,7 @@ function AuthPage() {
     if (authMode === 'forgotSent') {
       return (
         <div className="auth-reset-content">
-          <p style={{ margin: '0 auto', maxWidth: 250, color: theme.textBody, fontSize: 13, lineHeight: 1.45, textAlign: 'center' }}>
+          <p className="auth-helper-text">
             Te enviamos un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y correo no deseado.
           </p>
 
@@ -401,27 +424,24 @@ function AuthPage() {
             <DevResetPanel
               token={devResetToken}
               resetUrl={devResetUrl}
-              theme={theme}
               onContinue={handleDevContinueToReset}
             />
           )}
 
-          <button
+          <PrimaryButton
             type="button"
             onClick={handleForgotResend}
-            style={getPrimaryButtonStyle(theme)}
-            className="auth-reset-primary-button"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <span className="auth-loading-content">
                 <span className="auth-spinner" aria-hidden="true" />
                 Enviando correo...
               </span>
             ) : (
               'Reenviar correo'
             )}
-          </button>
+          </PrimaryButton>
         </div>
       );
     }
@@ -429,17 +449,15 @@ function AuthPage() {
     if (authMode === 'resetSuccess') {
       return (
         <div className="auth-reset-content">
-          <p style={{ margin: '0 auto', maxWidth: 250, color: theme.textBody, fontSize: 13, lineHeight: 1.45, textAlign: 'center' }}>
+          <p className="auth-helper-text">
             Tu contraseña fue actualizada correctamente.
           </p>
-          <button
+          <PrimaryButton
             type="button"
             onClick={handleBackToLogin}
-            style={getPrimaryButtonStyle(theme)}
-            className="auth-reset-primary-button"
           >
             Ir al inicio de sesión
-          </button>
+          </PrimaryButton>
         </div>
       );
     }
@@ -448,270 +466,141 @@ function AuthPage() {
       <form
         onSubmit={handleSubmit}
         onKeyDown={handleFormKeyDown}
-        className={authMode === 'forgot' || authMode === 'reset' ? 'auth-reset-content' : undefined}
-        style={{ display: 'grid', gap: 14 }}
+        className="auth-form"
       >
         {renderFields()}
 
         {errorMessage && (
-          <p style={{ margin: 0, color: '#b91c1c', fontWeight: 'bold' }}>
+          <p className="auth-message auth-message-error">
             {errorMessage}
           </p>
         )}
 
         {successMessage && (
-          <p style={{ margin: 0, color: theme.textPrimary, fontWeight: 'bold' }}>
+          <p className="auth-message auth-message-success">
             {successMessage}
           </p>
         )}
 
         {authMode === 'reset' && import.meta.env.DEV && formData.resetToken && (
-          <details style={{ color: theme.textBody, fontSize: 12, textAlign: 'left' }}>
-            <summary style={{ cursor: 'pointer', color: theme.textSecondary, fontWeight: 600 }}>
+          <details className="auth-dev-details">
+            <summary>
               Modo desarrollo
             </summary>
-            <div style={{ marginTop: 8 }}>
-              Token: <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{formData.resetToken}</span>
+            <div>
+              Token: <span>{formData.resetToken}</span>
             </div>
           </details>
         )}
 
-        <button
+        <PrimaryButton
           type="submit"
-          style={getPrimaryButtonStyle(theme)}
-          className={authMode === 'forgot' || authMode === 'reset' ? 'auth-reset-primary-button' : undefined}
           disabled={isSubmitting}
         >
           {isResetRequestSubmitting ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <span className="auth-loading-content">
               <span className="auth-spinner" aria-hidden="true" />
               Enviando correo...
             </span>
           ) : (
             isSubmitting ? 'Procesando...' : submitLabel
           )}
-        </button>
+        </PrimaryButton>
       </form>
     );
   };
 
   return (
-    <div
-      className="auth-page"
-      style={{
-        minHeight: '100vh',
-        background: theme.background,
-        display: 'grid',
-        placeItems: 'center',
-        padding: 24,
-      }}
+    <AuthLayout
+      illustrationSrc={illustrationByMode[authMode] || authIllustration}
+      title={titleByMode[authMode]}
+      subtitle={subtitleByMode[authMode]}
     >
-      <div
-        className="auth-card"
-        style={{
-          width: 'min(300px, calc(100% - 70px))',
-          boxSizing: 'border-box',
-          background: theme.surface,
-          border: `1px solid ${theme.border}`,
-          borderRadius: 24,
-          boxShadow: theme.shadow,
-          padding: 32,
-        }}
-      >
-        <div 
-        style={{marginBottom: 24, display: 'flex', justifyContent: 'center'}}>
-          <h1 style={{ margin: 0, color: theme.textPrimary, fontSize: 28, fontWeight: 700 }}>
-            Expenses Report
-          </h1>
-        </div>
+      {renderAuthContent()}
 
-        <h2
-          style={{
-            marginTop: 0,
-            marginBottom: 20,
-            color: theme.textSecondary,
-            fontSize: 20,
-            fontWeight: 600,
-            textAlign: ['forgot', 'forgotSent', 'reset', 'resetSuccess'].includes(authMode) ? 'center' : undefined,
-          }}
-        >
-          {titleByMode[authMode]}
-        </h2>
-
-        {renderAuthContent()}
-
-        <div style={{ display: 'grid', gap: 20, marginTop: 5, justifyItems: 'center' }}>
-          {authMode === 'login' && (
-            <>
-              <button
-                type="button"
-                onClick={() => handleModeChange('forgot')}
-                style={getTextButtonStyle(theme)}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-              <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12 }}>
-                <span>¿No tienes cuenta? </span>
-                <button
-                  type="button"
-                  onClick={() => handleModeChange('register')}
-                  style={getInlineTextButtonStyle(theme)}
-                >
-                  Crear cuenta
-                </button>
-              </div>
-            </>
-          )}
-
-          {authMode === 'register' && (
-            <div style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 12 }}>
-              <span>¿Ya tienes cuenta? </span>
-              <button
-                type="button"
-                onClick={() => handleModeChange('login')}
-                style={getInlineTextButtonStyle(theme)}
-              >
-                Inicia sesión
-              </button>
-            </div>
-          )}
-
-          {(authMode === 'forgot' || authMode === 'forgotSent' || authMode === 'reset') && (
+      <div className="auth-secondary-actions">
+        {authMode === 'login' && (
+          <>
             <button
               type="button"
-              onClick={handleBackToLogin}
-              style={getTextButtonStyle(theme)}
+              onClick={() => handleModeChange('forgot')}
+              className="auth-link-button"
             >
-              Volver a iniciar sesión
+              ¿Olvidaste tu contraseña?
             </button>
-          )}
-        </div>
+            <div className="auth-inline-prompt">
+              <span>¿No tienes cuenta? </span>
+              <button
+                type="button"
+                onClick={() => handleModeChange('register')}
+                className="auth-inline-button"
+              >
+                Crear cuenta
+              </button>
+            </div>
+          </>
+        )}
+
+        {authMode === 'register' && (
+          <div className="auth-inline-prompt">
+            <span>¿Ya tienes cuenta? </span>
+            <button
+              type="button"
+              onClick={() => handleModeChange('login')}
+              className="auth-inline-button"
+            >
+              Inicia sesión
+            </button>
+          </div>
+        )}
+
+        {(authMode === 'forgot' || authMode === 'forgotSent' || authMode === 'reset') && (
+          <button
+            type="button"
+            onClick={handleBackToLogin}
+            className="auth-link-button"
+          >
+            Volver a iniciar sesión
+          </button>
+        )}
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 
-function DevResetPanel({ token, resetUrl, theme, onContinue }) {
+function DevResetPanel({ token, resetUrl, onContinue }) {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: 8,
-        width: 'min(100%, 260px)',
-        justifySelf: 'center',
-        padding: '10px 12px',
-        borderRadius: 10,
-        border: `1px dashed ${theme.border}`,
-        background: theme.surfaceMuted,
-        color: theme.textBody,
-        fontSize: 12,
-        lineHeight: 1.4,
-        textAlign: 'center',
-      }}
-    >
-      <div style={{ display: 'grid', gap: 2, justifyItems: 'center' }}>
-        <strong style={{ color: theme.textPrimary, fontSize: 12 }}>Modo desarrollo</strong>
+    <div className="auth-dev-panel">
+      <div className="auth-dev-panel-header">
+        <strong>Modo desarrollo</strong>
         <span>Para pruebas locales, puedes continuar usando el token generado.</span>
       </div>
 
       <button
         type="button"
         onClick={onContinue}
-        style={{
-          justifySelf: 'center',
-          padding: '6px 10px',
-          borderRadius: 10,
-          border: `1px solid ${theme.border}`,
-          background: theme.surface,
-          color: theme.textPrimary,
-          fontWeight: 'bold',
-          cursor: 'pointer',
-        }}
+        className="auth-dev-button"
       >
         Continuar con token de desarrollo
       </button>
 
       <details>
-        <summary style={{ cursor: 'pointer', color: theme.textSecondary, fontWeight: 600 }}>
+        <summary>
           Ver token de desarrollo
         </summary>
-        <div style={{ display: 'grid', gap: 6, marginTop: 8, textAlign: 'center' }}>
+        <div className="auth-dev-token">
           <div>
-            Token: <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{token}</span>
+            Token: <span>{token}</span>
           </div>
           {resetUrl && (
             <div>
-              Link: <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{resetUrl}</span>
+              Link: <span>{resetUrl}</span>
             </div>
           )}
         </div>
       </details>
     </div>
   );
-}
-
-function FormField({ placeholder, name, type, value, onChange, readOnly = false }) {
-  const theme = lightTheme;
-
-  return (
-    <input
-      name={name}
-      type={type}
-      value={value}
-      onChange={onChange}
-      readOnly={readOnly}
-      placeholder={placeholder}
-      style={{
-        width: '100%',
-        padding: '5px 10px',
-        borderRadius: 10,
-        border: `1px solid ${theme.inputBorder}`,
-        background: theme.inputBackground,
-        color: theme.inputText,
-        outline: 'none',
-        boxSizing: 'border-box',
-      }}
-    />
-  );
-}
-
-function getPrimaryButtonStyle(theme) {
-  return {
-    marginTop: 8,
-    minHeight: 25,
-    padding: '5px 16px',
-    borderRadius: 12,
-    border: 'none',
-    background: theme.sidebarBackground,
-    color: theme.sidebarText,
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  };
-}
-
-function getTextButtonStyle(theme) {
-  return {
-    padding: 0,
-    border: 'none',
-    background: 'transparent',
-    color: theme.textPrimary,
-    textAlign: 'center',
-    font: 'inherit',
-    fontSize: 12,
-    cursor: 'pointer',
-  };
-}
-
-function getInlineTextButtonStyle(theme) {
-  return {
-    padding: 0,
-    border: 'none',
-    background: 'transparent',
-    color: theme.textPrimary,
-    font: 'inherit',
-    fontSize: 12,
-    cursor: 'pointer',
-  };
 }
 
 export default AuthPage;
