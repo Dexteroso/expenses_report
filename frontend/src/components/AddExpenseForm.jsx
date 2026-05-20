@@ -378,6 +378,8 @@ function AddExpenseForm({
         if (onFavoriteModeChange) {
             onFavoriteModeChange(false);
         }
+
+        showFormContextFeedback('Movimiento frecuente guardado correctamente.');
     };
 
     const handleSubmit = async (event) => {
@@ -615,7 +617,7 @@ function AddExpenseForm({
                 </div>
 
                 <div
-                    className={`form-actions ${selectedExpense ? 'expense-edit-actions' : ''}`}
+                    className={`form-actions ${selectedExpense || favoriteMode ? 'expense-edit-actions' : ''}`}
                     style={{
                         display: 'flex',
                         gap: 10,
@@ -642,6 +644,16 @@ function AddExpenseForm({
                         </PrimaryButton>
                     )}
 
+                    {favoriteMode && !selectedExpense && (
+                        <PrimaryButton
+                            type="button"
+                            variant="secondary"
+                            onClick={handleCancelFavoriteMode}
+                        >
+                            Cancelar
+                        </PrimaryButton>
+                    )}
+
                     {!selectedExpense && (
                         <PrimaryButton
                             type="button"
@@ -658,7 +670,7 @@ function AddExpenseForm({
                         type="submit"
                         disabled={!isFormValid}
                     >
-                        {selectedExpense ? 'Guardar cambios' : favoriteMode ? 'Guardar frecuente' : 'Agregar movimiento'}
+                        {selectedExpense ? 'Guardar' : favoriteMode ? 'Guardar' : 'Agregar'}
                     </PrimaryButton>
                 </div>
 
