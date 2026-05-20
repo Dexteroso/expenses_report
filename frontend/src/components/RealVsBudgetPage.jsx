@@ -53,11 +53,6 @@ function RealVsBudgetPage() {
     overflow: 'hidden',
     overflowX: 'hidden',
   };
-  const pageTitleStyle = {
-    ...typography.pageTitle,
-    marginTop: 10,
-    marginBottom: 10,
-  };
   const labelStyle = {
     color: theme.textBody,
     fontSize: 12,
@@ -299,10 +294,10 @@ function RealVsBudgetPage() {
           overflow: 'hidden',
         }}
       >
-        <h1 style={pageTitleStyle}>
-          Variaciones
-        </h1>
-
+        <header className="page-header">
+          <h1>Variaciones</h1>
+          <p>Analiza las diferencias entre lo presupuestado y lo real</p>
+        </header>
         <div className="responsive-filter-bar real-view-toggle-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, width: '100%', maxWidth: '100%', minWidth: 0 }}>
           <button
             className="real-view-toggle-button"
@@ -445,6 +440,7 @@ function RealVsBudgetPage() {
         <div className="responsive-grid real-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16, minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
           <KpiGroup
             title="Flujo de Efectivo"
+            icon="bx bx-transfer-alt"
             items={[
               { label: 'Ingresos', value: incomeMetrics.actual },
               { label: 'Gastos', value: expenseMetrics.actual },
@@ -454,6 +450,7 @@ function RealVsBudgetPage() {
           />
           <KpiGroup
             title="Control de Presupuesto"
+            icon="bx bx-wallet"
             items={[
               { label: 'Presupuesto', value: expenseMetrics.budget },
               { label: 'Gastos', value: expenseMetrics.actual },
@@ -564,55 +561,62 @@ function getStickyHeaderCellStyle(theme) {
 
 function getToggleButtonStyle(theme, isActive) {
   return {
-    height: 30,
-    padding: '0 12px',
-    borderRadius: 8,
-    border: `1px solid ${isActive ? theme.sidebarBackground : theme.border}`,
-    background: isActive ? theme.sidebarBackground : theme.inputDisabledBackground,
-    color: isActive ? theme.sidebarText : theme.textSecondary,
+    height: 40,
+    padding: '0 16px',
+    borderRadius: 14,
+    border: `1px solid ${isActive ? 'transparent' : '#e2e8f0'}`,
+    background: isActive ? '#11A9CC' : '#ffffff',
+    color: isActive ? '#ffffff' : '#11A9CC',
     fontSize: 14,
-    lineHeight: '30px',
+    lineHeight: '40px',
     boxSizing: 'border-box',
-    // fontWeight: 'bold',
+    fontWeight: 800,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
+    boxShadow: 'none',
+    transition: 'transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
   };
 }
 
 function getControlStyle(theme, width) {
   return {
     width,
-    height: 30,
-    padding: '0 10px',
-    borderRadius: 8,
-    border: `1px solid ${theme.inputBorder}`,
-    background: theme.inputBackground,
-    color: theme.inputText,
-    fontSize: 12,
-    lineHeight: '34px',
+    height: 40,
+    padding: '0 14px',
+    borderRadius: 14,
+    border: '1px solid #e2e8f0',
+    background: '#ffffff',
+    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: 500,
+    lineHeight: '40px',
     boxSizing: 'border-box',
+    boxShadow: 'none',
+    transition: 'border-color 160ms ease, box-shadow 160ms ease, background 160ms ease',
   };
 }
 
 function getIntegratedSelectStyle(theme, isActive) {
   return {
     width: 120,
-    height: 30,
-    padding: '0 12px',
-    borderRadius: 8,
-    border: `1px solid ${isActive ? theme.sidebarBackground : theme.border}`,
-    background: isActive ? theme.sidebarBackground : theme.inputDisabledBackground,
-    color: isActive ? theme.sidebarText : theme.textSecondary,
+    height: 40,
+    padding: '0 16px',
+    borderRadius: 14,
+    border: `1px solid ${isActive ? 'transparent' : '#e2e8f0'}`,
+    background: isActive ? '#11A9CC' : '#ffffff',
+    color: isActive ? '#ffffff' : '#11A9CC',
     fontSize: 14,
-    lineHeight: '34px',
+    lineHeight: '40px',
     boxSizing: 'border-box',
-    // fontWeight: 'bold',
+    fontWeight: 800,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
+    boxShadow: 'none',
+    transition: 'transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
   };
 }
 
-function KpiGroup({ title, items, theme }) {
+function KpiGroup({ title, icon, items, theme }) {
   return (
     <div
       className="responsive-card"
@@ -628,9 +632,14 @@ function KpiGroup({ title, items, theme }) {
         minWidth: 0,
       }}
     >
-      <h2 style={{ ...typography.cardTitle, marginTop: 0, marginBottom: 10 }}>
-        {title}
-      </h2>
+      <div className="movements-card-title-row" style={{ marginBottom: 10 }}>
+        <span className="movements-card-title-icon" aria-hidden="true">
+          <i className={icon}></i>
+        </span>
+        <h2 style={{ ...typography.cardTitle, margin: 0 }}>
+          {title}
+        </h2>
+      </div>
       <div style={{ display: 'grid', gap: 5 }}>
         {items.map((item) => {
           const isNegativeHighlight = item.highlightNegative && Number(item.value) < 0;
@@ -668,7 +677,6 @@ function CategoryRows({
   theme,
 }) {
   const categoryMetrics = getCategoryPeriodMetrics(category);
-  const isCategoryDeviationNegative = categoryMetrics.deviation < 0;
 
   return (
     <>
@@ -683,16 +691,15 @@ function CategoryRows({
           {formatCurrencyMXN(categoryMetrics.actual)}
         </td>
         <td
-          className={`real-detail-cell real-amount-cell ${isCategoryDeviationNegative ? 'financial-negative-value' : ''}`}
-          style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: isCategoryDeviationNegative ? undefined : theme.textPrimary }}
+          className="real-detail-cell real-amount-cell"
+          style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: getDeviationColor(categoryMetrics.deviation, theme.textPrimary) }}
         >
-          {formatCurrencyMXN(categoryMetrics.deviation)}
+          {formatDeviationValue(categoryMetrics.deviation)}
         </td>
       </tr>
 
       {category.concepts.map((concept) => {
         const metrics = getConceptPeriodMetrics(concept.concept_id);
-        const isConceptDeviationNegative = metrics.deviation < 0;
 
         return (
           <tr key={concept.concept_id} style={{ borderTop: `1px solid ${theme.border}` }}>
@@ -706,16 +713,26 @@ function CategoryRows({
               {formatCurrencyMXN(metrics.actual)}
             </td>
             <td
-              className={`real-detail-cell real-amount-cell ${isConceptDeviationNegative ? 'financial-negative-value' : ''}`}
-              style={{ ...getTableCellStyle('center'), color: isConceptDeviationNegative ? undefined : theme.textBody }}
+              className="real-detail-cell real-amount-cell"
+              style={{ ...getTableCellStyle('center'), color: getDeviationColor(metrics.deviation, theme.textBody) }}
             >
-              {formatCurrencyMXN(metrics.deviation)}
+              {formatDeviationValue(metrics.deviation)}
             </td>
           </tr>
         );
       })}
     </>
   );
+}
+
+function getDeviationColor(value, fallbackColor) {
+  if (value > 0) return '#10B981';
+  if (value < 0) return '#EE1F28';
+  return fallbackColor;
+}
+
+function formatDeviationValue(value) {
+  return value === 0 ? 'Sin cambios.' : formatCurrencyMXN(value);
 }
 
 export default RealVsBudgetPage;

@@ -1,6 +1,6 @@
 export const colors = {
   authPrimary: '#11A9CC',
-  authPrimaryHover: '#0F96B5',
+  authPrimaryHover: '#0E95B5',
   authTitle: '#2563EB',
   authText: '#0F172A',
   authTextMuted: '#64748B',

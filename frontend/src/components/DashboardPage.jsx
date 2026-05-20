@@ -5,10 +5,12 @@ import { authFetch, getUser } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
 import financeHeroIllustration from '../assets/image2.png';
+import dashboardOnboardingIllustration from '../assets/Dashboard.png';
 import DashboardCard from './ui/DashboardCard';
 import DashboardHero from './ui/DashboardHero';
 import KpiCard from './ui/KpiCard';
 import QuickActionCard from './ui/QuickActionCard';
+import PrimaryButton from './ui/PrimaryButton';
 
 const monthOptions = [
   'Enero',
@@ -30,7 +32,6 @@ function DashboardPage({ onboardingSuccess = false, onDismissOnboardingSuccess }
   const dashboardKpiChartSize = useDashboardKpiChartSize();
   const isMobileDashboard = useIsMobileDashboard();
   const currentUser = getUser();
-  const onboardingDestinations = ['Presupuesto', 'Variaciones', 'Movimientos', 'Cuentas'];
   const currentMonth = new Date().getMonth() + 1;
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(currentMonth || 5);
@@ -184,21 +185,13 @@ function DashboardPage({ onboardingSuccess = false, onDismissOnboardingSuccess }
           <div className="onboarding-modal-content-area">
             <div className="onboarding-card dashboard-onboarding-success">
               <div>
-                <h2>¡Felicidades! Completaste tu registro 😎</h2>
-                <p>
-                  {isMobileDashboard
-                    ? 'Usa el menú ☰ para navegar entre:'
-                    : 'Usa el menú lateral para navegar entre:'}
-                </p>
-                <ul>
-                  {onboardingDestinations.map((destination) => (
-                    <li key={destination}>{destination}</li>
-                  ))}
-                </ul>
+                <img className="onboarding-illustration" src={dashboardOnboardingIllustration} alt="" aria-hidden="true" />
+                <h2>Todo listo 🚀</h2>
+                <p>Comienza agregando cuentas y movimientos para visualizar tu información financiera.</p>
               </div>
-              <button type="button" onClick={onDismissOnboardingSuccess}>
+              <PrimaryButton type="button" className="onboarding-primary-button" onClick={onDismissOnboardingSuccess}>
                 Entendido
-              </button>
+              </PrimaryButton>
             </div>
           </div>
         </div>

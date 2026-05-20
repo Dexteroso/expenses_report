@@ -105,6 +105,9 @@ describe('Backend validation', () => {
       await pool.query('DELETE FROM expenses WHERE user_id = ?', [testUserId]);
       await pool.query('DELETE FROM accounts WHERE user_id = ?', [testUserId]);
     }
+    if (adminUserId) {
+      await pool.query('DELETE FROM accounts WHERE user_id = ?', [adminUserId]);
+    }
 
     await pool.query(
       'DELETE FROM users WHERE email IN (?, ?)',

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch, getUser } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
-import { typography } from '../styles/typography';
+import PrimaryButton from './ui/PrimaryButton';
 
 function UsersPage() {
   const theme = lightTheme;
@@ -15,11 +15,6 @@ function UsersPage() {
     width: '100%',
     maxWidth: '100%',
     boxSizing: 'border-box',
-  };
-  const pageTitleStyle = {
-    ...typography.pageTitle,
-    marginTop: 10,
-    marginBottom: 10,
   };
   const headerCellStyle = {
     textAlign: 'center',
@@ -202,7 +197,10 @@ function UsersPage() {
   if (!isAdmin) {
     return (
       <div className="responsive-card users-card" style={cardStyle}>
-        <h1 style={pageTitleStyle}>Usuarios</h1>
+        <header className="page-header">
+          <h1>Usuarios</h1>
+          <p>Administra usuarios, permisos y accesos de la plataforma.</p>
+        </header>
         <p style={{ margin: 0, color: theme.textSecondary }}>
           No tienes permisos para ver esta sección.
         </p>
@@ -212,7 +210,10 @@ function UsersPage() {
 
   return (
     <div className="responsive-card users-card" style={cardStyle}>
-      <h1 style={pageTitleStyle}>Usuarios</h1>
+      <header className="page-header">
+        <h1>Usuarios</h1>
+        <p>Administra usuarios, permisos y accesos de la plataforma.</p>
+      </header>
 
       {pageMessage && (
         <p style={{ color: '#b91c1c', fontWeight: 'bold' }}>
@@ -240,25 +241,25 @@ function UsersPage() {
                   <tr key={user.id} style={{ borderTop: `1px solid ${theme.border}` }}>
                     <td style={rowCellStyle}>
                       <input
+                        className="text-input users-edit-input"
                         type="text"
                         value={user.name}
                         onChange={(event) => handleChange(user.id, 'name', event.target.value)}
-                        style={getInputStyle(theme)}
                       />
                     </td>
                     <td style={rowCellStyle}>
                       <input
+                        className="text-input users-edit-input"
                         type="email"
                         value={user.email}
                         onChange={(event) => handleChange(user.id, 'email', event.target.value)}
-                        style={getInputStyle(theme)}
                       />
                     </td>
                     <td style={rowCellStyle}>
                       <select
+                        className="text-input users-edit-input"
                         value={user.role}
                         onChange={(event) => handleChange(user.id, 'role', event.target.value)}
-                        style={getInputStyle(theme)}
                       >
                         <option value="admin">admin</option>
                         <option value="user">user</option>
@@ -279,11 +280,11 @@ function UsersPage() {
                             height: 24,
                             borderRadius: 999,
                             border: `1px solid ${
-                              Boolean(user.is_active) ? theme.sidebarBackground : theme.border
+                              Boolean(user.is_active) ? '#11A9CC' : theme.border
                             }`,
                             background: Boolean(user.is_active)
-                              ? theme.sidebarBackground
-                              : theme.inputDisabledBackground,
+                              ? '#11A9CC'
+                              : '#f8fafc',
                             padding: 0,
                             position: 'relative',
                             cursor:
@@ -316,24 +317,14 @@ function UsersPage() {
                     </td>
                     <td style={rowCellStyle}>
                       <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
-                        <button
+                        <PrimaryButton
                           type="button"
+                          className="users-save-button"
                           onClick={() => handleSaveUser(user)}
                           disabled={Boolean(savingRows[user.id])}
-                          style={{
-                            width: 'fit-content',
-                            padding: '5px 12px',
-                            borderRadius: 8,
-                            border: `1px solid ${theme.border}`,
-                            background: savingRows[user.id] ? theme.inputDisabledBackground : theme.sidebarBackground,
-                            color: savingRows[user.id] ? theme.textSecondary : theme.sidebarText,
-                            fontSize: 12,
-                            // fontWeight: 'bold',
-                            cursor: savingRows[user.id] ? 'not-allowed' : 'pointer',
-                          }}
                         >
                           {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
-                        </button>
+                        </PrimaryButton>
                         {rowMessages[user.id] && (
                           <span
                             style={{
@@ -369,27 +360,27 @@ function UsersPage() {
                 <label className="users-mobile-field-name">
                   <span>Nombre</span>
                   <input
+                    className="text-input users-edit-input"
                     type="text"
                     value={user.name}
                     onChange={(event) => handleChange(user.id, 'name', event.target.value)}
-                    style={getInputStyle(theme)}
                   />
                 </label>
                 <label className="users-mobile-field-email">
                   <span>Email</span>
                   <input
+                    className="text-input users-edit-input"
                     type="email"
                     value={user.email}
                     onChange={(event) => handleChange(user.id, 'email', event.target.value)}
-                    style={getInputStyle(theme)}
                   />
                 </label>
                 <label className="users-mobile-field-role">
                   <span>Rol</span>
                   <select
+                    className="text-input users-edit-input"
                     value={user.role}
                     onChange={(event) => handleChange(user.id, 'role', event.target.value)}
-                    style={getInputStyle(theme)}
                   >
                     <option value="admin">admin</option>
                     <option value="user">user</option>
@@ -411,24 +402,14 @@ function UsersPage() {
                   </button>
                 </div>
 
-                <button
+                <PrimaryButton
                   type="button"
                   className="users-mobile-save-button"
                   onClick={() => handleSaveUser(user)}
                   disabled={Boolean(savingRows[user.id])}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: `1px solid ${theme.border}`,
-                    background: savingRows[user.id] ? theme.inputDisabledBackground : theme.sidebarBackground,
-                    color: savingRows[user.id] ? theme.textSecondary : theme.sidebarText,
-                    fontSize: 12,
-                    cursor: savingRows[user.id] ? 'not-allowed' : 'pointer',
-                  }}
                 >
                   {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
-                </button>
+                </PrimaryButton>
               </div>
 
               <div className="users-mobile-actions">
@@ -450,20 +431,6 @@ function UsersPage() {
       )}
     </div>
   );
-}
-
-function getInputStyle(theme) {
-  return {
-    width: '100%',
-    padding: '5px 10px',
-    borderRadius: 8,
-    border: `1px solid ${theme.inputBorder}`,
-    background: theme.inputBackground,
-    color: theme.inputText,
-    fontSize: 12,
-    textAlign: 'center',
-    boxSizing: 'border-box',
-  };
 }
 
 export default UsersPage;

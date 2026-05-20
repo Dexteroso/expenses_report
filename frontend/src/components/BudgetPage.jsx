@@ -4,6 +4,7 @@ import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN, formatNumberForInput, parseCurrencyInput } from '../utils/formatters';
 import { typography } from '../styles/typography';
+import PrimaryButton from './ui/PrimaryButton';
 
 const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const categoryDisplayOrder = [
@@ -23,8 +24,8 @@ const categoryDisplayOrder = [
   'Viajes',
   'Misceláneos',
 ];
-const firstColumnWidth = 180;
-const monthColumnWidth = 100;
+const firstColumnWidth = 176;
+const monthColumnWidth = 88;
 const annualColumnWidth = 120;
 const budgetTableMinWidth = firstColumnWidth + (monthColumnWidth * 12) + annualColumnWidth;
 
@@ -43,11 +44,6 @@ function BudgetPage() {
     overflow: 'hidden',
     overflowX: 'hidden',
   };
-  const pageTitleStyle = {
-    ...typography.pageTitle,
-    marginTop: 10,
-    marginBottom: 10,
-  };
   const sectionTitleStyle = {
     ...typography.sectionTitle,
     marginTop: 0,
@@ -57,16 +53,6 @@ function BudgetPage() {
     color: theme.textBody,
     fontSize: 12,
     fontWeight: 'bold',
-  };
-  const inputStyle = {
-    width: 120,
-    padding: '5px 10px',
-    borderRadius: 8,
-    border: `1px solid ${theme.inputBorder}`,
-    background: theme.inputBackground,
-    color: theme.inputText,
-    fontSize: 12,
-    boxSizing: 'border-box',
   };
   const [year, setYear] = useState(2026);
   const [budgetRows, setBudgetRows] = useState([]);
@@ -371,23 +357,26 @@ function BudgetPage() {
         width: '100%',
         maxWidth: '100%',
         minWidth: 0,
-        height: 'calc(100vh - 96px)',
+        height: 'calc(100vh - 30px)',
         minHeight: 0,
         boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
       <div className="responsive-card budget-top-card" style={cardStyle}>
-        <h1 style={pageTitleStyle}>Presupuesto</h1>
+        <header className="page-header">
+          <h1>Presupuesto</h1>
+          <p>Planifica y ajusta tus presupuestos mensuales.</p>
+        </header>
         <div className="responsive-filter-bar budget-top-controls" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           <div className="budget-year-and-pending" style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
             <div className="budget-year-control" style={{ display: 'grid', gap: 4 }}>
               <label style={labelStyle}>Año</label>
               <input
+                className="text-input budget-year-input"
                 type="number"
                 value={year}
                 onChange={(event) => setYear(Number(event.target.value) || 2026)}
-                style={inputStyle}
               />
             </div>
 
@@ -396,24 +385,14 @@ function BudgetPage() {
             </span>
           </div>
 
-          <button
+          <PrimaryButton
             className="budget-save-button"
             type="button"
             onClick={handleSaveChanges}
             disabled={pendingChangesCount === 0 || isSaving}
-            style={{
-              padding: '10px 14px',
-              borderRadius: 8,
-              border: `1px solid ${theme.border}`,
-              background: pendingChangesCount === 0 || isSaving ? theme.inputDisabledBackground : theme.sidebarBackground,
-              color: pendingChangesCount === 0 || isSaving ? theme.textSecondary : theme.sidebarText,
-              fontSize: 14,
-              fontWeight: 'bold',
-              cursor: pendingChangesCount === 0 || isSaving ? 'not-allowed' : 'pointer',
-            }}
           >
             {isSaving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
+          </PrimaryButton>
         </div>
 
         {error && (
@@ -423,8 +402,13 @@ function BudgetPage() {
         )}
       </div>
 
-      <div className="responsive-card" style={cardStyle}>
-        <h2 style={sectionTitleStyle}>Resumen anual</h2>
+      <div className="responsive-card budget-summary-card" style={cardStyle}>
+        <div className="budget-card-title-row movements-card-title-row">
+          <span className="movements-card-title-icon" aria-hidden="true">
+            <i className="bx bx-calendar-check"></i>
+          </span>
+          <h2 style={sectionTitleStyle}>Resumen anual</h2>
+        </div>
 
         {isLoading ? (
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
@@ -491,7 +475,12 @@ function BudgetPage() {
           overflow: 'hidden',
         }}
       >
-        <h2 style={sectionTitleStyle}>Detalle por categoría</h2>
+        <div className="budget-card-title-row movements-card-title-row">
+          <span className="movements-card-title-icon" aria-hidden="true">
+            <i className="bx bx-category"></i>
+          </span>
+          <h2 style={sectionTitleStyle}>Detalle por categoría</h2>
+        </div>
 
         {isLoading ? (
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
@@ -732,8 +721,8 @@ function FragmentRows({
 }) {
   return (
     <>
-      <tr>
-        <StickySummaryCell align="center" sticky="left" theme={theme} textColor={theme.textPrimary}>
+      <tr className="budget-category-row">
+        <StickySummaryCell align="center" sticky="left" theme={theme} textColor={theme.textPrimary} className="budget-category-cell">
           {category.category}
         </StickySummaryCell>
         {categoryMonthlyTotals.map((amount, index) => (
@@ -742,11 +731,12 @@ function FragmentRows({
             align="center"
             theme={theme}
             textColor={theme.textPrimary}
+            className="budget-category-cell"
           >
             {formatCurrencyMXN(amount)}
           </StickySummaryCell>
         ))}
-        <StickySummaryCell align="center" sticky="right" theme={theme} textColor={theme.textPrimary}>
+        <StickySummaryCell align="center" sticky="right" theme={theme} textColor={theme.textPrimary} className="budget-category-cell">
           {formatCurrencyMXN(categoryAnnualTotal)}
         </StickySummaryCell>
       </tr>

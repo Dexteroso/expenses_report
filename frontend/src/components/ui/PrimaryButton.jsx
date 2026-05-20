@@ -9,11 +9,12 @@ function PrimaryButton({
   isLoading = false,
   style,
   type = 'button',
+  variant = 'primary',
   ...props
 }) {
   return (
     <button
-      className={`primary-button ${className}`.trim()}
+      className={`primary-button primary-button--${variant} ${className}`.trim()}
       disabled={disabled || isLoading}
       style={{
         '--auth-primary-bg': colors.authPrimary,

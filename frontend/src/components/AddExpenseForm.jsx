@@ -3,8 +3,8 @@ import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
 import { formatNumberForInput, parseCurrencyInput } from '../utils/formatters';
-import { typography } from '../styles/typography';
 import DateInput from './DateInput';
+import PrimaryButton from './ui/PrimaryButton';
 
 const favoriteEmojis = ['😎', '🛒', '🍕', '🥑', '🍎', '🍔', '⛽', '☕', '🍿', '🛍️', '🏠', '🐶', '🚕', '💊', '🎵', '💳'];
 const favoriteColors = ['#ffffff', '#565294', '#9d9d9d', '#005496', '#2dafe6', '#23d2aa', '#ff7f43', '#f3f3f3', '#d9d2e9', '#f3f3f3', '#cfe2f3', '#d0e0e3', '#d9ead3', '#fce5cd'];
@@ -48,6 +48,8 @@ function AddExpenseForm({
     const [validationMessage, setValidationMessage] = useState('');
     const [isFormHighlightActive, setIsFormHighlightActive] = useState(false);
     const [contextMessage, setContextMessage] = useState('');
+    const [isFavoriteMetaModalOpen, setIsFavoriteMetaModalOpen] = useState(false);
+    const [pendingFavoritePayload, setPendingFavoritePayload] = useState(null);
     const cardRef = useRef(null);
     const amountInputRef = useRef(null);
     const contextMessageTimerRef = useRef(null);
@@ -74,24 +76,10 @@ function AddExpenseForm({
         fontSize: 12,
         boxSizing: 'border-box',
     };
-    const buttonStyle = {
-        padding: '5px 14px',
-        borderRadius: 8,
-        border: 'none',
-        background: theme.textPrimary,
-        color: theme.sidebarText,
-        fontSize: 12,
-        cursor: 'pointer',
-    };
-    const isFavoriteValid = Boolean(
+    const isFavoriteMetaValid = Boolean(
         favoriteMeta.emoji &&
         favoriteMeta.alias.trim() &&
-        favoriteMeta.color &&
-        formData.type &&
-        formData.category_id &&
-        formData.concept_id &&
-        formData.description.trim() &&
-        formData.account_id
+        favoriteMeta.color
     );
     const isExpenseValid = Boolean(
         formData.date &&
@@ -102,11 +90,34 @@ function AddExpenseForm({
         formData.account_id &&
         parseCurrencyInput(formData.amount) > 0
     );
-    const isFormValid = favoriteMode ? isFavoriteValid : isExpenseValid;
+    const isFavoriteDraftValid = Boolean(
+        formData.type &&
+        formData.category_id &&
+        formData.concept_id &&
+        formData.description.trim() &&
+        formData.account_id
+    );
+    const isFormValid = favoriteMode ? isFavoriteDraftValid : isExpenseValid;
     const hasClearableFormValues = Object.keys(initialForm).some(
-        (field) => String(formData[field] ?? '') !== String(initialForm[field] ?? '')
+        (field) => field !== 'type' && String(formData[field] ?? '') !== String(initialForm[field] ?? '')
     );
     const shouldHighlightClear = Boolean(selectedExpense || favoritePrefill || hasClearableFormValues);
+    const isCashAccount = (account) => (
+        account?.account_type === 'cash' ||
+        String(account?.account_alias || '').toLowerCase() === 'efectivo' ||
+        String(account?.bank_name || '').toLowerCase() === 'efectivo'
+    );
+    const accountOptions = accounts.reduce((options, account) => {
+        if (isCashAccount(account)) {
+            if (!options.some(isCashAccount)) {
+                return [{ ...account, account_alias: 'Efectivo' }, ...options];
+            }
+            return options;
+        }
+
+        return [...options, account];
+    }, []);
+    const isCardHighlighted = isFormHighlightActive || favoriteMode;
 
     const showFormContextFeedback = (message) => {
         if (contextMessageTimerRef.current) {
@@ -295,6 +306,8 @@ function AddExpenseForm({
         });
         setIsEmojiPickerOpen(false);
         setIsColorPickerOpen(false);
+        setIsFavoriteMetaModalOpen(false);
+        setPendingFavoritePayload(null);
         setValidationMessage('');
 
         if (onFavoriteModeChange) {
@@ -312,59 +325,79 @@ function AddExpenseForm({
         if (onFavoritePrefillClear) {
             onFavoritePrefillClear();
         }
+
+        if (favoriteMode && onFavoriteModeChange) {
+            onFavoriteModeChange(false);
+        }
+    };
+
+    const resetFavoriteMeta = () => {
+        setFavoriteMeta({
+            emoji: favoriteEmojis[0],
+            alias: '',
+            color: favoriteColors[0],
+        });
+        setIsEmojiPickerOpen(false);
+        setIsColorPickerOpen(false);
+    };
+
+    const handleSaveFavoriteMetadata = async () => {
+        if (!pendingFavoritePayload || !isFavoriteMetaValid) {
+            setValidationMessage('Completa los datos del movimiento frecuente.');
+            return;
+        }
+
+        const response = await authFetch(`${API_BASE_URL}/api/favorite-movements`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                emoji: favoriteMeta.emoji,
+                alias: favoriteMeta.alias.trim(),
+                color: favoriteMeta.color,
+                ...pendingFavoritePayload,
+            }),
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            setValidationMessage(data.error || 'No se pudo guardar el movimiento frecuente.');
+            return;
+        }
+
+        clearFormState();
+        resetFavoriteMeta();
+        setIsFavoriteMetaModalOpen(false);
+        setPendingFavoritePayload(null);
+
+        if (onFavoriteSaved) {
+            onFavoriteSaved();
+        }
+
+        if (onFavoriteModeChange) {
+            onFavoriteModeChange(false);
+        }
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (favoriteMode) {
-            if (!isFavoriteValid) {
-                setValidationMessage('Completa los campos del movimiento frecuente.');
+            if (!isFavoriteDraftValid) {
+                setValidationMessage('Completa los campos obligatorios para guardar el frecuente.');
                 return;
             }
 
-            const response = await authFetch(`${API_BASE_URL}/api/favorite-movements`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    emoji: favoriteMeta.emoji,
-                    alias: favoriteMeta.alias.trim(),
-                    color: favoriteMeta.color,
-                    type: formData.type,
-                    category_id: formData.category_id,
-                    concept_id: formData.concept_id,
-                    description: formData.description.trim(),
-                    account_id: formData.account_id,
-                }),
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                setValidationMessage(data.error || 'No se pudo guardar el movimiento frecuente.');
-                return;
-            }
-
-            setFormData(initialForm);
-            setConcepts([]);
-            setFavoriteMeta({
-                emoji: favoriteEmojis[0],
-                alias: '',
-                color: favoriteColors[0],
-            });
-            setIsEmojiPickerOpen(false);
-            setIsColorPickerOpen(false);
             setValidationMessage('');
-
-            if (onFavoriteSaved) {
-                onFavoriteSaved();
-            }
-
-            if (onFavoriteModeChange) {
-                onFavoriteModeChange(false);
-            }
-
+            setPendingFavoritePayload({
+                type: formData.type,
+                category_id: formData.category_id,
+                concept_id: formData.concept_id,
+                description: formData.description.trim(),
+                account_id: formData.account_id,
+            });
+            setIsFavoriteMetaModalOpen(true);
             return;
         }
 
@@ -424,16 +457,16 @@ function AddExpenseForm({
     return (
         <div
             ref={cardRef}
-            className="responsive-card expense-form-card"
+            className={`responsive-card expense-form-card ${favoriteMode ? 'is-favorite-target' : ''}`}
             style={{
                 position: 'sticky',
                 top: '16px',
                 zIndex: 20,
-                background: isFormHighlightActive ? 'rgba(56, 79, 127, 0.04)' : theme.surface,
-                border: isFormHighlightActive ? '1px solid rgba(56, 79, 127, 0.45)' : `1px solid ${theme.border}`,
+                background: isCardHighlighted ? 'rgba(37, 99, 235, 0.04)' : theme.surface,
+                border: isCardHighlighted ? '1px solid rgba(37, 99, 235, 0.35)' : `1px solid ${theme.border}`,
                 borderRadius: '12px',
                 padding: '16px',
-                boxShadow: isFormHighlightActive ? '0 10px 30px rgba(56, 79, 127, 0.18)' : theme.shadow,
+                boxShadow: isCardHighlighted ? '0 10px 30px rgba(37, 99, 235, 0.12)' : theme.shadow,
                 marginBottom: '20px',
                 width: '100%',
                 maxWidth: '100%',
@@ -441,15 +474,35 @@ function AddExpenseForm({
                 transition: 'background 180ms ease, border-color 180ms ease, box-shadow 180ms ease',
             }}
         >
-            <h1 style={{ ...typography.pageTitle, margin: 10 }}>
-                {favoriteMode
-                    ? 'Crear movimiento frecuente'
-                    : selectedExpense
+            <div className="expense-form-header">
+                <span className="movements-card-title-icon" aria-hidden="true">
+                    <i className="bx bx-plus-circle"></i>
+                </span>
+                <h2>
+                    {selectedExpense
                         ? `Editando: ${selectedExpense.expense_code}`
-                        : 'Registro de movimientos'}
-            </h1>
+                        : 'Nuevo movimiento'}
+                </h2>
+            </div>
 
             <form onSubmit={handleSubmit}>
+                <div className="expense-type-segment" role="group" aria-label="Tipo de movimiento">
+                    <button
+                        type="button"
+                        className={formData.type === 'income' ? 'is-active' : ''}
+                        onClick={() => handleChange({ target: { name: 'type', value: 'income' } })}
+                    >
+                        Ingreso
+                    </button>
+                    <button
+                        type="button"
+                        className={formData.type === 'expense' ? 'is-active' : ''}
+                        onClick={() => handleChange({ target: { name: 'type', value: 'expense' } })}
+                    >
+                        Egreso
+                    </button>
+                </div>
+
                 <div
                     className="expense-form-grid"
                     style={{
@@ -461,32 +514,18 @@ function AddExpenseForm({
                     }}
                 >
                     <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
-                        <div className="responsive-field expense-field-date" style={fieldStyle}>
+                        <div className={`responsive-field expense-field-date ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
                             <label style={labelStyle}>Fecha</label>
                             <DateInput
                                 name="date"
                                 value={formData.date}
                                 onChange={(value) => handleChange({ target: { name: 'date', value } })}
-                                placeholder="Selecciona fecha"
+                                placeholder={favoriteMode ? 'Se define al usar' : 'Selecciona fecha'}
                                 required={!favoriteMode}
                                 disabled={favoriteMode}
                                 style={inputStyle}
                             />
                         </div>
-
-                        <div className="responsive-field expense-field-type" style={fieldStyle}>
-                            <label style={labelStyle}>Tipo</label>
-                            <select
-                                name="type"
-                                value={formData.type}
-                                onChange={handleChange}
-                                style={inputStyle}
-                            >
-                                <option value="expense">Egreso</option>
-                                <option value="income">Ingreso</option>
-                            </select>
-                        </div>
-
                         <div className="responsive-field expense-field-category" style={fieldStyle}>
                             <label style={labelStyle}>Categoría</label>
                             <select
@@ -528,7 +567,7 @@ function AddExpenseForm({
 
                     <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
                         <div className="responsive-field expense-field-description" style={fieldStyle}>
-                            <label style={labelStyle}>Descripción</label>
+                            <label style={labelStyle}>Descripción {!favoriteMode && <span>(opcional)</span>}</label>
                             <input
                                 type="text"
                                 name="description"
@@ -536,27 +575,25 @@ function AddExpenseForm({
                                 onChange={handleChange}
                                 required={favoriteMode}
                                 style={inputStyle}
-                                placeholder="Opcional"
+                                placeholder="Ej. Pago de cliente, freelance, etc."
                             />
                         </div>
 
-                        {!favoriteMode && (
-                            <div className="responsive-field expense-field-amount" style={fieldStyle}>
-                                <label style={labelStyle}>Cantidad</label>
-                                <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    name="amount"
-                                    ref={amountInputRef}
-                                    value={formData.amount}
-                                    onChange={handleChange}
-                                    required
-                                    style={inputStyle}
-                                    placeholder="0.00"
-                                />
-                            </div>
-                        )}
-
+                        <div className={`responsive-field expense-field-amount ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
+                            <label style={labelStyle}>Cantidad</label>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                name="amount"
+                                ref={amountInputRef}
+                                value={formData.amount}
+                                onChange={handleChange}
+                                required={!favoriteMode}
+                                disabled={favoriteMode}
+                                style={inputStyle}
+                                placeholder={favoriteMode ? 'Se define al usar' : '0.00'}
+                            />
+                        </div>
                         <div className="responsive-field expense-field-account" style={fieldStyle}>
                             <label style={labelStyle}>Pago</label>
                             <select
@@ -567,70 +604,85 @@ function AddExpenseForm({
                                 style={inputStyle}
                             >
                                 <option value="">Selecciona pago</option>
-                                {accounts.map((account) => (
+                                {accountOptions.map((account) => (
                                     <option key={account.id} value={account.id}>
-                                        {account.account_alias}
+                                        {isCashAccount(account) ? 'Efectivo' : account.account_alias}
                                     </option>
                                 ))}
                             </select>
                         </div>
-
-                        {!favoriteMode && (
-                            <div
-                                className={`form-actions ${selectedExpense ? 'expense-edit-actions' : ''}`}
-                                style={{
-                                    display: 'flex',
-                                    gap: 10,
-                                    justifySelf: 'end',
-                                    marginTop: 8,
-                                }}
-                            >
-                                {selectedExpense && (
-                                    <button type="button" onClick={() => onDeleteExpense(selectedExpense)} style={buttonStyle}>
-                                        Eliminar
-                                    </button>
-                                )}
-
-                                {selectedExpense && (
-                                    <button type="button" onClick={onCancelEdit} style={buttonStyle}>
-                                        Cancelar
-                                    </button>
-                                )}
-
-                                {!selectedExpense && (
-                                    <button
-                                        type="button"
-                                        className={`clear-form-button ${shouldHighlightClear ? 'is-active' : ''}`}
-                                        onClick={handleClearForm}
-                                        style={{ ...buttonStyle, background: theme.inputDisabledBackground, color: theme.textPrimary, border: `1px solid ${theme.border}` }}
-                                    >
-                                        Limpiar
-                                    </button>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    disabled={!isFormValid}
-                                    style={{
-                                        ...buttonStyle,
-                                        border: !isFormValid ? `1px solid ${theme.border}` : buttonStyle.border,
-                                        background: !isFormValid ? theme.inputDisabledBackground : buttonStyle.background,
-                                        color: !isFormValid ? theme.textSecondary : buttonStyle.color,
-                                        cursor: !isFormValid ? 'not-allowed' : buttonStyle.cursor,
-                                    }}
-                                >
-                                    {selectedExpense ? 'Guardar' : 'Guardar movimiento'}
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {favoriteMode && (
-                    <>
-                        <div className="favorite-form-panel">
+                <div
+                    className={`form-actions ${selectedExpense ? 'expense-edit-actions' : ''}`}
+                    style={{
+                        display: 'flex',
+                        gap: 10,
+                        marginTop: 12,
+                    }}
+                >
+                    {selectedExpense && (
+                        <PrimaryButton
+                            type="button"
+                            variant="danger"
+                            onClick={() => onDeleteExpense(selectedExpense)}
+                        >
+                            Eliminar
+                        </PrimaryButton>
+                    )}
+
+                    {selectedExpense && (
+                        <PrimaryButton
+                            type="button"
+                            variant="secondary"
+                            onClick={onCancelEdit}
+                        >
+                            Cancelar
+                        </PrimaryButton>
+                    )}
+
+                    {!selectedExpense && (
+                        <PrimaryButton
+                            type="button"
+                            variant="secondary"
+                            className={`clear-form-button ${shouldHighlightClear ? 'is-active' : ''}`}
+                            onClick={handleClearForm}
+                            disabled={!shouldHighlightClear}
+                        >
+                            Limpiar
+                        </PrimaryButton>
+                    )}
+
+                    <PrimaryButton
+                        type="submit"
+                        disabled={!isFormValid}
+                    >
+                        {selectedExpense ? 'Guardar cambios' : favoriteMode ? 'Guardar frecuente' : 'Agregar movimiento'}
+                    </PrimaryButton>
+                </div>
+
+                {validationMessage && (
+                    <p style={{ color: '#b91c1c', fontWeight: 'bold' }}>
+                        {validationMessage}
+                    </p>
+                )}
+
+            </form>
+            {contextMessage && (
+                <div className="expense-form-context-toast" role="status" aria-live="polite">
+                    <i className={selectedExpense ? 'bx bx-edit-alt' : 'bx bx-check'}></i>
+                    <span>{contextMessage}</span>
+                </div>
+            )}
+
+            {isFavoriteMetaModalOpen && (
+                <div className="favorite-delete-overlay favorite-meta-overlay" role="dialog" aria-modal="true">
+                    <div className="favorite-delete-modal favorite-meta-modal">
+                        <h3>Configurar frecuente</h3>
+                        <div className="favorite-form-panel favorite-modal-panel">
                             <div className="favorite-form-field favorite-selector-field">
-                                <label style={labelStyle}>Emoji</label>
+                                <label style={labelStyle}>Icono</label>
                                 <div className="favorite-picker-wrap">
                                     <button
                                         type="button"
@@ -706,48 +758,26 @@ function AddExpenseForm({
                                 </div>
                             </div>
                         </div>
-
-                        <div
-                            className="form-actions favorite-form-actions"
-                            style={{
-                                display: 'flex',
-                                gap: 10,
-                                justifyContent: 'flex-end',
-                                marginTop: 8,
-                            }}
-                        >
-                            <button type="button" onClick={handleCancelFavoriteMode} style={buttonStyle}>
-                                Cancelar
-                            </button>
-
-                            <button
-                                type="submit"
-                                disabled={!isFormValid}
-                                style={{
-                                    ...buttonStyle,
-                                    border: !isFormValid ? `1px solid ${theme.border}` : buttonStyle.border,
-                                    background: !isFormValid ? theme.inputDisabledBackground : buttonStyle.background,
-                                    color: !isFormValid ? theme.textSecondary : buttonStyle.color,
-                                    cursor: !isFormValid ? 'not-allowed' : buttonStyle.cursor,
+                        <div className="favorite-delete-actions">
+                            <PrimaryButton
+                                type="button"
+                                variant="secondary"
+                                onClick={() => {
+                                    setIsFavoriteMetaModalOpen(false);
+                                    setPendingFavoritePayload(null);
                                 }}
                             >
+                                Cancelar
+                            </PrimaryButton>
+                            <PrimaryButton
+                                type="button"
+                                onClick={handleSaveFavoriteMetadata}
+                                disabled={!isFavoriteMetaValid}
+                            >
                                 Guardar
-                            </button>
+                            </PrimaryButton>
                         </div>
-                    </>
-                )}
-
-                {validationMessage && (
-                    <p style={{ color: '#b91c1c', fontWeight: 'bold' }}>
-                        {validationMessage}
-                    </p>
-                )}
-
-            </form>
-            {contextMessage && (
-                <div className="expense-form-context-toast" role="status" aria-live="polite">
-                    <i className={selectedExpense ? 'bx bx-edit-alt' : 'bx bx-check'}></i>
-                    <span>{contextMessage}</span>
+                    </div>
                 </div>
             )}
         </div>

@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../utils/api';
 import { formatCurrencyMXN } from '../utils/formatters';
 import { typography } from '../styles/typography';
 import DateInput from './DateInput';
+import PrimaryButton from './ui/PrimaryButton';
 
 function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     const theme = lightTheme;
@@ -21,17 +22,8 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
         color: theme.inputText,
         fontSize: 12,
     };
-    const filterButtonStyle = {
-        padding: '5px 14px',
-        borderRadius: 8,
-        border: 'none',
-        background: theme.textPrimary,
-        color: theme.sidebarText,
-        fontSize: 12,
-        cursor: 'pointer',
-    };
     const headerCellStyle = {
-        padding: '8px 6px',
+        padding: '6px 6px',
         textAlign: 'center',
         fontWeight: 'bold',
     };
@@ -53,13 +45,23 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     };
     const [expenses, setExpenses] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [accounts, setAccounts] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [typeFilter, setTypeFilter] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [categoryId, setCategoryId] = useState('');
+    const [accountId, setAccountId] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const pageSize = 5;
     const [appliedFilters, setAppliedFilters] = useState({
+        searchQuery: '',
+        typeFilter: '',
         startDate: '',
         endDate: '',
         categoryId: '',
+        accountId: '',
         defaultLimited: true,
     });
 
@@ -93,6 +95,11 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             .then((response) => response.json())
             .then((data) => setCategories(data))
             .catch((error) => console.error('Error fetching categories:', error));
+
+        authFetch(`${API_BASE_URL}/api/accounts?includeSystem=true`)
+            .then((response) => response.json())
+            .then((data) => setAccounts(Array.isArray(data) ? data : []))
+            .catch((error) => console.error('Error fetching accounts:', error));
     }, []);
 
     useEffect(() => {
@@ -110,11 +117,15 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
 
     const handleSearch = () => {
         setAppliedFilters({
+            searchQuery,
+            typeFilter,
             startDate,
             endDate,
             categoryId,
+            accountId,
             defaultLimited: false,
         });
+        setCurrentPage(1);
         fetchExpenses({
             start_date: startDate,
             end_date: endDate,
@@ -123,48 +134,69 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     };
 
     const handleClear = () => {
+        setSearchQuery('');
+        setTypeFilter('');
         setStartDate('');
         setEndDate('');
         setCategoryId('');
+        setAccountId('');
         setAppliedFilters({
+            searchQuery: '',
+            typeFilter: '',
             startDate: '',
             endDate: '',
             categoryId: '',
+            accountId: '',
             defaultLimited: true,
         });
+        setCurrentPage(1);
         fetchExpenses({ limit: 5 });
     };
 
     const areFiltersDirty =
+        searchQuery !== appliedFilters.searchQuery ||
+        typeFilter !== appliedFilters.typeFilter ||
         startDate !== appliedFilters.startDate ||
         endDate !== appliedFilters.endDate ||
-        categoryId !== appliedFilters.categoryId;
-    const hasAppliedSearchFilters = Boolean(
-        appliedFilters.startDate ||
-        appliedFilters.endDate ||
-        appliedFilters.categoryId
-    );
-    const isSearchDisabled = !areFiltersDirty;
+        categoryId !== appliedFilters.categoryId ||
+        accountId !== appliedFilters.accountId;
+    const hasAppliedSearchFilters = !appliedFilters.defaultLimited;
+    const isSearchDisabled = !areFiltersDirty && !appliedFilters.defaultLimited;
     const isClearDisabled = !areFiltersDirty && !hasAppliedSearchFilters;
-    const isExportDisabled = areFiltersDirty || expenses.length === 0;
-    const getActionButtonStyle = (isDisabled) => ({
-        ...filterButtonStyle,
-        border: isDisabled ? `1px solid ${theme.border}` : filterButtonStyle.border,
-        background: isDisabled ? theme.inputDisabledBackground : filterButtonStyle.background,
-        color: isDisabled ? theme.textSecondary : filterButtonStyle.color,
-        cursor: isDisabled ? 'not-allowed' : filterButtonStyle.cursor,
+    const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    const getExpenseType = (expense) => expense.type || (expense.tipo === 'Ingreso' ? 'income' : 'expense');
+
+    const filteredExpenses = expenses.filter((expense) => {
+        const normalizedSearch = appliedFilters.searchQuery.trim().toLowerCase();
+        const matchesSearch = !normalizedSearch || [
+            expense.expense_code,
+            expense.category,
+            expense.concept,
+            expense.description,
+            expense.account_alias,
+        ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(normalizedSearch));
+        const matchesType = !appliedFilters.typeFilter || getExpenseType(expense) === appliedFilters.typeFilter;
+        const matchesAccount = !appliedFilters.accountId || String(expense.account_id) === String(appliedFilters.accountId);
+
+        return matchesSearch && matchesType && matchesAccount;
     });
 
-    const totalIngresos = expenses
-        .filter((expense) => expense.tipo === 'Ingreso')
-        .reduce((sum, expense) => sum + Number(expense.amount), 0);
-
-    const totalEgresos = expenses
-        .filter((expense) => expense.tipo === 'Egreso')
-        .reduce((sum, expense) => sum + Number(expense.amount), 0);
-
-    const totalPeriodo = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-    const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const pageCount = Math.max(1, Math.ceil(filteredExpenses.length / pageSize));
+    const safeCurrentPage = Math.min(currentPage, pageCount);
+    const paginatedExpenses = filteredExpenses.slice(
+        (safeCurrentPage - 1) * pageSize,
+        safeCurrentPage * pageSize
+    );
+    const visiblePages = Array.from({ length: pageCount }, (_, index) => index + 1)
+        .filter((page) => (
+            page === 1 ||
+            page === pageCount ||
+            Math.abs(page - safeCurrentPage) <= 1
+        ));
+    const isExportDisabled = appliedFilters.defaultLimited || areFiltersDirty || filteredExpenses.length === 0;
 
     const getMonthLabel = (dateString) => {
         const monthIndex = Number(dateString.split('-')[1]) - 1;
@@ -229,7 +261,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     };
 
     const handleExportCsv = () => {
-        if (expenses.length === 0) {
+        if (filteredExpenses.length === 0) {
             window.alert('No hay datos para exportar');
             return;
         }
@@ -249,7 +281,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             'Periodo de tarjeta',
         ];
 
-        const rows = expenses.map((expense) => {
+        const rows = filteredExpenses.map((expense) => {
             const [expenseYear] = expense.date.split('-');
 
             return [
@@ -278,7 +310,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
 
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        const dates = expenses.map((expense) => expense.date).sort();
+        const dates = filteredExpenses.map((expense) => expense.date).sort();
         const filename = startDate || endDate || categoryId
             ? `expenses_${dates[0]}_to_${dates[dates.length - 1]}.csv`
             : 'expenses_all.csv';
@@ -305,12 +337,34 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                 boxSizing: 'border-box',
             }}
         >
-            <h2 style={{ ...typography.sectionTitle, marginTop: 10, marginBottom: 10 }}>
-                Resumen de movimientos
-            </h2>
+            <div className="expenses-history-header">
+                <div className="expenses-history-title-group">
+                    <span className="expenses-history-title-icon" aria-hidden="true">
+                        <i className="bx bx-receipt"></i>
+                    </span>
+
+                    <div>
+                        <h2 style={{ ...typography.sectionTitle, margin: 0 }}>
+                            Historial de movimientos
+                        </h2>
+                        <p>{filteredExpenses.length} movimientos encontrados</p>
+                    </div>
+                </div>
+                <PrimaryButton
+                    type="button"
+                    variant="secondary"
+                    className="expenses-export-button"
+                    onClick={handleExportCsv}
+                    disabled={isExportDisabled}
+                    title={isExportDisabled ? 'Realiza una búsqueda para exportar resultados' : 'Exportar resultados'}
+                >
+                    <i className="bx bx-export" aria-hidden="true"></i>
+                    <span>Exportar</span>
+                </PrimaryButton>
+            </div>
 
             <div
-                className="responsive-filter-bar expenses-filter-bar"
+                className="responsive-filter-bar expenses-filter-bar expenses-filter-bar-primary"
                 style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -320,119 +374,144 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     marginBottom: 10,
                 }}
             >
-                <div className="expenses-filter-field expenses-filter-field-start">
-                    <label style={filterLabelStyle}>
-                        Inicio
-                    </label>
-                    <DateInput
-                        value={startDate}
-                        onChange={setStartDate}
-                        placeholder="Inicio"
-                        style={filterInputStyle}
-                    />
+                <div className="expenses-filter-primary-fields">
+                    <div className="expenses-filter-field expenses-filter-field-search">
+                        <label style={filterLabelStyle}>
+                            Buscar
+                        </label>
+                        <input
+                            type="search"
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            placeholder="Concepto, descripción, cuenta..."
+                            style={filterInputStyle}
+                        />
+                    </div>
+
                 </div>
 
-                <div className="expenses-filter-field expenses-filter-field-end">
-                    <label style={filterLabelStyle}>
-                        Fin
-                    </label>
-                    <DateInput
-                        value={endDate}
-                        onChange={setEndDate}
-                        placeholder="Fin"
-                        style={filterInputStyle}
-                        align="right"
-                    />
-                </div>
-
-                <div className="expenses-filter-field expenses-filter-field-category">
-                    <label style={filterLabelStyle}>
-                        Categoría
-                    </label>
-                    <select
-                        className="expenses-category-select"
-                        value={categoryId}
-                        onChange={(event) => setCategoryId(event.target.value)}
-                        style={filterInputStyle}
+                <div className="expenses-filter-actions expenses-filter-actions-primary" style={{ display: 'flex', gap: 5, alignItems: 'flex-end' }}>
+                    <PrimaryButton
+                        type="button"
+                        variant="secondary"
+                        className="expenses-more-filters-button"
+                        onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                        aria-expanded={showAdvancedFilters}
                     >
-                        <option value="">Todas</option>
-                        {categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                        <span>Filtros</span>
+                        <i className={`bx ${showAdvancedFilters ? 'bx-chevron-up' : 'bx-chevron-down'}`} aria-hidden="true"></i>
+                    </PrimaryButton>
 
-                <div className="expenses-filter-actions" style={{ display: 'flex', gap: 5, alignItems: 'flex-end' }}>
-                    <button
+                    <PrimaryButton
+                        type="button"
+                        variant="secondary"
+                        onClick={handleClear}
+                        disabled={isClearDisabled}
+                    >
+                        Limpiar
+                    </PrimaryButton>
+
+                    <PrimaryButton
                         type="button"
                         onClick={handleSearch}
                         disabled={isSearchDisabled}
-                        style={getActionButtonStyle(isSearchDisabled)}
                     >
                         Buscar
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleClear}
-                        disabled={isClearDisabled}
-                        style={getActionButtonStyle(isClearDisabled)}
-                    >
-                        Limpiar
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleExportCsv}
-                        disabled={isExportDisabled}
-                        style={getActionButtonStyle(isExportDisabled)}
-                    >
-                        Exportar
-                    </button>
+                    </PrimaryButton>
                 </div>
             </div>
 
-            <div
-                className="table-scroll expenses-summary-strip"
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    background: theme.surfaceMuted,
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: '12px',
-                    padding: '5px',
-                    marginBottom: 16,
-                }}
-            >
-                <p style={{ margin: '0', color: theme.textPrimary, fontWeight: 'bold', fontSize: 12 }}>
-                    Se encontraron {expenses.length} movimientos
-                </p>
-
-                {expenses.length === 0 ? (
-                    <>
-                        <p style={{ margin: '0', color: theme.textSecondary, fontSize: 12 }}>
-                            No hay movimientos para los filtros seleccionados
-                        </p>
-                        <p style={{ margin: 0, color: theme.textBody, fontWeight: 'bold', fontSize: 12 }}>
-                            Total: $0.00
-                        </p>
-                    </>
-                ) : categoryId ? (
-                    <p style={{ margin: 0, color: theme.textBody, fontWeight: 'bold', fontSize: 12 }}>
-                        Total del periodo: {formatCurrencyMXN(totalPeriodo)}
-                    </p>
-                ) : (
-                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                        <p style={{ margin: 0, color: theme.textBody, fontWeight: 'bold', fontSize: 12 }}>
-                            Total ingresos: {formatCurrencyMXN(totalIngresos)}
-                        </p>
-                        <p style={{ margin: 0, color: theme.textBody, fontWeight: 'bold', fontSize: 12 }}>
-                            Total egresos: {formatCurrencyMXN(totalEgresos)}
-                        </p>
+            {showAdvancedFilters && (
+                <div
+                    className="responsive-filter-bar expenses-filter-bar expenses-filter-bar-advanced"
+                    style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 5,
+                        justifyContent: 'center',
+                        alignItems: 'flex-end',
+                        marginBottom: 10,
+                    }}
+                >
+                    <div className="expenses-filter-field expenses-filter-field-type">
+                        <label style={filterLabelStyle}>
+                            Tipo
+                        </label>
+                        <select
+                            value={typeFilter}
+                            onChange={(event) => setTypeFilter(event.target.value)}
+                            style={filterInputStyle}
+                        >
+                            <option value="">Todos</option>
+                            <option value="income">Ingreso</option>
+                            <option value="expense">Egreso</option>
+                        </select>
                     </div>
-                )}
-            </div>
+
+                    <div className="expenses-filter-field expenses-filter-field-start">
+                        <label style={filterLabelStyle}>
+                            Inicio
+                        </label>
+                        <DateInput
+                            value={startDate}
+                            onChange={setStartDate}
+                            placeholder="Inicio"
+                            style={filterInputStyle}
+                        />
+                    </div>
+
+                    <div className="expenses-filter-field expenses-filter-field-end">
+                        <label style={filterLabelStyle}>
+                            Fin
+                        </label>
+                        <DateInput
+                            value={endDate}
+                            onChange={setEndDate}
+                            placeholder="Fin"
+                            style={filterInputStyle}
+                            align="right"
+                        />
+                    </div>
+
+                    <div className="expenses-filter-field expenses-filter-field-category">
+                        <label style={filterLabelStyle}>
+                            Categoría
+                        </label>
+                        <select
+                            className="expenses-category-select"
+                            value={categoryId}
+                            onChange={(event) => setCategoryId(event.target.value)}
+                            style={filterInputStyle}
+                        >
+                            <option value="">Todas</option>
+                            {categories.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                    {category.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="expenses-filter-field expenses-filter-field-account">
+                        <label style={filterLabelStyle}>
+                            Pago
+                        </label>
+                        <select
+                            value={accountId}
+                            onChange={(event) => setAccountId(event.target.value)}
+                            style={filterInputStyle}
+                        >
+                            <option value="">Todas</option>
+                            {accounts.map((account) => (
+                                <option key={account.id} value={account.id}>
+                                    {account.account_alias}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                </div>
+            )}
 
             <div
                 className="expenses-table-scroll"
@@ -443,17 +522,17 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     boxSizing: 'border-box',
                 }}
             >
-                <table style={{ width: '100%', minWidth: '700px', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', minWidth: '760px', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
                     <colgroup>
-                        <col style={{ width: '9%' }} />
+                        <col style={{ width: '0%' }} />
                         <col style={{ width: '8%' }} />
-                        <col style={{ width: '6%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '15%' }} />
                         <col style={{ width: '14%' }} />
-                        <col style={{ width: '14%' }} />
-                        <col style={{ width: '17%' }} />
                         <col style={{ width: '10%' }} />
-                        <col style={{ width: '8%' }} />
-                        <col style={{ width: '8%' }} />
+                        {/* <col style={{ width: '7%' }} /> */}
                     </colgroup>
                     <thead style={{ fontSize: 12, color: theme.textSecondary, textAlign: 'center', borderBottom: `2px solid ${theme.border}` }}>
                         <tr>
@@ -470,7 +549,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     </thead>
 
                     <tbody style={{ fontSize: 10, color: theme.textBody }}>
-                        {expenses.map((expense) => (
+                        {paginatedExpenses.map((expense) => (
                             <tr
                                 key={expense.expense_code}
                                 style={{
@@ -522,10 +601,10 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             </div>
 
             <div className="expenses-mobile-list">
-                {expenses.length === 0 ? (
+                {filteredExpenses.length === 0 ? (
                     <p className="expenses-mobile-empty">No hay movimientos para mostrar.</p>
                 ) : (
-                    expenses.map((expense) => (
+                    paginatedExpenses.map((expense) => (
                         <div
                             key={expense.expense_code}
                             className={`expenses-mobile-row ${expense.id === selectedExpense?.id ? 'is-selected' : ''}`}
@@ -563,6 +642,37 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                         </div>
                     ))
                 )}
+            </div>
+
+            <div className="expenses-pagination" aria-label="Paginación de movimientos">
+                <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={safeCurrentPage === 1}
+                >
+                    Anterior
+                </button>
+                {visiblePages.map((page, index) => (
+                    <span className="expenses-pagination-item" key={page}>
+                        {index > 0 && page - visiblePages[index - 1] > 1 && (
+                            <span className="expenses-pagination-ellipsis">...</span>
+                        )}
+                        <button
+                            type="button"
+                            className={page === safeCurrentPage ? 'is-active' : ''}
+                            onClick={() => setCurrentPage(page)}
+                        >
+                            {page}
+                        </button>
+                    </span>
+                ))}
+                <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(pageCount, prev + 1))}
+                    disabled={safeCurrentPage === pageCount}
+                >
+                    Siguiente
+                </button>
             </div>
         </div>
     );

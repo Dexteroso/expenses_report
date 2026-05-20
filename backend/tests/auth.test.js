@@ -27,6 +27,9 @@ describe('Auth endpoints', () => {
   afterAll(async () => {
     process.env.NODE_ENV = originalNodeEnv;
     // Limpieza: borrar usuario creado
+    if (testUserId) {
+      await pool.query('DELETE FROM accounts WHERE user_id = ?', [testUserId]);
+    }
     await pool.query('DELETE FROM users WHERE email = ?', [testUser.email]);
     await pool.end();
   });

@@ -8,8 +8,8 @@ const CASH_ACCOUNT = {
   accountType: 'cash',
 };
 
-const checkIsSystemColumn = async () => {
-  if (hasIsSystemColumn !== undefined) {
+const checkIsSystemColumn = async ({ forceRefresh = false } = {}) => {
+  if (!forceRefresh && hasIsSystemColumn !== undefined) {
     return hasIsSystemColumn;
   }
 
@@ -29,11 +29,30 @@ const checkIsSystemColumn = async () => {
 };
 
 const ensureSystemCashAccountForUser = async (userId) => {
-  if (!(await checkIsSystemColumn())) {
-    return;
+  const hasSystemColumn = await checkIsSystemColumn({ forceRefresh: true });
+
+  if (!hasSystemColumn) {
+    console.warn('accounts.is_system column is missing. Run backend/sql/system_cash_account_migration.sql before using system cash accounts.');
+    return null;
   }
 
-  await pool.query(
+  const [existingRows] = await pool.query(
+    `
+    SELECT id
+    FROM accounts
+    WHERE user_id = ?
+      AND is_system = true
+      AND account_type = 'cash'
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  if (existingRows.length > 0) {
+    return existingRows[0];
+  }
+
+  const [result] = await pool.query(
     `
     INSERT INTO accounts (
       user_id,
@@ -44,27 +63,48 @@ const ensureSystemCashAccountForUser = async (userId) => {
       is_active,
       is_system
     )
-    SELECT ?, ?, ?, ?, NULL, true, true
-    WHERE NOT EXISTS (
-      SELECT 1
-      FROM accounts
-      WHERE user_id = ?
-        AND is_system = true
-        AND account_type = 'cash'
-      LIMIT 1
-    )
+    VALUES (?, ?, ?, ?, NULL, true, true)
     `,
     [
       userId,
       CASH_ACCOUNT.bankName,
       CASH_ACCOUNT.lastFour,
       CASH_ACCOUNT.accountType,
-      userId,
     ]
   );
+
+  return result;
+};
+
+const getSystemCashAccountIdForUser = async (userId) => {
+  const hasSystemColumn = await checkIsSystemColumn({ forceRefresh: true });
+
+  if (!hasSystemColumn) {
+    console.warn('accounts.is_system column is missing. Run backend/sql/system_cash_account_migration.sql before using system cash accounts.');
+    return null;
+  }
+
+  await ensureSystemCashAccountForUser(userId);
+
+  const [rows] = await pool.query(
+    `
+    SELECT id
+    FROM accounts
+    WHERE user_id = ?
+      AND is_active = true
+      AND is_system = true
+      AND account_type = 'cash'
+    ORDER BY id ASC
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  return rows[0]?.id || null;
 };
 
 module.exports = {
   checkIsSystemColumn,
   ensureSystemCashAccountForUser,
+  getSystemCashAccountIdForUser,
 };

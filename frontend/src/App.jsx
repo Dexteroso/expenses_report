@@ -16,6 +16,8 @@ import { API_BASE_URL } from './utils/api';
 import { formatCurrencyMXN } from './utils/formatters';
 import { typography } from './styles/typography';
 import dexforgeIcon from './assets/brand/dexforge-icon-transparent.png';
+import transactionIllustration from './assets/Transaction.png';
+import PrimaryButton from './components/ui/PrimaryButton';
 
 
 function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, onOnboardingDashboard }) {
@@ -23,6 +25,7 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [favoriteMode, setFavoriteMode] = useState(false);
+  const [selectedFavoriteSlotIndex, setSelectedFavoriteSlotIndex] = useState(null);
   const [favoritePrefill, setFavoritePrefill] = useState(null);
   const [favoriteRefreshKey, setFavoriteRefreshKey] = useState(0);
   const [isMovementOnboardingActive, setIsMovementOnboardingActive] = useState(
@@ -62,12 +65,6 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
     checkExistingExpenses();
   }, [onboardingStart, hasCompletedOnboarding]);
 
-  const getTodayInputValue = () => {
-    const today = new Date();
-    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-    return today.toISOString().slice(0, 10);
-  };
-
   const handleCancelEdit = () => {
     setSelectedExpense(null);
   };
@@ -82,6 +79,7 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
 
     setSelectedExpense(null);
     setFavoriteMode(false);
+    setSelectedFavoriteSlotIndex(null);
     setFavoritePrefill(null);
     onExpenseCreated();
   };
@@ -91,29 +89,41 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
     setIsMovementOnboardingReady(true);
   };
 
-  const handleCreateFavorite = () => {
+  const handleFavoriteModeChange = (nextFavoriteMode) => {
+    setFavoriteMode(nextFavoriteMode);
+
+    if (!nextFavoriteMode) {
+      setSelectedFavoriteSlotIndex(null);
+    }
+  };
+
+  const handleCreateFavorite = (slotIndex) => {
     setSelectedExpense(null);
     setFavoritePrefill(null);
     setFavoriteMode(true);
+    setSelectedFavoriteSlotIndex(slotIndex);
   };
 
   const handleEditExpense = (expense) => {
     setFavoriteMode(false);
+    setSelectedFavoriteSlotIndex(null);
     setFavoritePrefill(null);
     setSelectedExpense(expense);
   };
 
   const handleFavoriteSaved = () => {
     setFavoriteRefreshKey((prev) => prev + 1);
+    setSelectedFavoriteSlotIndex(null);
   };
 
   const handleApplyFavorite = (favorite) => {
     setSelectedExpense(null);
     setFavoriteMode(false);
+    setSelectedFavoriteSlotIndex(null);
     setFavoritePrefill({
       id: favorite.id,
       alias: favorite.alias,
-      date: getTodayInputValue(),
+      date: '',
       type: favorite.type,
       category_id: favorite.category_id,
       concept_id: favorite.concept_id,
@@ -143,16 +153,17 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
   };
 
   return (
-    <>
+    <div className="movements-page">
       {isMovementOnboardingActive && !isMovementOnboardingComplete && (
         <div className="onboarding-modal-overlay" role="dialog" aria-modal="true">
           <div className="onboarding-modal-content-area">
             <div className="onboarding-card movement-onboarding-card">
+              <img className="onboarding-illustration" src={transactionIllustration} alt="" aria-hidden="true" />
               <h2>Registra tu primer movimiento</h2>
-              <p>Captura tu primer ingreso o gasto para comenzar a ver tu resumen financiero.</p>
-              <button type="button" onClick={handleStartMovementOnboarding}>
-                Comenzar
-              </button>
+              <p>Agrega ingresos y egresos para comenzar a visualizar tus finanzas.</p>
+              <PrimaryButton type="button" className="onboarding-primary-button" onClick={handleStartMovementOnboarding}>
+                + Nuevo movimiento
+              </PrimaryButton>
             </div>
           </div>
         </div>
@@ -162,34 +173,43 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
         <div className="onboarding-modal-overlay" role="dialog" aria-modal="true">
           <div className="onboarding-modal-content-area">
             <div className="onboarding-card movement-onboarding-card movement-onboarding-complete">
+              <img className="onboarding-illustration" src={transactionIllustration} alt="" aria-hidden="true" />
               <h2>Primer movimiento registrado 🎉</h2>
               <p>Ya puedes consultar tu resumen financiero.</p>
-              <button type="button" onClick={onOnboardingDashboard}>
+              <PrimaryButton type="button" className="onboarding-primary-button" onClick={onOnboardingDashboard}>
                 Ir al dashboard
-              </button>
+              </PrimaryButton>
             </div>
           </div>
         </div>
       )}
 
-      <AddExpenseForm
-        selectedExpense={selectedExpense}
-        onExpenseCreated={handleExpenseSaved}
-        onCancelEdit={handleCancelEdit}
-        onDeleteExpense={handleRequestDeleteExpense}
-        favoriteMode={favoriteMode}
-        favoritePrefill={favoritePrefill}
-        onFavoriteModeChange={setFavoriteMode}
-        onFavoriteSaved={handleFavoriteSaved}
-        onFavoritePrefillClear={() => setFavoritePrefill(null)}
-        onboardingActive={isMovementOnboardingReady}
-      />
+      <header className="movements-page-header">
+        <h1>Movimientos</h1>
+        <p>Registra y administra tus ingresos y egresos.</p>
+      </header>
 
-      <FavoriteMovementsCard
-        refreshKey={favoriteRefreshKey}
-        onApplyFavorite={handleApplyFavorite}
-        onCreateFavorite={handleCreateFavorite}
-      />
+      <div className="movements-top-grid">
+        <AddExpenseForm
+          selectedExpense={selectedExpense}
+          onExpenseCreated={handleExpenseSaved}
+          onCancelEdit={handleCancelEdit}
+          onDeleteExpense={handleRequestDeleteExpense}
+          favoriteMode={favoriteMode}
+          favoritePrefill={favoritePrefill}
+          onFavoriteModeChange={handleFavoriteModeChange}
+          onFavoriteSaved={handleFavoriteSaved}
+          onFavoritePrefillClear={() => setFavoritePrefill(null)}
+          onboardingActive={isMovementOnboardingReady}
+        />
+
+        <FavoriteMovementsCard
+          refreshKey={favoriteRefreshKey}
+          onApplyFavorite={handleApplyFavorite}
+          onCreateFavorite={handleCreateFavorite}
+          selectedSlotIndex={selectedFavoriteSlotIndex}
+        />
+      </div>
 
       <ExpensesTable
         refreshExpenses={refreshExpenses}
@@ -234,7 +254,7 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -654,7 +674,7 @@ function App() {
           }}
         >
           <div
-            className="modal-content"
+            className="modal-content logout-modal"
             style={{
               width: '100%',
               maxWidth: 400,
@@ -666,56 +686,39 @@ function App() {
               boxSizing: 'border-box',
             }}
           >
-            <h2 style={{ marginTop: 0, marginBottom: 12, color: theme.textPrimary, fontSize: 14 }}>
-              ¿Cerrar sesión?
+            <div className="logout-modal-icon" aria-hidden="true">
+              <i className="bx bx-log-out"></i>
+            </div>
+            <h2 className="logout-modal-title">
+              Cerrar sesión
             </h2>
 
-            <p style={{ marginBottom: 10, color: theme.textBody, fontSize: 12, lineHeight: 1.5 }}>
-              Se cerrará tu sesión actual. Asegúrate de haber guardado tus cambios antes de salir.
+            <p className="logout-modal-description">
+              ¿Seguro que quieres salir de DexForge?
             </p>
 
             <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: 8,
-              }}
+              className="logout-modal-actions"
             >
-              <button
+              <PrimaryButton
                 type="button"
+                variant="secondary"
+                className="logout-modal-button"
                 onClick={() => setIsLogoutModalOpen(false)}
-                style={{
-                  padding: '5px 14px',
-                  borderRadius: 8,
-                  border: `1px solid ${theme.border}`,
-                  background: theme.inputDisabledBackground,
-                  color: theme.textPrimary,
-                  fontSize: 12,
-                  cursor: 'pointer',
-                }}
               >
                 Cancelar
-              </button>
+              </PrimaryButton>
 
-              <button
+              <PrimaryButton
                 type="button"
+                className="logout-modal-button"
                 onClick={() => {
                   setIsLogoutModalOpen(false);
                   handleLogout();
                 }}
-                style={{
-                  padding: '5px 14px',
-                  borderRadius: 8,
-                  border: 'none',
-                  background: theme.textPrimary,
-                  color: theme.sidebarText,
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                }}
               >
                 Cerrar sesión
-              </button>
+              </PrimaryButton>
             </div>
           </div>
         </div>

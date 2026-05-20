@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
-import { typography } from '../styles/typography';
+import PrimaryButton from './ui/PrimaryButton';
+import walletIllustration from '../assets/Wallet.png';
 
 const initialFormState = {
   bank_name: '',
@@ -29,11 +30,6 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
     maxWidth: '100%',
     boxSizing: 'border-box',
   };
-  const pageTitleStyle = {
-    ...typography.pageTitle,
-    marginTop: 10,
-    marginBottom: 10,
-  };
   const headerCellStyle = {
     textAlign: 'center',
     padding: '8px 6px',
@@ -45,16 +41,6 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
     verticalAlign: 'middle',
     fontSize: 12,
   };
-  const actionButtonStyle = {
-    padding: '5px 14px',
-    borderRadius: 8,
-    border: 'none',
-    background: theme.textPrimary,
-    color: theme.sidebarText,
-    fontSize: 14,
-    cursor: 'pointer',
-    fontWeight: 'normal',
-  };
   const fieldLabelStyle = {
     color: theme.textBody,
     fontSize: 12,
@@ -65,16 +51,6 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
     gridTemplateColumns: '120px minmax(0, 1fr)',
     alignItems: 'center',
     gap: 8,
-  };
-  const inputStyle = {
-    width: '100%',
-    padding: '5px 10px',
-    borderRadius: 8,
-    border: `1px solid ${theme.inputBorder}`,
-    background: theme.inputBackground,
-    color: theme.inputText,
-    fontSize: 12,
-    boxSizing: 'border-box',
   };
   const [accounts, setAccounts] = useState([]);
   const [pageMessage, setPageMessage] = useState('');
@@ -308,24 +284,19 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
   return (
     <>
       <div className="responsive-card accounts-card" style={cardStyle}>
-        <div style={{ marginBottom: 8 }}>
-          <h1 style={pageTitleStyle}>Cuentas</h1>
+        <div className="accounts-page-header-row">
+          <header className="page-header">
+            <h1>Cuentas</h1>
+            <p>Administra tus métodos de pago registrados.</p>
+          </header>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              marginTop: 4,
-            }}
+          <PrimaryButton
+            type="button"
+            className="accounts-new-button"
+            onClick={openCreateModal}
           >
-            <button
-              type="button"
-              onClick={openCreateModal}
-              style={actionButtonStyle}
-            >
-              + Nueva cuenta
-            </button>
-          </div>
+            + Nueva cuenta
+          </PrimaryButton>
         </div>
 
         {pageMessage && (
@@ -336,26 +307,25 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
 
         {shouldShowFirstAccountOnboarding && (
           <div className="onboarding-card accounts-onboarding-card">
-            <h2>Bienvenido 👋</h2>
-            <p>Antes de comenzar, agrega una cuenta para registrar tus movimientos.</p>
-            <p>Puedes agregar cuentas de Débito o Crédito.</p>
+            <img className="onboarding-illustration" src={walletIllustration} alt="" aria-hidden="true" />
+            <h2>Agrega tu primera cuenta</h2>
+            <p>Registra una cuenta de débito o crédito para comenzar a clasificar tus movimientos.</p>
+            <PrimaryButton type="button" className="onboarding-primary-button" onClick={openCreateModal}>
+              Agregar Nueva cuenta
+            </PrimaryButton>
           </div>
         )}
 
         {shouldShowEmptyAccountsState && (
           <div
-            className="accounts-empty-state"
-            style={{
-              border: `1px solid ${theme.border}`,
-              borderRadius: 12,
-              padding: 18,
-              background: theme.surfaceMuted,
-              textAlign: 'center',
-              color: theme.textBody,
-            }}
+            className="onboarding-card accounts-onboarding-card accounts-empty-state"
           >
-            <h2>No tienes cuentas activas</h2>
-            <p>Agrega una cuenta para registrar nuevos movimientos.</p>
+            <img className="onboarding-illustration" src={walletIllustration} alt="" aria-hidden="true" />
+            <h2>Agrega tu primera cuenta</h2>
+            <p>Registra una cuenta de débito o crédito para comenzar a clasificar tus movimientos.</p>
+            <PrimaryButton type="button" className="onboarding-primary-button" onClick={openCreateModal}>
+              + Nueva cuenta
+            </PrimaryButton>
           </div>
         )}
 
@@ -481,11 +451,11 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
               <div className="responsive-field" style={fieldStyle}>
                 <label style={fieldLabelStyle}>Banco</label>
                 <input
+                  className="text-input accounts-modal-input"
                   type="text"
                   name="bank_name"
                   value={formData.bank_name}
                   onChange={handleChange}
-                  style={inputStyle}
                   placeholder='Nombre del Banco'
                 />
               </div>
@@ -493,13 +463,13 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
               <div className="responsive-field" style={fieldStyle}>
                 <label style={fieldLabelStyle}>Número de Tarjeta</label>
                 <input
+                  className="text-input accounts-modal-input"
                   type="text"
                   name="last_four"
                   value={formData.last_four}
                   onChange={handleChange}
                   inputMode="numeric"
                   maxLength={4}
-                  style={inputStyle}
                   placeholder='Últimos 4 dígitos'
                 />
               </div>
@@ -507,10 +477,10 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
               <div className="responsive-field" style={fieldStyle}>
                 <label style={fieldLabelStyle}>Tipo de cuenta</label>
                 <select
+                  className="text-input accounts-modal-input"
                   name="account_type"
                   value={formData.account_type}
                   onChange={handleChange}
-                  style={inputStyle}
                 >
                   <option value="credit">Crédito</option>
                   <option value="debit">Débito</option>
@@ -521,12 +491,12 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
                 <div className="responsive-field" style={fieldStyle}>
                   <label style={fieldLabelStyle}>Día de corte</label>
                   <input
+                    className="text-input accounts-modal-input"
                     type="text"
                     name="billing_cycle_end_day"
                     value={formData.billing_cycle_end_day}
                     onChange={handleChange}
                     inputMode="numeric"
-                    style={inputStyle}
                   />
                 </div>
               )}
@@ -539,58 +509,35 @@ function AccountsPage({ onFirstAccountCreated, showFirstAccountOnboarding = fals
 
               <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                 {editingAccount && (
-                  <button
+                  <PrimaryButton
                     type="button"
+                    variant="danger"
+                    className="accounts-modal-button"
                     onClick={handleDeactivateAccount}
                     disabled={isDeactivating || isSubmitting}
-                    style={{
-                      ...actionButtonStyle,
-                      background: isDeactivating || isSubmitting ? theme.inputDisabledBackground : theme.textPrimary,
-                      color: isDeactivating || isSubmitting ? theme.textSecondary : theme.sidebarText,
-                      cursor: isDeactivating || isSubmitting ? 'not-allowed' : 'pointer',
-                    }}
                   >
                     {isDeactivating ? 'Desactivando...' : 'Desactivar cuenta'}
-                  </button>
+                  </PrimaryButton>
                 )}
-                <button
+                <PrimaryButton
                   type="button"
+                  variant="secondary"
+                  className="accounts-modal-button"
                   onClick={closeModal}
-                  style={{
-                    ...actionButtonStyle,
-                  }}
                 >
                   Cancelar
-                </button>
-                <button
+                </PrimaryButton>
+                <PrimaryButton
                   type="submit"
+                  className="accounts-modal-button"
                   disabled={isSaveDisabled}
-                  style={{
-                    ...actionButtonStyle,
-                    background:
-                      isSaveDisabled
-                        ? theme.inputDisabledBackground
-                        : actionButtonStyle.background,
-                    color:
-                      isSaveDisabled
-                        ? theme.textSecondary
-                        : actionButtonStyle.color,
-                    border:
-                      isSaveDisabled
-                        ? `1px solid ${theme.border}`
-                        : 'none',
-                    cursor:
-                      isSaveDisabled
-                        ? 'not-allowed'
-                        : 'pointer',
-                  }}
                 >
                   {editingAccount
                     ? 'Guardar cambios'
                     : isSubmitting
                       ? 'Guardando...'
                       : 'Guardar cuenta'}
-                </button>
+                </PrimaryButton>
               </div>
             </form>
           </div>

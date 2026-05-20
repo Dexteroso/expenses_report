@@ -1,6 +1,7 @@
+const { Op } = require('sequelize');
 const Account = require('../models/sequelize/Account');
 const { logActivity } = require('../utils/activityLogger');
-const { checkIsSystemColumn } = require('../utils/systemAccounts');
+const { checkIsSystemColumn, ensureSystemCashAccountForUser } = require('../utils/systemAccounts');
 const { sanitizeTextValue } = require('../utils/validators');
 
 const validateAccountPayload = ({
@@ -102,15 +103,27 @@ const getAccountActivityDetails = async (accountId, userId) => {
 const getAccounts = async (req, res) => {
   try {
     const userId = req.user.id;
-    const canFilterSystemAccounts = await checkIsSystemColumn();
     const includeSystemAccounts = req.query.includeSystem === 'true';
+    const canFilterSystemAccounts = await checkIsSystemColumn({
+      forceRefresh: includeSystemAccounts,
+    });
     const where = {
       user_id: userId,
       is_active: true,
     };
 
+    if (canFilterSystemAccounts && includeSystemAccounts) {
+      await ensureSystemCashAccountForUser(userId);
+    }
+
     if (canFilterSystemAccounts && !includeSystemAccounts) {
       where.is_system = false;
+    }
+
+    if (!canFilterSystemAccounts && !includeSystemAccounts) {
+      where.account_type = {
+        [Op.ne]: 'cash',
+      };
     }
 
     const rows = await Account.findAll({

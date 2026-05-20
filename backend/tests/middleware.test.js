@@ -5,6 +5,8 @@ const pool = require('../src/config/db');
 describe('Middleware protection', () => {
   let testUser;
   let adminUser;
+  let testUserId;
+  let adminUserId;
   let userToken;
   let adminToken;
 
@@ -47,8 +49,8 @@ describe('Middleware protection', () => {
       password: 'password123',
     };
 
-    await registerTestUser(testUser);
-    const adminUserId = await registerTestUser(adminUser);
+    testUserId = await registerTestUser(testUser);
+    adminUserId = await registerTestUser(adminUser);
 
     await pool.query(
       'UPDATE users SET role = ? WHERE id = ?',
@@ -60,6 +62,13 @@ describe('Middleware protection', () => {
   });
 
   afterAll(async () => {
+    if (testUserId || adminUserId) {
+      await pool.query(
+        'DELETE FROM accounts WHERE user_id IN (?, ?)',
+        [testUserId || 0, adminUserId || 0]
+      );
+    }
+
     await pool.query(
       'DELETE FROM users WHERE email IN (?, ?)',
       [testUser.email, adminUser.email]

@@ -123,30 +123,20 @@ function ActivityPage() {
         overflow: 'hidden',
       }}
     >
-      <div className="responsive-card" style={cardStyle}>
-        <h1 style={{ ...typography.pageTitle, marginTop: 10, marginBottom: 10 }}>
-          Actividad
-        </h1>
+      <div className="responsive-card activity-top-card" style={cardStyle}>
+        <header className="page-header">
+          <h1>Actividad</h1>
+          <p>Visualiza la actividad reciente de tu cuenta y movimientos.</p>
+        </header>
 
         <div className="responsive-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <label style={{ color: theme.textBody, fontSize: 12, fontWeight: 'bold', lineHeight: '30px' }}>
             Periodo
           </label>
           <select
+            className="text-input activity-period-input"
             value={period}
             onChange={(event) => setPeriod(event.target.value)}
-            style={{
-              width: 180,
-              height: 30,
-              padding: '0 10px',
-              borderRadius: 8,
-              border: `1px solid ${theme.inputBorder}`,
-              background: theme.inputBackground,
-              color: theme.inputText,
-              fontSize: 12,
-              lineHeight: '30px',
-              boxSizing: 'border-box',
-            }}
           >
             {periodOptions.map((option) => (
               <option key={option.value} value={option.value}>
