@@ -9,7 +9,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-expenses_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-expenses_password}
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -25,7 +25,7 @@ services:
     container_name: expenses_mongo
     restart: unless-stopped
     ports:
-      - "27018:27017"
+      - "127.0.0.1:27018:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
@@ -34,6 +34,20 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+  activity-service:
+    build:
+      context: ./activity-service
+    container_name: expenses_activity_service
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      MONGO_URI: mongodb://mongo:27017/expenses_activity
+    ports:
+      - "127.0.0.1:3001:3001"
 
   backend:
     build:
@@ -54,12 +68,13 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:-expenses_password}
       JWT_SECRET: ${JWT_SECRET:-change_me_for_local_docker}
       MONGO_URI: mongodb://mongo:27017/expenses_activity
+      ACTIVITY_SERVICE_URL: http://activity-service:3001
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       API_URL: ${API_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
   frontend:
     build:
@@ -71,7 +86,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "5173:80"
+      - "127.0.0.1:5173:80"
 
 volumes:
   mysql_data:

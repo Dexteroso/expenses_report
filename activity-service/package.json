@@ -1,0 +1,19 @@
+{
+  "name": "activity-service",
+  "version": "1.0.0",
+  "description": "Activity logging microservice for Expenses Report",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "security:audit": "npm audit --audit-level=moderate"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.6.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
