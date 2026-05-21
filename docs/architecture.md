@@ -10,7 +10,8 @@ flowchart LR
   frontend --> api["Express Backend API"]
   api --> auth["JWT Auth + Middleware"]
   auth --> mysql["MySQL Database"]
-  auth --> mongo["MongoDB Activity Logs"]
+  auth --> activity["Activity Service"]
+  activity --> mongo["MongoDB Activity Logs"]
   mysql --> financial["Users, Expenses, Accounts, Budgets, Categories, Concepts, Reports"]
   mongo --> audit["Activity / Audit Events"]
 ```
@@ -29,6 +30,7 @@ flowchart TB
   subgraph compose["Docker Compose Network"]
     frontend["frontend\nnginx serving Vite build"]
     backend["backend\nNode.js + Express"]
+    activity["activity-service\nNode.js + Express"]
     mysql["mysql\nMySQL 8"]
     mongo["mongo\nMongoDB 7"]
   end
@@ -39,13 +41,15 @@ flowchart TB
   mongoPort --> mongo
   frontend --> backend
   backend --> mysql
-  backend --> mongo
+  backend --> activity
+  activity --> mongo
 ```
 
 Inside Docker Compose, the backend connects to databases through service names instead of localhost:
 
 - MySQL: `mysql:3306`
 - MongoDB: `mongo:27017`
+- Activity Service: `activity-service:3001`
 
 Host ports `3307` and `27018` are used to avoid common conflicts with local MySQL and MongoDB installations.
 
@@ -107,12 +111,14 @@ flowchart LR
 
   compose --> frontend["frontend container\nnginx + Vite build"]
   compose --> backend["backend container\nNode.js + Express"]
+  compose --> activity["activity-service container\nNode.js + Express"]
   compose --> mysql["mysql container\nMySQL 8"]
   compose --> mongo["mongo container\nMongoDB 7"]
 
   frontend --> backend
   backend --> mysql
-  backend --> mongo
+  backend --> activity
+  activity --> mongo
 ```
 
 Deployment uses Dockerized services so the same service boundaries can run locally or on a VPS. Production deployments must provide explicit environment values for secrets, database credentials, CORS origins, API URLs, and MongoDB connection strings. Docker demo defaults are for local testing only.

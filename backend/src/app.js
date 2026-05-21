@@ -17,6 +17,7 @@ const activityRoutes = require('./routes/activityRoutes');
 const favoriteMovementsRoutes = require('./routes/favoriteMovementsRoutes');
 
 const app = express();
+app.set('trust proxy', 1);
 const localFrontendUrl = 'http://localhost:5173';
 const localBackendUrl = 'http://localhost:3000';
 const localBackendIpUrl = 'http://127.0.0.1:3000';

@@ -24,6 +24,7 @@ docker compose down -v
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:3000
+- Activity Service Health: http://localhost:3001/health
 - Swagger: http://localhost:3000/api-docs
 - MySQL from host: `localhost:3307`
 - MongoDB from host: `localhost:27018`
@@ -32,6 +33,7 @@ Inside Docker, services use container DNS names:
 
 - MySQL: `mysql:3306`
 - MongoDB: `mongo:27017`
+- Activity Service: `activity-service:3001`
 
 ## Environment
 

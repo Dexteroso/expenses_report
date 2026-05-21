@@ -110,6 +110,7 @@ Docker Compose runs the project as separate services:
 
 - `frontend`: production-built Vite app served by nginx.
 - `backend`: Express API.
+- `activity-service`: dedicated Express microservice for MongoDB activity/audit writes.
 - `mysql`: MySQL 8 with fresh-volume initialization.
 - `mongo`: MongoDB 7 for activity logs.
 
@@ -117,6 +118,7 @@ The backend uses Docker service names internally:
 
 - MySQL: `mysql:3306`
 - MongoDB: `mongo:27017`
+- Activity Service: `activity-service:3001`
 
 ## Security
 
@@ -185,6 +187,7 @@ Access points:
 | --- | --- |
 | Frontend | http://localhost:5173 |
 | Backend API | http://localhost:3000 |
+| Activity Service Health | http://localhost:3001/health |
 | Swagger UI | http://localhost:3000/api-docs |
 | MySQL from host | `localhost:3307` |
 | MongoDB from host | `localhost:27018` |
