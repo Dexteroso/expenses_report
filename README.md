@@ -1,6 +1,6 @@
-# Personal Finance Management Platform
+# DexForge – Administrador de Finanzas Personales
 
-Full-stack personal finance application for tracking movements, accounts, budgets, real-vs-budget variance, frequent movement presets, and audit activity. The project is designed as a production-oriented portfolio application with secure authentication, relational financial data in MySQL, complementary MongoDB activity logs, Dockerized local execution, Swagger API documentation, and responsive mobile UX validated on real iPhone devices.
+DexForge es una aplicación web de finanzas personales desarrollada como parte del proyecto final de una Certificación Full Stack Developer. Permite registrar ingresos y gastos, administrar cuentas, crear presupuestos, comparar presupuesto vs gasto real y consultar el historial de actividad en un solo lugar. El proyecto comenzó como una idea inspirada en una hoja de cálculo personal y evolucionó hasta convertirse en una aplicación full stack desplegada con dominio y servidor propios.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
@@ -9,224 +9,270 @@ Full-stack personal finance application for tracking movements, accounts, budget
 ![MongoDB](https://img.shields.io/badge/MongoDB-Activity%20Logs-47A248?logo=mongodb&logoColor=white)
 ![Sequelize](https://img.shields.io/badge/Sequelize-ORM-52B0E7?logo=sequelize&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![Jest](https://img.shields.io/badge/Jest-46%20tests-C21325?logo=jest&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-51%20tests-C21325?logo=jest&logoColor=white)
 
-## Table of Contents
+## Tabla de Contenidos
 
-- [Screenshots](#screenshots)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Architecture Overview](#architecture-overview)
-- [Security](#security)
-- [Testing](#testing)
-- [Docker Setup](#docker-setup)
-- [Local Development Setup](#local-development-setup)
-- [API Documentation](#api-documentation)
-- [Production Deployment](#production-deployment)
-- [Mobile Responsiveness](#mobile-responsiveness)
-- [Lessons Learned](#lessons-learned)
-- [Future Improvements](#future-improvements)
+- [Capturas de pantalla](#capturas-de-pantalla)
+- [Funcionalidades](#funcionalidades)
+- [Tecnologías](#tecnologías)
+- [Entregables del curso](#entregables-del-curso)
+- [Cómo funciona el proyecto](#cómo-funciona-el-proyecto)
+- [Seguridad y protección del usuario](#seguridad-y-protección-del-usuario)
+- [Pruebas](#pruebas)
+- [Configuración con Docker](#configuración-con-docker)
+- [Configuración para desarrollo local](#configuración-para-desarrollo-local)
+- [Documentación de la API](#documentación-de-la-api)
+- [Despliegue](#despliegue)
+- [Experiencia móvil](#experiencia-móvil)
+- [Aprendizajes](#aprendizajes)
+- [Próximas Mejoras](#próximas-mejoras)
 
-## Screenshots
+## Capturas de pantalla
 
-Screenshots can be added later under `docs/screenshots/` or any preferred documentation folder.
+Las capturas se pueden agregar después en `docs/screenshots/` o cualquier carpeta de documentación.
 
-| View | Placeholder |
+| Vista | Ejemplo |
 | --- | --- |
-| Desktop Dashboard | `docs/screenshots/desktop-dashboard.png` |
-| Mobile Dashboard | `docs/screenshots/mobile-dashboard.png` |
+| Escritorio - Dashboard | `docs/screenshots/desktop-dashboard.png` |
+| Móvil - Dashboard | `docs/screenshots/mobile-dashboard.png` |
 | Movimientos | `docs/screenshots/movimientos.png` |
 | Presupuesto | `docs/screenshots/presupuesto.png` |
-| Activity Logs | `docs/screenshots/activity-logs.png` |
+| Historial de actividad | `docs/screenshots/activity-logs.png` |
 
-## Features
+## Funcionalidades
 
-### Financial Management
+### Gestión financiera
 
-- Create, edit, filter, delete, and export movements.
-- Track income and expenses by category, concept, account, and date.
-- Manage financial accounts with active/deactivated states.
-- Maintain monthly budgets by concept and year.
-- Compare actual spending against budget by month, quarter, semester, YTD, and annual views.
-- Review dashboard KPIs, latest movements, top categories, and financial insight summaries.
+- Crear, editar, filtrar, eliminar y exportar movimientos.
+- Registrar ingresos y gastos por categoría, concepto, cuenta y fecha.
+- Administrar cuentas con estados activas/inactivas.
+- Crear presupuestos mensuales por concepto y año.
+- Comparar gasto real vs presupuesto por mes, trimestre, semestre, año en curso y anual.
+- Revisar KPIs del dashboard, últimos movimientos, categorías principales y resúmenes financieros.
 
-### Productivity UX
+### Experiencia de usuario productiva
 
-- Frequent movement presets for recurring expenses or income.
-- One-tap frequent movement prefill that keeps amount empty for safer entry.
-- Mobile-native movement list layout instead of compressed desktop tables.
-- Responsive filters, forms, cards, tables, and navigation.
-- Real-device mobile polish for iPhone Safari behavior.
+- Movimientos frecuentes para gastos o ingresos repetitivos.
+- Prefill de movimientos frecuentes dejando el monto vacío para evitar errores.
+- Lista de movimientos adaptada a móvil, no solo tablas comprimidas.
+- Filtros, formularios, tarjetas, tablas y navegación responsivos.
+- Ajustes para uso real en iPhone Safari.
 
-### Administration and Auditability
+### Administración y auditoría
 
-- JWT authentication with protected backend routes.
-- Password reset emails through Resend with generic responses to avoid account enumeration.
-- Admin-only user management.
-- Role-based authorization middleware.
-- MongoDB activity/audit log module for login, account, budget, expense, and user events.
-- Activity page with period filters and readable audit rows.
+- Autenticación JWT y rutas protegidas en el backend.
+- Recuperación de contraseña por correo (Resend) con respuestas genéricas.
+- Gestión de usuarios solo para admin.
+- Middleware de autorización por roles.
+- Registro de actividad/auditoría en MongoDB para login, cuentas, presupuestos, gastos y usuarios.
+- Página de actividad con filtros por periodo y registros legibles.
 
-## Tech Stack
+## Tecnologías
 
-| Area | Technologies |
+| Área | Tecnologías |
 | --- | --- |
 | Frontend | React, Vite, React Router, Recharts, Boxicons, CSS |
 | Backend | Node.js, Express, JWT, bcrypt, Helmet, express-rate-limit |
-| Databases | MySQL, MongoDB |
-| ORM / Data Access | Sequelize, mysql2, Mongoose |
-| Infrastructure | Docker, Docker Compose, nginx frontend container, DigitalOcean VPS |
-| Testing | Jest, Supertest |
-| API Docs | Swagger / OpenAPI 3.0 |
+| Bases de datos | MySQL, MongoDB |
+| ORM / Acceso a datos | Sequelize, mysql2, Mongoose |
+| Infraestructura | Docker, Docker Compose, nginx, VPS DigitalOcean |
+| Pruebas | Jest, Supertest |
+| Docs API | Swagger / OpenAPI 3.0 |
 
-## Architecture Overview
+## Entregables del curso
 
-The application separates the financial source of truth from audit logging:
+Resumen de cómo fue avanzando el proyecto según los requisitos del curso backend.
+
+### Avance 1: Servidor Node.js básico
+
+- Proyecto Node.js inicializado con npm y scripts en `package.json` para desarrollo, producción, pruebas y builds.
+- Punto de entrada Express en `backend/src/server.js`.
+- App principal Express en `backend/src/app.js`.
+- Respuesta de salud en `/`.
+- Chequeo de conexión a la base de datos en `/test-db`.
+- Uso de patrones asíncronos en Node.js con `async` / `await`, handlers no bloqueantes, queries MySQL, conexión MongoDB y logging de actividad.
+
+### Avance 2: Aplicación web segura
+
+- Código backend organizado en rutas, controladores, modelos, middleware, config y utilidades.
+- Rutas Express para auth, usuarios, gastos, cuentas, presupuestos, reportes, actividad, movimientos frecuentes, categorías y conceptos.
+- Middleware para parsing JSON, CORS con lista blanca, Helmet, rate limiting general y específico para auth, autenticación JWT y autorización admin.
+- Autenticación con JWT y bcrypt.
+- Autorización por rutas protegidas y middleware admin para gestión de usuarios.
+- Prevención de ataques: validación de requests, sanitización de texto, queries Sequelize, queries `mysql2` con parámetros, rendering React sin HTML directo y pruebas de regresión para SQLi/XSS.
+
+### Avance 3: Bases de datos, entornos y pruebas
+
+- MySQL como fuente principal para usuarios, movimientos, cuentas, presupuestos, categorías, conceptos y reportes.
+- MongoDB para logs de actividad/auditoría como módulo complementario.
+- Modelos Sequelize para cuentas, gastos, presupuestos, reportes, catálogos y movimientos frecuentes.
+- Mongoose para documentos de logs de actividad.
+- Configuración de entorno con `dotenv`, validación de arranque en producción y variables en Docker Compose.
+- Validación automatizada backend con Jest y Supertest.
+- Resultado actual: 8 suites de prueba / 51 tests pasan.
+
+### Avance 4: Contenedores, microservicio, optimización, monitoreo y debugging
+
+- Docker Compose corre `frontend`, `backend`, `activity-service`, `mysql` y `mongo` como servicios separados.
+- `activity-service` es un microservicio Node.js/Express dedicado para escribir logs de actividad en MongoDB vía `/activity/logs`.
+- El backend llama al microservicio de actividad por `ACTIVITY_SERVICE_URL` y si no está disponible usa logging local en Mongo.
+- El microservicio de actividad expone `/health` para validación.
+- MySQL y MongoDB tienen healthchecks de Docker.
+- Despliegue en producción validado en DigitalOcean con `docker compose ps`, logs, `curl` al endpoint de health, dominio público y Swagger UI.
+- Medidas de optimización: pool de conexiones Sequelize, límite de queries para lecturas, rate limiting API, build frontend estático servido por nginx y puertos Docker solo a localhost en producción.
+- Debugging y validación con tests automáticos, validación de config Docker Compose, logs de contenedores, builds de imágenes y chequeos de endpoints.
+
+## Cómo funciona el proyecto
+
+La aplicación usa MySQL como base de datos principal y MongoDB para guardar el historial de actividad. El frontend se comunica con la API backend y los usuarios interactúan mediante una interfaz web responsiva.
 
 ```mermaid
 flowchart LR
   A["React + Vite Frontend"] --> B["Express API"]
   B --> C["MySQL"]
-  B --> D["MongoDB"]
-  C --> E["Users, Expenses, Accounts, Budgets, Categories, Concepts"]
-  D --> F["Activity / Audit Logs"]
+  B --> D["Activity Service"]
+  D --> E["MongoDB"]
+  C --> F["Users, Expenses, Accounts, Budgets, Categories, Concepts"]
+  E --> G["Activity / Audit Logs"]
 ```
 
-### Data Ownership
+### Propiedad de los datos
 
-| Data area | Database | Notes |
+| Área de datos | Base de datos | Notas |
 | --- | --- | --- |
-| Users | MySQL | Authentication and role data |
-| Expenses / movements | MySQL | Core financial records |
-| Accounts | MySQL | User-owned financial accounts |
-| Budgets | MySQL | Monthly planning data |
-| Categories / concepts | MySQL | Shared financial catalog |
-| Reports | MySQL | Generated from budget and expense data |
-| Activity logs | MongoDB | Complementary audit trail only |
+| Usuarios | MySQL | Datos de autenticación y rol |
+| Gastos / movimientos | MySQL | Registros financieros principales |
+| Cuentas | MySQL | Cuentas financieras del usuario |
+| Presupuestos | MySQL | Datos de planeación mensual |
+| Categorías / conceptos | MySQL | Catálogo compartido |
+| Reportes | MySQL | Generados desde presupuesto y gastos |
+| Logs de actividad | MongoDB | Solo auditoría complementaria |
 
-### Dockerized Services
+### Servicios Dockerizados
 
-Docker Compose runs the project as separate services:
+Docker Compose ejecuta el proyecto en servicios separados:
 
-- `frontend`: production-built Vite app served by nginx.
-- `backend`: Express API.
-- `activity-service`: dedicated Express microservice for MongoDB activity/audit writes.
-- `mysql`: MySQL 8 with fresh-volume initialization.
-- `mongo`: MongoDB 7 for activity logs.
+- `frontend`: app Vite en producción servida por nginx.
+- `backend`: API Express.
+- `activity-service`: microservicio Express dedicado para logs/auditoría en MongoDB.
+- `mysql`: MySQL 8 con volumen nuevo.
+- `mongo`: MongoDB 7 para logs de actividad.
 
-The backend uses Docker service names internally:
+El backend usa los nombres de servicio Docker internamente:
 
 - MySQL: `mysql:3306`
 - MongoDB: `mongo:27017`
 - Activity Service: `activity-service:3001`
 
-## Security
+## Seguridad y protección del usuario
 
-Security features implemented in the backend:
+Se añadieron varias protecciones para acercar la app a un entorno real:
 
-- JWT-based authentication.
-- Password hashing with bcrypt.
-- Protected routes through `authMiddleware`.
-- Admin-only operations through `adminMiddleware`.
-- Helmet for common HTTP security headers.
-- Rate limiting for general API traffic and stricter auth endpoints.
-- Explicit CORS allowlist for local frontend, backend Swagger origin, `FRONTEND_URL`, and `API_URL`.
-- Backend uses `req.user.id` from the JWT instead of trusting `user_id` from the frontend.
-- No real production secrets are committed to Dockerfiles or documentation.
+- Autenticación con JWT.
+- Hash de contraseñas con bcrypt.
+- Rutas protegidas usando `authMiddleware`.
+- Operaciones solo admin con `adminMiddleware`.
+- Helmet para headers HTTP seguros.
+- Rate limiting para la API y aún más estricto para endpoints de auth.
+- Lista blanca CORS para frontend local, Swagger backend, `FRONTEND_URL` y `API_URL`.
+- El backend usa `req.user.id` del JWT y nunca confía en `user_id` desde el frontend.
+- No se suben secretos reales de producción a Dockerfiles ni documentación.
 
-### Security Measures
+### Medidas de seguridad
 
-- SQL Injection protection: financial modules use Sequelize ORM query builders, and remaining `mysql2` queries use parameter placeholders instead of concatenating user input.
-- XSS protection: React escapes rendered values by default, and the frontend avoids direct HTML injection APIs such as `dangerouslySetInnerHTML` or `innerHTML`.
-- Input sanitization: backend helpers trim user-generated text and remove hidden control characters while preserving Spanish accents, emojis, and normal punctuation.
-- Security headers: Helmet is enabled on the Express API.
-- Transport/security boundary: production traffic is served behind HTTPS through the nginx reverse proxy.
-- Abuse controls: API-wide rate limiting and stricter auth endpoint rate limiting reduce brute-force and spam attempts.
+- Protección SQL Injection: módulos financieros usan queries ORM de Sequelize y los queries `mysql2` usan parámetros en vez de concatenar input.
+- Protección XSS: React escapa valores por defecto y el frontend no usa APIs como `dangerouslySetInnerHTML` o `innerHTML`.
+- Sanitización de input: helpers backend limpian texto de usuarios, eliminan caracteres ocultos, pero permiten acentos, emojis y puntuación normal.
+- Headers de seguridad: Helmet está habilitado en la API Express.
+- Tráfico seguro: producción sirve detrás de HTTPS vía nginx reverse proxy.
+- Controles de abuso: rate limiting global y específico para endpoints de auth para evitar fuerza bruta y spam.
 
-## Testing
+## Pruebas
 
-Backend automated testing uses Jest and Supertest.
+Las pruebas automatizadas backend usan Jest y Supertest.
 
-Current validation:
+Cobertura actual:
 
-| Test area | Coverage |
+| Área de prueba | Cobertura |
 | --- | --- |
-| Auth | register, login, protected-route behavior |
-| Middleware | auth/admin access controls |
-| Accounts | create, get, update, deactivate |
-| Expenses | create, get, update, delete |
-| Favorite movements | create, get, delete, per-user scope, max limit |
-| Activity | protected access, per-user visibility, expense log creation |
-| Validation | API payload and error behavior |
+| Auth | registro, login, rutas protegidas |
+| Middleware | controles de acceso auth/admin |
+| Cuentas | crear, obtener, actualizar, desactivar |
+| Gastos | crear, obtener, actualizar, eliminar |
+| Movimientos frecuentes | crear, obtener, eliminar, por usuario, límite máximo |
+| Actividad | acceso protegido, visibilidad por usuario, creación de logs de gasto |
+| Validación | payloads y errores de la API |
+| Seguridad | payloads SQLi, manejo de XSS, escaneo de HTML directo |
 
-Current result:
+Resultado actual:
 
 ```bash
-Test Suites: 7 passed, 7 total
-Tests:       46 passed, 46 total
+Test Suites: 8 passed, 8 total
+Tests:       51 passed, 51 total
 ```
 
-Run backend tests:
+Ejecutar pruebas backend:
 
 ```bash
 cd backend
 npm test
 ```
 
-## Docker Setup
+## Configuración con Docker
 
-The fastest way to run the full application locally is Docker Compose.
+La forma más rápida de correr toda la app localmente es con Docker Compose.
 
 ```bash
 docker compose up --build
 ```
 
-Access points:
+Puntos de acceso:
 
-| Service | URL |
+| Servicio | URL |
 | --- | --- |
 | Frontend | http://localhost:5173 |
 | Backend API | http://localhost:3000 |
-| Activity Service Health | http://localhost:3001/health |
+| Health Activity Service | http://localhost:3001/health |
 | Swagger UI | http://localhost:3000/api-docs |
-| MySQL from host | `localhost:3307` |
-| MongoDB from host | `localhost:27018` |
+| MySQL desde host | `localhost:3307` |
+| MongoDB desde host | `localhost:27018` |
 
-Demo Docker login:
+Login demo Docker:
 
 ```text
 Email: admin.docker@example.com
 Password: DockerDemo123!
 ```
 
-Stop containers:
+Detener los contenedores:
 
 ```bash
 docker compose down
 ```
 
-Reset Docker databases and rerun MySQL initialization:
+Reiniciar bases Docker y re-correr init MySQL:
 
 ```bash
 docker compose down -v
 docker compose up --build
 ```
 
-The Docker MySQL init script is:
+El script de inicialización MySQL de Docker es:
 
 ```text
 backend/sql/init.sql
 ```
 
-It creates the app schema, category/concept catalog, a demo admin user, demo accounts, budgets, expenses, and frequent movement presets for a fresh Docker volume.
+Crea el esquema, catálogos de categorías/conceptos, usuario admin demo, cuentas demo, presupuestos, gastos y presets de movimientos frecuentes para un volumen Docker limpio.
 
-## Local Development Setup
+## Configuración para desarrollo local
 
-### Prerequisites
+### Requisitos previos
 
-- Node.js 20 or compatible LTS release.
+- Node.js 20 o LTS compatible.
 - MySQL 8.
-- MongoDB, optional for activity logging during local development.
+- MongoDB (opcional, para logs de actividad en desarrollo local).
 - npm.
 
 ### Backend
@@ -236,7 +282,7 @@ cd backend
 npm install
 ```
 
-Create a backend `.env` file with local values:
+Crea un archivo `.env` en backend con valores locales:
 
 ```env
 PORT=3000
@@ -255,15 +301,15 @@ RESEND_API_KEY=your_resend_api_key
 EMAIL_FROM="Expenses Report <support@example.com>"
 ```
 
-Password reset requests send a link-only email when Resend is configured. Reset links expire after 30 minutes by default. Local non-production runs can still test the flow without Resend because the API response and server logs include the reset token; production responses never include the token.
+Las solicitudes para resetear contraseña mandan solo el enlace si Resend está configurado. Los links expiran a los 30 minutos por defecto. En desarrollo local puedes probar el flujo aunque no tengas Resend, ya que la respuesta API y logs muestran el token; en producción nunca se expone el token.
 
-Initialize a fresh local MySQL database with the project SQL if needed:
+Inicializa la base MySQL local con el SQL del proyecto si lo necesitas:
 
 ```bash
 mysql -h127.0.0.1 -P3306 -u your_mysql_user -p expenses_report < backend/sql/init.sql
 ```
 
-Start the backend:
+Inicia el backend:
 
 ```bash
 npm run dev
@@ -276,121 +322,109 @@ cd frontend
 npm install
 ```
 
-Create a frontend `.env` file when overriding the default backend URL:
+Crea un archivo `.env` en frontend si quieres cambiar la URL del backend:
 
 ```env
 VITE_API_URL=http://localhost:3000
 ```
 
-Start the frontend:
+Inicia el frontend:
 
 ```bash
 npm run dev
 ```
 
-Local development URLs:
+URLs para desarrollo local:
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:3000
 - Swagger: http://localhost:3000/api-docs
 
-## API Documentation
+## Documentación de la API
 
-Swagger UI is available at:
+Swagger UI disponible en:
 
 ```text
 http://localhost:3000/api-docs
 ```
 
-Swagger/OpenAPI coverage includes:
+Swagger/OpenAPI cubre:
 
 - Auth
-- Users
-- Expenses
-- Accounts
-- Budgets
-- Reports
-- Activity
-- Favorite Movements API (used by Movimientos Frecuentes)
-- Categories
-- Concepts
+- Usuarios
+- Gastos
+- Cuentas
+- Presupuestos
+- Reportes
+- Actividad
+- API de Movimientos Frecuentes (usada por Movimientos Frecuentes)
+- Categorías
+- Conceptos
 
-The OpenAPI configuration uses:
+La configuración OpenAPI usa:
 
 - OpenAPI 3.0.0
-- JWT bearer authorization
-- `API_URL` for the documented server URL
-- Route annotations from `backend/src/routes/*.js`
+- Autorización JWT bearer
+- `API_URL` como URL de servidor documentada
+- Anotaciones de rutas en `backend/src/routes/*.js`
 
-Swagger "Try it out" works from the backend origin when CORS includes the backend URL through local defaults or `API_URL`.
+El botón "Try it out" de Swagger funciona desde el backend si CORS incluye la URL backend por defecto local o por `API_URL`.
 
-## Production Deployment
+## Despliegue
 
-The application has been prepared and validated for VPS-style deployment on DigitalOcean using Docker-based services.
+La versión final del proyecto se desplegó en un VPS y se conectó a un dominio propio. Así la app puede funcionar fuera del entorno local y comportarse como un despliegue real.
 
-Production-oriented deployment characteristics:
+Características del despliegue:
 
-- Frontend is built with Vite and served through nginx.
-- Backend reads `PORT`, `FRONTEND_URL`, `API_URL`, database credentials, and `MONGO_URI` from environment variables.
-- Password reset email requires Resend configuration: `RESEND_API_KEY` and `EMAIL_FROM`.
-- MySQL remains the primary relational database.
-- MongoDB stores only activity/audit logs.
-- Docker Compose separates frontend, backend, MySQL, and MongoDB services.
-- Secrets are expected to be provided through environment configuration, not hardcoded in Dockerfiles.
+- Frontend compilado con Vite y servido por nginx.
+- Backend lee `PORT`, `FRONTEND_URL`, `API_URL`, credenciales de base de datos y `MONGO_URI` de variables de entorno.
+- El correo de recuperación de contraseña requiere Resend: `RESEND_API_KEY` y `EMAIL_FROM`.
+- MySQL es la base relacional principal.
+- MongoDB solo almacena logs/auditoría.
+- Docker Compose separa frontend, backend, activity-service, MySQL y MongoDB.
+- Los secretos se pasan por configuración de entorno, nunca hardcodeados en Dockerfiles.
 
-No public production URL is listed here because deployment targets can vary by environment.
+No se publica aquí la URL de producción, ya que puede variar según el entorno.
 
-## Mobile Responsiveness
+## Experiencia móvil
 
-The frontend was optimized for mobile and tablet use while preserving the desktop layout.
+El frontend fue optimizado para móviles y tablets, manteniendo el diseño de escritorio.
 
-Responsive work includes:
+Mejoras responsivas:
 
-- Mobile dashboard KPI redesign.
-- Mobile-safe header and iPhone notch spacing.
-- Collapsible mobile navigation drawer.
-- Mobile-native Movimientos list.
-- Responsive forms and filters.
-- Horizontally scrollable complex tables where appropriate.
-- Mobile cards for account and user management pages.
-- Activity log rows redesigned for mobile readability.
+- Rediseño de KPIs del dashboard para móvil.
+- Header seguro para notch de iPhone.
+- Menú lateral colapsable en móvil.
+- Lista de Movimientos nativa para móvil.
+- Formularios y filtros responsivos.
+- Tablas complejas con scroll horizontal donde aplica.
+- Tarjetas móviles para cuentas y gestión de usuarios.
+- Registros de actividad adaptados para mejor lectura en móvil.
 
-Validation included real iPhone Safari sessions. This was important because browser responsive emulation did not fully reproduce all real-device overflow and safe-area issues.
+Se validó en iPhone real, ya que el emulador del navegador no reproduce todos los problemas de overflow y áreas seguras.
 
-## Lessons Learned
+## Aprendizajes
 
-### Incremental Architecture
+El proyecto creció mucho más de lo planeado y ayudó a reforzar conceptos más allá de CRUD básico.
 
-The backend evolved incrementally rather than through a full rewrite. Sequelize was introduced module by module for Accounts, Expenses, Budgets, and Reports while leaving other stable controllers on their existing implementations. This reduced risk and preserved API compatibility during migration.
+Principales aprendizajes:
 
-### Complementary Data Stores
+- Diseñar la base de datos es más fácil al inicio que modificarla después.
+- El comportamiento móvil se debe probar en dispositivos reales, no solo en emuladores.
+- Docker simplifica la configuración y reduce diferencias de entorno.
+- La seguridad requiere decisiones en frontend, backend e infraestructura.
+- Un buen diseño de UI reduce errores del usuario.
+- Es mejor entregar algo funcional y mejorarlo después, que intentar hacer todo perfecto desde el principio.
 
-MySQL remains the source of truth for financial and user data, while MongoDB is used only for flexible activity logs. This separation keeps relational reporting reliable while allowing audit metadata to vary by event type.
+La próxima versión del proyecto buscará reducir deuda técnica, simplificar estilos, mejorar componentes reutilizables y facilitar el mantenimiento.
 
-### Responsive Debugging
+## Próximas Mejoras
 
-Real-device testing exposed layout issues that desktop responsive tools did not show, especially around mobile Safari width, safe-area spacing, native date inputs, and table density. The final mobile experience required targeted mobile layouts rather than simply shrinking desktop tables.
-
-### Docker Deployment
-
-Containerizing the app clarified service boundaries, environment variables, database initialization, and repeatable local execution. Docker also made it easier to test the full stack with a clean MySQL and MongoDB setup.
-
-### Security Hardening
-
-JWT authentication, bcrypt password hashing, rate limiting, Helmet, role-based middleware, protected routes, and explicit CORS rules were necessary to move from course-level CRUD toward production-style backend behavior.
-
-### Modular Backend Design
-
-Route, controller, middleware, model, and utility boundaries made it easier to add activity logging, frequent movement presets, Sequelize models, and Swagger documentation without changing unrelated features.
-
-## Future Improvements
-
-- Add CI/CD for automated tests, builds, and deployment.
-- Add production monitoring and structured logging.
-- Add uptime and health-check dashboards.
-- Continue typography standardization across the frontend.
-- Extract a centralized design system for cards, buttons, tables, forms, and mobile patterns.
-- Add deeper API integration tests for reports and budgets.
-- Add query performance review and indexes where needed.
-- Add backup/restore documentation for MySQL and MongoDB volumes.
-- Explore service separation or microservice evolution if traffic or ownership boundaries justify it.
+- Simplificar y reorganizar estilos del frontend.
+- Consolidar componentes UI reutilizables.
+- Mejorar reportes y dashboards.
+- Agregar más opciones de exportación.
+- Ampliar pruebas automatizadas.
+- Mejorar automatización de despliegue.
+- Seguir mejorando la experiencia móvil.
+- Agregar onboarding y ayuda dentro de la app.

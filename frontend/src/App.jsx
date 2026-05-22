@@ -10,6 +10,7 @@ import DashboardPage from './components/DashboardPage';
 import AuthPage from './components/AuthPage';
 import UsersPage from './components/UsersPage';
 import ActivityPage from './components/ActivityPage';
+import HelpPage from './components/HelpPage';
 import { useEffect, useState } from 'react';
 import { authFetch, clearAuth, getUser, isAuthenticated, markOnboardingCompleted } from './utils/auth';
 import { API_BASE_URL } from './utils/api';
@@ -295,6 +296,7 @@ function App() {
     ...(currentUser?.role === 'admin'
       ? [{ to: '/usuarios', icon: 'bx bxs-user-account', label: 'Usuarios' }]
       : []),
+      { to: '/ayuda', icon: 'bx bx-help-circle', label: 'Ayuda' },
   ];
 
   const getSidebarLinkStyle = ({ isActive }) => ({
@@ -631,6 +633,7 @@ function App() {
                   }
                 />
                 <Route path="/actividad" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
+                <Route path="/ayuda" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
                 <Route path="/presupuesto" element={<ProtectedRoute><BudgetPage /></ProtectedRoute>} />
                 <Route path="/real-vs-presupuesto" element={<ProtectedRoute><RealVsBudgetPage /></ProtectedRoute>} />
                 <Route path="/usuarios" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
