@@ -11,6 +11,7 @@ import AuthPage from './components/AuthPage';
 import UsersPage from './components/UsersPage';
 import ActivityPage from './components/ActivityPage';
 import HelpPage from './components/HelpPage';
+import PortfolioPage from './pages/PortfolioPage';
 import { useEffect, useState } from 'react';
 import { authFetch, clearAuth, getUser, isAuthenticated, markOnboardingCompleted } from './utils/auth';
 import { API_BASE_URL } from './utils/api';
@@ -284,8 +285,9 @@ function App() {
   const currentUser = getUser();
   const hasCompletedOnboarding = Boolean(currentUser?.onboarding_completed);
   const isAuthRoute = location.pathname === '/auth';
+  const isPortfolioRoute = location.pathname === '/portfolio';
   const isDashboardRoute = location.pathname === '/dashboard';
-  const showSidebar = !isAuthRoute && authenticated;
+  const showSidebar = !isAuthRoute && !isPortfolioRoute && authenticated;
   const navItems = [
     { to: '/dashboard', icon: 'bx bx-grid-alt', label: 'Resumen' },
     { to: '/gastos', icon: 'bx bx-receipt', label: 'Movimientos' },
@@ -352,7 +354,7 @@ function App() {
   }, [authenticated]);
 
   useEffect(() => {
-    if (!authenticated || isAuthRoute || accountOnboardingChecked) {
+    if (!authenticated || isAuthRoute || isPortfolioRoute || accountOnboardingChecked) {
       return;
     }
 
@@ -383,7 +385,7 @@ function App() {
     };
 
     checkAccountsForOnboarding();
-  }, [authenticated, isAuthRoute, accountOnboardingChecked, hasCompletedOnboarding, location.pathname, navigate]);
+  }, [authenticated, isAuthRoute, isPortfolioRoute, accountOnboardingChecked, hasCompletedOnboarding, location.pathname, navigate]);
 
   useEffect(() => {
     if (
@@ -391,11 +393,12 @@ function App() {
       !hasCompletedOnboarding &&
       hasOnboardingAccounts === false &&
       !isAuthRoute &&
+      !isPortfolioRoute &&
       location.pathname !== '/cuentas'
     ) {
       navigate('/cuentas', { replace: true, state: { onboarding: 'first-account' } });
     }
-  }, [authenticated, hasCompletedOnboarding, hasOnboardingAccounts, isAuthRoute, location.pathname, navigate]);
+  }, [authenticated, hasCompletedOnboarding, hasOnboardingAccounts, isAuthRoute, isPortfolioRoute, location.pathname, navigate]);
 
   const handleFirstAccountCreated = () => {
     setAccountOnboardingChecked(true);
@@ -653,6 +656,7 @@ function App() {
           }}
         >
           <Routes>
+            <Route path="/portfolio" element={<PortfolioPage />} />
             <Route
               path="/auth"
               element={authenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />}
