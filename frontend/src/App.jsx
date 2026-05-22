@@ -285,7 +285,7 @@ function App() {
   const currentUser = getUser();
   const hasCompletedOnboarding = Boolean(currentUser?.onboarding_completed);
   const isAuthRoute = location.pathname === '/auth';
-  const isPortfolioRoute = location.pathname === '/portfolio';
+  const isPortfolioRoute = location.pathname === '/portfolio' || location.pathname === '/portfolio/';
   const isDashboardRoute = location.pathname === '/dashboard';
   const showSidebar = !isAuthRoute && !isPortfolioRoute && authenticated;
   const navItems = [
