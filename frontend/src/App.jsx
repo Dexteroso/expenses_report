@@ -486,6 +486,10 @@ function App() {
     </ul>
   );
 
+  if (isPortfolioRoute) {
+    return <PortfolioPage />;
+  }
+
   return (
     <div
       className="app-root"
@@ -656,7 +660,6 @@ function App() {
           }}
         >
           <Routes>
-            <Route path="/portfolio" element={<PortfolioPage />} />
             <Route
               path="/auth"
               element={authenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />}
