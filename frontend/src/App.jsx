@@ -13,6 +13,7 @@ import UsersPage from './components/UsersPage';
 import ActivityPage from './components/ActivityPage';
 import HelpPage from './components/HelpPage';
 import PortfolioPage from './pages/PortfolioPage';
+import DesignSystemPlayground from './design-system/DesignSystemPlayground';
 import { useEffect, useState } from 'react';
 import { authFetch, clearAuth, getUser, isAuthenticated, markOnboardingCompleted } from './utils/auth';
 import { API_BASE_URL } from './utils/api';
@@ -287,6 +288,7 @@ function App() {
   const hasCompletedOnboarding = Boolean(currentUser?.onboarding_completed);
   const isAuthRoute = location.pathname === '/auth';
   const isPortfolioRoute = location.pathname === '/portfolio' || location.pathname === '/portfolio/';
+  const isDesignSystemRoute = import.meta.env.DEV && location.pathname === '/dev/design-system';
   const isDashboardRoute = location.pathname === '/dashboard';
   const showSidebar = !isAuthRoute && !isPortfolioRoute && authenticated;
   const navItems = [
@@ -486,6 +488,10 @@ function App() {
       </li>
     </ul>
   );
+
+  if (isDesignSystemRoute) {
+    return <DesignSystemPlayground />;
+  }
 
   if (isPortfolioRoute) {
     return <PortfolioPage />;
