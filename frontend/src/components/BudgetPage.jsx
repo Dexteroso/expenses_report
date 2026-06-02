@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Year effect preserves existing budget fetch timing. */
 import { useEffect, useRef, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';

@@ -837,14 +837,6 @@ body {
   row-gap: 6px !important;
 }
 
-.budget-page-subtitle {
-  margin: -4px 0 14px;
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.45;
-}
-
 .budget-card-title-row {
   justify-content: flex-start;
   margin-bottom: 12px;
@@ -993,8 +985,7 @@ body {
   color: #dc2626 !important;
 }
 
-.onboarding-card,
-.onboarding-guidance {
+.onboarding-card {
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 16px;
   background: #fff;
@@ -2015,11 +2006,6 @@ body {
     font-size: 11px !important;
   }
 
-  .budget-sticky-left {
-    position: sticky !important;
-    left: 0 !important;
-  }
-
   .budget-sticky-right {
     right: auto !important;
     box-shadow: none !important;
@@ -2550,9 +2536,7 @@ body {
     box-sizing: border-box;
   }
 
-  .mobile-topbar-version,
-  .user-meta,
-  .user-meta-version {
+  .user-meta {
     display: none !important;
   }
 
@@ -2614,10 +2598,6 @@ body {
 
   .expense-form-card .expense-field-date {
     order: 1;
-  }
-
-  .expense-form-card .expense-field-type {
-    order: 2;
   }
 
   .expense-form-card .expense-field-category {
@@ -3823,13 +3803,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.favorite-movements-empty {
-  margin: 0;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 650;
 }
 
 .movements-page .favorite-movements-actions {

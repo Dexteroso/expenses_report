@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Refresh effect preserves existing favorites fetch timing. */
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';

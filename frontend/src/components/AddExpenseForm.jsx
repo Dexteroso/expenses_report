@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Form prefill/highlight effects intentionally synchronize local UI state. */
 import { useEffect, useRef, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
@@ -204,6 +205,7 @@ function AddExpenseForm({
         });
 
         showFormContextFeedback(`Editando movimiento ${selectedExpense.expense_code || ''}`.trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialForm identity is intentionally excluded to preserve current reset behavior.
     }, [selectedExpense]);
 
     useEffect(() => {

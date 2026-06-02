@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Query-param effect intentionally synchronizes auth form state. */
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/api';

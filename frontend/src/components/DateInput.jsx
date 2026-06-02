@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Value effect intentionally synchronizes visible calendar state. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const monthNames = [
@@ -103,6 +104,7 @@ function DateInput({
         if (selectedDate) {
             setVisibleDate(selectedDate);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedDate is derived from value; keeping value as the trigger preserves current behavior.
     }, [value]);
 
     useEffect(() => {

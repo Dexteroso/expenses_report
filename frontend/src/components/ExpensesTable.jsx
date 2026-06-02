@@ -113,6 +113,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             end_date: appliedFilters.endDate,
             category_id: appliedFilters.categoryId,
         });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- filters are intentionally applied only when refreshExpenses changes.
     }, [refreshExpenses]);
 
     const handleSearch = () => {

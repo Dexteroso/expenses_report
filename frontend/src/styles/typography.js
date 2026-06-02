@@ -30,7 +30,5 @@ export const typography = {
     color: Theme.sidebarText,
     fontSize: 12,
     cursor: 'pointer',
-    color: Theme.sidebarText,
   },
 };
-

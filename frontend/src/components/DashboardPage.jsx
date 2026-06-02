@@ -624,7 +624,7 @@ function getBudgetUsedKpiColor(percent) {
   return '#0A7A3D';
 }
 
-function getAvailableBudgetKpiColor(percent, amount) {
+function getAvailableBudgetKpiColor(percent) {
   if (percent >= 100) return '#0A7A3D';
   if (percent >= 90) return '#0A7A3D';
   if (percent >= 80) return '#22A447';

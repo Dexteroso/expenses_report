@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Initial load effect preserves existing users fetch timing. */
 import { useEffect, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch, getUser } from '../utils/auth';
@@ -63,6 +64,7 @@ function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchUsers closes over current admin state; this effect intentionally runs on mount only.
   }, []);
 
   const handleChange = (userId, field, value) => {
@@ -237,124 +239,132 @@ function UsersPage() {
                 </tr>
               </thead>
               <tbody style={{ fontSize: 10, color: theme.textBody }}>
-                {users.map((user) => (
-                  <tr key={user.id} style={{ borderTop: `1px solid ${theme.border}` }}>
-                    <td style={rowCellStyle}>
-                      <input
-                        className="text-input users-edit-input"
-                        type="text"
-                        value={user.name}
-                        onChange={(event) => handleChange(user.id, 'name', event.target.value)}
-                      />
-                    </td>
-                    <td style={rowCellStyle}>
-                      <input
-                        className="text-input users-edit-input"
-                        type="email"
-                        value={user.email}
-                        onChange={(event) => handleChange(user.id, 'email', event.target.value)}
-                      />
-                    </td>
-                    <td style={rowCellStyle}>
-                      <select
-                        className="text-input users-edit-input"
-                        value={user.role}
-                        onChange={(event) => handleChange(user.id, 'role', event.target.value)}
-                      >
-                        <option value="admin">admin</option>
-                        <option value="user">user</option>
-                      </select>
-                    </td>
-                    <td style={rowCellStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={Boolean(user.is_active)}
-                          aria-label={Boolean(user.is_active) ? 'Usuario activo' : 'Usuario inactivo'}
-                          title={Boolean(user.is_active) ? 'Activo' : 'Inactivo'}
-                          onClick={() => handleStatusChange(user)}
-                          disabled={Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))}
-                          style={{
-                            width: 42,
-                            height: 24,
-                            borderRadius: 999,
-                            border: `1px solid ${
-                              Boolean(user.is_active) ? '#11A9CC' : theme.border
-                            }`,
-                            background: Boolean(user.is_active)
-                              ? '#11A9CC'
-                              : '#f8fafc',
-                            padding: 0,
-                            position: 'relative',
-                            cursor:
-                              Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))
-                                ? 'not-allowed'
-                                : 'pointer',
-                            opacity:
-                              Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))
-                                ? 0.7
-                                : 1,
-                            transition: 'background 160ms ease, border-color 160ms ease, opacity 160ms ease',
-                            boxSizing: 'border-box',
-                          }}
+                {users.map((user) => {
+                  const isActive = Boolean(user.is_active);
+                  const isStatusLoading = Boolean(statusLoadingRows[user.id]);
+                  const isCurrentActiveUser = currentUser?.id === user.id && isActive;
+                  const isSaving = Boolean(savingRows[user.id]);
+                  const isSwitchDisabled = isStatusLoading || isCurrentActiveUser;
+
+                  return (
+                    <tr key={user.id} style={{ borderTop: `1px solid ${theme.border}` }}>
+                      <td style={rowCellStyle}>
+                        <input
+                          className="text-input users-edit-input"
+                          type="text"
+                          value={user.name}
+                          onChange={(event) => handleChange(user.id, 'name', event.target.value)}
+                        />
+                      </td>
+                      <td style={rowCellStyle}>
+                        <input
+                          className="text-input users-edit-input"
+                          type="email"
+                          value={user.email}
+                          onChange={(event) => handleChange(user.id, 'email', event.target.value)}
+                        />
+                      </td>
+                      <td style={rowCellStyle}>
+                        <select
+                          className="text-input users-edit-input"
+                          value={user.role}
+                          onChange={(event) => handleChange(user.id, 'role', event.target.value)}
                         >
-                          <span
+                          <option value="admin">admin</option>
+                          <option value="user">user</option>
+                        </select>
+                      </td>
+                      <td style={rowCellStyle}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isActive}
+                            aria-label={isActive ? 'Usuario activo' : 'Usuario inactivo'}
+                            title={isActive ? 'Activo' : 'Inactivo'}
+                            onClick={() => handleStatusChange(user)}
+                            disabled={isSwitchDisabled}
                             style={{
-                              position: 'absolute',
-                              top: 2,
-                              left: Boolean(user.is_active) ? 20 : 2,
-                              width: 18,
-                              height: 18,
-                              borderRadius: '50%',
-                              background: '#fff',
-                              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.22)',
-                              transition: 'left 160ms ease',
-                            }}
-                          />
-                        </button>
-                      </div>
-                    </td>
-                    <td style={rowCellStyle}>
-                      <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
-                        <PrimaryButton
-                          type="button"
-                          className="users-save-button"
-                          onClick={() => handleSaveUser(user)}
-                          disabled={Boolean(savingRows[user.id])}
-                        >
-                          {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
-                        </PrimaryButton>
-                        {rowMessages[user.id] && (
-                          <span
-                            style={{
-                              color: rowMessages[user.id].includes('No se pudo') ? '#b91c1c' : theme.textPrimary,
-                              fontSize: 12,
-                              textAlign: 'center',
+                              width: 42,
+                              height: 24,
+                              borderRadius: 999,
+                              border: `1px solid ${
+                                isActive ? '#11A9CC' : theme.border
+                              }`,
+                              background: isActive
+                                ? '#11A9CC'
+                                : '#f8fafc',
+                              padding: 0,
+                              position: 'relative',
+                              cursor: isSwitchDisabled ? 'not-allowed' : 'pointer',
+                              opacity: isSwitchDisabled ? 0.7 : 1,
+                              transition: 'background 160ms ease, border-color 160ms ease, opacity 160ms ease',
+                              boxSizing: 'border-box',
                             }}
                           >
-                            {rowMessages[user.id]}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: 2,
+                                left: isActive ? 20 : 2,
+                                width: 18,
+                                height: 18,
+                                borderRadius: '50%',
+                                background: '#fff',
+                                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.22)',
+                                transition: 'left 160ms ease',
+                              }}
+                            />
+                          </button>
+                        </div>
+                      </td>
+                      <td style={rowCellStyle}>
+                        <div style={{ display: 'grid', gap: 6, justifyItems: 'center' }}>
+                          <PrimaryButton
+                            type="button"
+                            className="users-save-button"
+                            onClick={() => handleSaveUser(user)}
+                            disabled={isSaving}
+                          >
+                            {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
+                          </PrimaryButton>
+                          {rowMessages[user.id] && (
+                            <span
+                              style={{
+                                color: rowMessages[user.id].includes('No se pudo') ? '#b91c1c' : theme.textPrimary,
+                                fontSize: 12,
+                                textAlign: 'center',
+                              }}
+                            >
+                              {rowMessages[user.id]}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
           <div className="users-mobile-list">
-          {users.map((user) => (
-            <article key={user.id} className="users-mobile-card">
-              <div className="users-mobile-card-header">
-                <div style={{ minWidth: 0 }}>
-                  <span className="users-mobile-title">{user.name || 'Sin nombre'}</span>
-                  <span className="users-mobile-email">{user.email}</span>
+          {users.map((user) => {
+            const isActive = Boolean(user.is_active);
+            const isStatusLoading = Boolean(statusLoadingRows[user.id]);
+            const isCurrentActiveUser = currentUser?.id === user.id && isActive;
+            const isSaving = Boolean(savingRows[user.id]);
+
+            return (
+              <article key={user.id} className="users-mobile-card">
+                <div className="users-mobile-card-header">
+                  <div style={{ minWidth: 0 }}>
+                    <span className="users-mobile-title">{user.name || 'Sin nombre'}</span>
+                    <span className="users-mobile-email">{user.email}</span>
+                  </div>
+                  <span className={`users-mobile-status ${isActive ? 'is-active' : 'is-inactive'}`}>
+                    {isActive ? 'Activo' : 'Inactivo'}
+                  </span>
                 </div>
-                <span className={`users-mobile-status ${Boolean(user.is_active) ? 'is-active' : 'is-inactive'}`}>
-                  {Boolean(user.is_active) ? 'Activo' : 'Inactivo'}
-                </span>
-              </div>
 
               <div className="users-mobile-fields">
                 <label className="users-mobile-field-name">
@@ -391,12 +401,12 @@ function UsersPage() {
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={Boolean(user.is_active)}
-                    aria-label={Boolean(user.is_active) ? 'Usuario activo' : 'Usuario inactivo'}
-                    title={Boolean(user.is_active) ? 'Activo' : 'Inactivo'}
+                    aria-checked={isActive}
+                    aria-label={isActive ? 'Usuario activo' : 'Usuario inactivo'}
+                    title={isActive ? 'Activo' : 'Inactivo'}
                     onClick={() => handleStatusChange(user)}
-                    disabled={Boolean(statusLoadingRows[user.id]) || (currentUser?.id === user.id && Boolean(user.is_active))}
-                    className={`users-mobile-switch ${Boolean(user.is_active) ? 'is-active' : 'is-inactive'}`}
+                    disabled={isStatusLoading || isCurrentActiveUser}
+                    className={`users-mobile-switch ${isActive ? 'is-active' : 'is-inactive'}`}
                   >
                     <span />
                   </button>
@@ -406,7 +416,7 @@ function UsersPage() {
                   type="button"
                   className="users-mobile-save-button"
                   onClick={() => handleSaveUser(user)}
-                  disabled={Boolean(savingRows[user.id])}
+                  disabled={isSaving}
                 >
                   {savingRows[user.id] ? 'Guardando...' : 'Guardar'}
                 </PrimaryButton>
@@ -424,8 +434,9 @@ function UsersPage() {
                   </span>
                 )}
               </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
           </div>
         </>
       )}

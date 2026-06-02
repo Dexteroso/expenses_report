@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Existing onboarding/menu effects intentionally synchronize local UI state. */
 import { lightTheme } from './theme/theme';
 import { Routes, Route, NavLink, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import ExpensesTable from './components/ExpensesTable';
