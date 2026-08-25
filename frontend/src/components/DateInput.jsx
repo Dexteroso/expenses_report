@@ -141,7 +141,7 @@ function DateInput({
                 required={required}
                 disabled={disabled}
                 style={style}
-                className={className}
+                className={`${className} ${value ? '' : 'is-placeholder'}`.trim()}
             />
         );
     }

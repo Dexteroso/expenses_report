@@ -539,7 +539,7 @@ function AddExpenseForm({
                                 required
                                 style={inputStyle}
                             >
-                                <option value="">Selecciona categoría</option>
+                                <option value="">Elige categoría</option>
                                 {categories
                                     .filter((category) => category.type === formData.type)
                                     .map((category) => (
@@ -559,7 +559,7 @@ function AddExpenseForm({
                                 required
                                 style={inputStyle}
                             >
-                                <option value="">Selecciona concepto</option>
+                                <option value="">Elige concepto</option>
                                 {concepts.map((concept) => (
                                     <option key={concept.id} value={concept.id}>
                                         {concept.name}
@@ -577,7 +577,7 @@ function AddExpenseForm({
                                 onChange={handleChange}
                                 required={favoriteMode}
                                 style={inputStyle}
-                                placeholder="Ej. Pago de cliente, freelance, etc."
+                                placeholder="Súper, Amazon, etc."
                             />
                     </div>
 
@@ -606,7 +606,7 @@ function AddExpenseForm({
                                 required
                                 style={inputStyle}
                             >
-                                <option value="">Selecciona pago</option>
+                                <option value="">Método de pago</option>
                                 {accountOptions.map((account) => (
                                     <option key={account.id} value={account.id}>
                                         {isCashAccount(account) ? 'Efectivo' : account.account_alias}

@@ -3623,9 +3623,11 @@ body {
 }
 
 .movements-page .expense-form-card input::placeholder,
+.movements-page .expense-form-card input[type="date"].is-placeholder,
+.movements-page .expense-form-card select:invalid,
 .movements-page .expenses-filter-field input::placeholder,
-.movements-page .expense-form-card .date-input-control .date-input-placeholder,
-.movements-page .expenses-filter-field .date-input-control .date-input-placeholder {
+.movements-page .expense-form-card .date-input-control.is-placeholder span,
+.movements-page .expenses-filter-field .date-input-control.is-placeholder span {
   color: #94a3b8 !important;
   opacity: 1;
   font-weight: 500;
@@ -3866,67 +3868,32 @@ body {
 }
 
 .movements-page .expenses-table-scroll table {
-  width: 100% !important;
-  min-width: 760px !important;
-  table-layout: fixed !important;
-  border-collapse: collapse !important;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
   border-spacing: 0;
-}
-
-.movements-page .expenses-table-scroll th:nth-child(1),
-.movements-page .expenses-table-scroll td:nth-child(1) {
-  display: none;
-}
-
-.movements-page .expenses-table-scroll th:nth-child(2),
-.movements-page .expenses-table-scroll td:nth-child(2) {
-  width: 75px;
-}
-
-.movements-page .expenses-table-scroll th:nth-child(3),
-.movements-page .expenses-table-scroll td:nth-child(3) {
-  width: 58px;
-}
-
-.movements-page .expenses-table-scroll th:nth-child(4),
-.movements-page .expenses-table-scroll td:nth-child(4) {
-  width: 96px;
-}
-
-.movements-page .expenses-table-scroll th:nth-child(5),
-.movements-page .expenses-table-scroll td:nth-child(5) {
-  width: 150px;
-}
-
-.movements-page .expenses-table-scroll th:nth-child(6),
-.movements-page .expenses-table-scroll td:nth-child(6) {
-  width: 140px;
 }
 
 .movements-page .expenses-table-scroll th:nth-child(7),
 .movements-page .expenses-table-scroll td:nth-child(7) {
-  width: 140px;
+  text-align: right;
 }
 
 .movements-page .expenses-table-scroll th:nth-child(8),
 .movements-page .expenses-table-scroll td:nth-child(8) {
-  width: 82px;
-  text-align: right;
-}
-
-.movements-page .expenses-table-scroll th:nth-child(9),
-.movements-page .expenses-table-scroll td:nth-child(9) {
-  width: 62px;
   text-align: center;
 }
 
 .movements-page .expenses-table-scroll td {
+  box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .movements-page .expenses-table-scroll th {
+  box-sizing: border-box;
   color: #64748b;
   font-size: 11px;
   font-weight: 900;
