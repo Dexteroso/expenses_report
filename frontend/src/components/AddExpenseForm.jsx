@@ -493,17 +493,17 @@ function AddExpenseForm({
                 <div className="expense-type-segment" role="group" aria-label="Tipo de movimiento">
                     <button
                         type="button"
-                        className={formData.type === 'income' ? 'is-active' : ''}
-                        onClick={() => handleChange({ target: { name: 'type', value: 'income' } })}
-                    >
-                        Ingreso
-                    </button>
-                    <button
-                        type="button"
                         className={formData.type === 'expense' ? 'is-active' : ''}
                         onClick={() => handleChange({ target: { name: 'type', value: 'expense' } })}
                     >
                         Egreso
+                    </button>
+                    <button
+                        type="button"
+                        className={formData.type === 'income' ? 'is-active' : ''}
+                        onClick={() => handleChange({ target: { name: 'type', value: 'income' } })}
+                    >
+                        Ingreso
                     </button>
                 </div>
 
@@ -517,8 +517,7 @@ function AddExpenseForm({
                         flexWrap: 'wrap',
                     }}
                 >
-                    <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
-                        <div className={`responsive-field expense-field-date ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
+                    <div className={`responsive-field expense-field-date ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
                             <label style={labelStyle}>Fecha</label>
                             <DateInput
                                 name="date"
@@ -529,8 +528,9 @@ function AddExpenseForm({
                                 disabled={favoriteMode}
                                 style={inputStyle}
                             />
-                        </div>
-                        <div className="responsive-field expense-field-category" style={fieldStyle}>
+                    </div>
+
+                    <div className="responsive-field expense-field-category" style={fieldStyle}>
                             <label style={labelStyle}>Categoría</label>
                             <select
                                 name="category_id"
@@ -548,9 +548,9 @@ function AddExpenseForm({
                                         </option>
                                     ))}
                             </select>
-                        </div>
+                    </div>
 
-                        <div className="responsive-field expense-field-concept" style={fieldStyle}>
+                    <div className="responsive-field expense-field-concept" style={fieldStyle}>
                             <label style={labelStyle}>Concepto</label>
                             <select
                                 name="concept_id"
@@ -566,11 +566,9 @@ function AddExpenseForm({
                                     </option>
                                 ))}
                             </select>
-                        </div>
                     </div>
 
-                    <div className="expense-form-column" style={{ display: 'grid', gap: 5, flex: '1 1 280px', maxWidth: 420 }}>
-                        <div className="responsive-field expense-field-description" style={fieldStyle}>
+                    <div className="responsive-field expense-field-description" style={fieldStyle}>
                             <label style={labelStyle}>Descripción {!favoriteMode && <span>(opcional)</span>}</label>
                             <input
                                 type="text"
@@ -581,9 +579,9 @@ function AddExpenseForm({
                                 style={inputStyle}
                                 placeholder="Ej. Pago de cliente, freelance, etc."
                             />
-                        </div>
+                    </div>
 
-                        <div className={`responsive-field expense-field-amount ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
+                    <div className={`responsive-field expense-field-amount ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
                             <label style={labelStyle}>Cantidad</label>
                             <input
                                 type="text"
@@ -597,8 +595,9 @@ function AddExpenseForm({
                                 style={inputStyle}
                                 placeholder={favoriteMode ? 'Se define al usar' : '0.00'}
                             />
-                        </div>
-                        <div className="responsive-field expense-field-account" style={fieldStyle}>
+                    </div>
+
+                    <div className="responsive-field expense-field-account" style={fieldStyle}>
                             <label style={labelStyle}>Pago</label>
                             <select
                                 name="account_id"
@@ -612,9 +611,8 @@ function AddExpenseForm({
                                     <option key={account.id} value={account.id}>
                                         {isCashAccount(account) ? 'Efectivo' : account.account_alias}
                                     </option>
-                                ))}
+                                    ))}
                             </select>
-                        </div>
                     </div>
                 </div>
 

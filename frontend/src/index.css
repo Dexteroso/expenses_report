@@ -1658,7 +1658,30 @@ body {
   line-height: 1.1;
 }
 
-@media (max-width: 1023px) {
+/* Compact desktop */
+@media (min-width: 900px) and (max-width: 1139px) {
+  .app-shell {
+    grid-template-columns: 150px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    padding-inline: 12px !important;
+  }
+
+  .desktop-sidebar {
+    padding-inline: 10px !important;
+  }
+
+  .desktop-sidebar-logo .brand-logo-text {
+    font-size: 17px;
+  }
+
+  .desktop-sidebar .app-nav-list a,
+  .desktop-sidebar .app-nav-list button {
+    padding-inline: 9px !important;
+    font-size: 11px !important;
+  }
+}
+
+@media (max-width: 899px) {
 
   html,
   body,
@@ -2596,31 +2619,6 @@ body {
     line-height: 1.2;
   }
 
-  .expense-form-card .expense-field-date {
-    order: 1;
-  }
-
-  .expense-form-card .expense-field-category {
-    order: 3;
-  }
-
-  .expense-form-card .expense-field-concept {
-    order: 4;
-  }
-
-  .expense-form-card .expense-field-account {
-    order: 5;
-  }
-
-  .expense-form-card .expense-field-amount {
-    order: 6;
-  }
-
-  .expense-form-card .expense-field-description {
-    grid-column: 1 / -1;
-    order: 7;
-  }
-
   .expense-form-card .responsive-field input,
   .expense-form-card .responsive-field select,
   .expense-form-card .responsive-field textarea,
@@ -3555,13 +3553,13 @@ body {
 }
 
 .expense-type-segment button:first-child.is-active {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.55);
+  background: #11a9cc;
+  color: #fff;
+  box-shadow: none;
 }
 
 .expense-type-segment button:nth-child(2).is-active {
-  background: linear-gradient(135deg, #11A9CC 0%, #2563EB 100%);
+  background: #11a9cc;
   color: #fff;
   box-shadow: none;
 }
@@ -3969,7 +3967,7 @@ body {
   color: #fff !important;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 899px) {
   .movements-top-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4534,7 +4532,7 @@ body {
   line-height: 1.3;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
   .dashboard-hero-card {
     min-height: 250px;
     max-height: none;
@@ -4884,7 +4882,7 @@ body {
   white-space: nowrap;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 899px) {
   .dashboard-redesign {
     gap: 14px !important;
     padding: 18px !important;
