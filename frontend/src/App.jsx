@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Existing onboarding/menu effects intentionally synchronize local UI state. */
 import { lightTheme } from './theme/theme';
 import { Routes, Route, NavLink, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import ExpensesTable from './components/ExpensesTable';
@@ -276,9 +277,9 @@ function App() {
   const [hasOnboardingAccounts, setHasOnboardingAccounts] = useState(null);
   const [showDashboardOnboardingSuccess, setShowDashboardOnboardingSuccess] = useState(false);
   const theme = lightTheme;
-  const sidebarWidth = 170;
-  const contentMinWidth = 840;
-  const appShellMaxWidth = 1380;
+  const sidebarWidth = 150;
+  const contentMinWidth = 0;
+  const appShellMaxWidth = 1140;
   const location = useLocation();
   const navigate = useNavigate();
   const authenticated = isAuthenticated();

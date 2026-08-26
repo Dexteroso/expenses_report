@@ -113,6 +113,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             end_date: appliedFilters.endDate,
             category_id: appliedFilters.categoryId,
         });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- filters are intentionally applied only when refreshExpenses changes.
     }, [refreshExpenses]);
 
     const handleSearch = () => {
@@ -522,21 +523,19 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                     boxSizing: 'border-box',
                 }}
             >
-                <table style={{ width: '100%', minWidth: '760px', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+                <table>
                     <colgroup>
-                        <col style={{ width: '0%' }} />
-                        <col style={{ width: '8%' }} />
                         <col style={{ width: '12%' }} />
-                        <col style={{ width: '20%' }} />
-                        <col style={{ width: '25%' }} />
-                        <col style={{ width: '15%' }} />
-                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '9%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '16%' }} />
+                        <col style={{ width: '16%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '11%' }} />
                         <col style={{ width: '10%' }} />
-                        {/* <col style={{ width: '7%' }} /> */}
                     </colgroup>
                     <thead style={{ fontSize: 12, color: theme.textSecondary, textAlign: 'center', borderBottom: `2px solid ${theme.border}` }}>
                         <tr>
-                            <th style={headerCellStyle}>ID</th>
                             <th style={headerCellStyle}>Fecha</th>
                             <th style={headerCellStyle}>Tipo</th>
                             <th style={headerCellStyle}>Categoría</th>
@@ -558,7 +557,6 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                                     transition: 'background 180ms ease',
                                 }}
                             >
-                                <td style={compactCellStyle}>{expense.expense_code}</td>
                                 <td style={compactCellStyle}>{expense.date}</td>
                                 <td
                                     style={{
