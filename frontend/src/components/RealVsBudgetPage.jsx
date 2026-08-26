@@ -40,6 +40,9 @@ const categoryDisplayOrder = [
 
 function RealVsBudgetPage() {
   const theme = lightTheme;
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
   const cardStyle = {
     background: theme.surface,
     border: `1px solid ${theme.border}`,
@@ -59,10 +62,10 @@ function RealVsBudgetPage() {
     fontWeight: 'bold',
     lineHeight: '30px',
   };
-  const [year, setYear] = useState(2026);
+  const [year, setYear] = useState(currentYear);
   const [viewMode, setViewMode] = useState('monthly');
   const [periodType, setPeriodType] = useState('month');
-  const [selectedMonth, setSelectedMonth] = useState(5);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedQuarter, setSelectedQuarter] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [reportRows, setReportRows] = useState([]);
@@ -323,7 +326,7 @@ function RealVsBudgetPage() {
             className="real-filter-control real-year-input"
             type="number"
             value={year}
-            onChange={(event) => setYear(Number(event.target.value) || 2026)}
+            onChange={(event) => setYear(Number(event.target.value) || currentYear)}
             style={getControlStyle(theme, 120)}
           />
 
