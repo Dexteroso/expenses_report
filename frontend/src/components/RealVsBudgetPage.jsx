@@ -514,7 +514,7 @@ function RealVsBudgetPage() {
                       <span className="real-label-desktop">Presupuesto</span>
                       <span className="real-label-mobile">Presupuesto</span>
                     </th>
-                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('right', true), ...getStickyHeaderCellStyle(theme) }}>Real</th>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('right', true), ...getStickyHeaderCellStyle(theme), paddingRight: '20px', }}>Real</th>
                     <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('right', true), ...getStickyHeaderCellStyle(theme) }}>
                       <span className="real-label-desktop">Desviación</span>
                       <span className="real-label-mobile">Variación</span>
