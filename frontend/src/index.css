@@ -1176,6 +1176,252 @@ body {
   }
 }
 
+.real-vs-budget-page .real-period-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  min-width: 0;
+}
+
+.real-vs-budget-page .real-period-toolbar .real-view-toggle-row {
+  flex: 0 1 auto;
+}
+
+.real-vs-budget-page .real-period-toolbar .real-filters-bar {
+  flex: 0 1 auto;
+  margin-left: auto;
+}
+
+.real-vs-budget-page .real-details-table > thead .real-detail-heading {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  font-size: 13px;
+}
+
+.real-vs-budget-page .real-concept-row > .real-detail-cell {
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.real-vs-budget-page .real-concept-row.is-expanded {
+  background: #fafcff;
+}
+
+.real-vs-budget-page .real-category-row {
+  --real-category-accent: #11A9CC;
+  background: var(--real-category-base);
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.real-vs-budget-page .real-category-row.is-expanded {
+  background: color-mix(in srgb, var(--real-category-accent) 10%, var(--real-category-base));
+}
+
+.real-vs-budget-page .real-category-row > .real-detail-cell {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.real-vs-budget-page .real-concept-label {
+  padding-left: 28px;
+  box-sizing: border-box;
+}
+
+.real-vs-budget-page .real-concept-row.is-expandable {
+  cursor: pointer;
+}
+
+.real-vs-budget-page .real-concept-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.real-vs-budget-page .real-concept-toggle .bx {
+  flex: 0 0 14px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.real-vs-budget-page .real-concept-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.real-vs-budget-page .real-concept-static-label {
+  display: inline-block;
+  padding-left: 18px;
+}
+
+.real-vs-budget-page .real-movement-detail-cell {
+  padding: 0 8px 8px 64px;
+  background: #fafcff;
+}
+
+.real-vs-budget-page .real-movement-container {
+  min-width: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.real-vs-budget-page .real-movement-status {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.real-vs-budget-page .real-movements-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.real-vs-budget-page .real-movement-date-col {
+  width: 16%;
+}
+
+.real-vs-budget-page .real-movement-account-col {
+  width: 26%;
+}
+
+.real-vs-budget-page .real-movement-amount-col {
+  width: 18%;
+}
+
+.real-vs-budget-page .real-movements-table th,
+.real-vs-budget-page .real-movements-table td {
+  padding: 2px 14px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.real-vs-budget-page .real-movements-table th {
+  background: #eef3f9;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #607399;
+}
+
+.real-vs-budget-page .real-movements-table tbody tr + tr td {
+  border-top: 1px solid #edf0f4;
+}
+
+.real-vs-budget-page .real-movements-table td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.real-vs-budget-page .real-movements-table td:nth-child(3) {
+  color: #607399;
+}
+
+.real-vs-budget-page .real-movements-table th:last-child,
+.real-vs-budget-page .real-movements-table td:last-child {
+  text-align: right;
+}
+
+@media (max-width: 600px) {
+  .real-vs-budget-page .real-movements-table {
+    font-size: 10px;
+  }
+
+  .real-vs-budget-page .real-movements-table th {
+    font-size: 9px;
+  }
+
+  .real-vs-budget-page .real-movement-detail-cell {
+    padding-left: 52px;
+    padding-right: 2px;
+  }
+
+  .real-vs-budget-page .real-movement-date-col {
+    width: 48px;
+  }
+
+  .real-vs-budget-page .real-movement-account-col {
+    width: 23%;
+  }
+
+  .real-vs-budget-page .real-movement-amount-col {
+    width: 25%;
+  }
+
+  .real-vs-budget-page .real-movements-table th,
+  .real-vs-budget-page .real-movements-table td {
+    padding: 6px 5px;
+  }
+}
+
+.real-vs-budget-page .real-category-row > .real-concept-cell {
+  position: relative;
+}
+
+.real-vs-budget-page .real-category-row.is-expanded > .real-concept-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--real-category-accent);
+}
+
+.real-vs-budget-page .real-category-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.real-vs-budget-page .real-category-toggle .bx {
+  flex: 0 0 16px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.real-vs-budget-page .real-category-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .real-vs-budget-page .real-category-row:hover {
+    background: color-mix(in srgb, var(--real-category-accent) 5%, var(--real-category-base));
+  }
+
+  .real-vs-budget-page .real-category-row.is-expanded:hover {
+    background: color-mix(in srgb, var(--real-category-accent) 15%, var(--real-category-base));
+  }
+}
+
 .real-vs-budget-page .real-filter-control:focus,
 .real-vs-budget-page .real-period-control:focus {
   border-color: #11A9CC !important;
@@ -2132,7 +2378,7 @@ body {
     box-shadow: 0 1px 0 var(--border);
     font-size: 9.5px !important;
     line-height: 2.5;
-    text-align: center !important;
+    text-align: right !important;
   }
 
   .real-concept-cell {
@@ -2229,11 +2475,12 @@ body {
     text-align: center;
   }
 
-  .real-vs-budget-page .real-view-toggle-row {
+  .real-vs-budget-page .real-period-toolbar .real-view-toggle-row {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px !important;
-    margin-bottom: 10px !important;
+    margin-bottom: 0 !important;
+    flex-basis: 100%;
   }
 
   .real-vs-budget-page .real-view-toggle-button {
@@ -2243,7 +2490,8 @@ body {
     padding-right: 8px !important;
   }
 
-  .real-vs-budget-page .real-filters-bar {
+  .real-vs-budget-page .real-period-toolbar .real-filters-bar {
+    flex-basis: 100%;
     display: grid !important;
     align-items: center !important;
     gap: 6px 8px !important;

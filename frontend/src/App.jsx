@@ -587,7 +587,7 @@ function App() {
               minWidth: 0,
               width: '100%',
               background: isDashboardRoute ? 'transparent' : theme.background,
-              padding: '20px 0',
+              padding: '10px 0',
               boxSizing: 'border-box',
               overflowX: 'hidden',
             }}

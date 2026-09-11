@@ -20,26 +20,15 @@ const monthOptions = [
   'Diciembre',
 ];
 
-const categoryDisplayOrder = [
-  'Ingresos',
-  'Vivienda',
-  'Transporte',
-  'Alimentos',
-  'Pagos de Deuda',
-  'Cuidado de Mascotas',
-  'Cuidado Personal',
-  'Educación',
-  'Entretenimiento',
-  'Ahorros e Inversiones',
-  'Artículos Personales',
-  'Impuestos',
-  'Seguros',
-  'Viajes',
-  'Misceláneos',
-];
-
 function RealVsBudgetPage() {
   const theme = lightTheme;
+  const tableTheme = {
+    ...theme,
+    textPrimary: '#193b91',
+    textBody: '#465b87',
+    border: '#e5ebf3',
+    surfaceMuted: '#f7f9fd',
+  };
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
@@ -71,6 +60,8 @@ function RealVsBudgetPage() {
   const [reportRows, setReportRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedCategory, setExpandedCategory] = useState({ period: null, id: null });
+  const [movementCache, setMovementCache] = useState(() => new Map());
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -186,23 +177,7 @@ function RealVsBudgetPage() {
         concepts: Array.from(categoryEntry.conceptsMap.values()).sort(
           (a, b) => a.concept_id - b.concept_id
         ),
-      }))
-      .sort((a, b) => {
-        const aIndex = categoryDisplayOrder.indexOf(a.category);
-        const bIndex = categoryDisplayOrder.indexOf(b.category);
-        const normalizedAIndex = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
-        const normalizedBIndex = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
-
-        if (normalizedAIndex !== normalizedBIndex) {
-          return normalizedAIndex - normalizedBIndex;
-        }
-
-        if (aIndex === -1 && bIndex === -1) {
-          return a.category.localeCompare(b.category);
-        }
-
-        return a.category_id - b.category_id;
-      });
+      }));
   };
 
   const getConceptMonthMetrics = (conceptId, month) => {
@@ -213,7 +188,7 @@ function RealVsBudgetPage() {
     return {
       budget: row ? Number(row.budget) : 0,
       actual: row ? Number(row.actual) : 0,
-      deviation: row ? Number(row.deviation) : 0,
+      deviation: row ? Number(row.actual) - Number(row.budget) : 0,
     };
   };
 
@@ -225,7 +200,7 @@ function RealVsBudgetPage() {
         return {
           budget: totals.budget + metrics.budget,
           actual: totals.actual + metrics.actual,
-          deviation: totals.deviation + metrics.deviation,
+          deviation: (totals.actual + metrics.actual) - (totals.budget + metrics.budget),
         };
       },
       { budget: 0, actual: 0, deviation: 0 }
@@ -233,6 +208,19 @@ function RealVsBudgetPage() {
 
   const groupedReport = buildGroupedReport();
   const activeMonths = getActiveMonths();
+  const expansionPeriod = `${year}:${viewMode}:${periodType}:${activeMonths.join(',')}`;
+  if (expandedCategory.period !== expansionPeriod) {
+    setExpandedCategory({ period: expansionPeriod, id: null });
+    setMovementCache(new Map());
+  }
+  const movementRange = getMovementDateRange(year, activeMonths);
+  const expandedCategoryId = expandedCategory.period === expansionPeriod ? expandedCategory.id : null;
+  const toggleCategory = (categoryId) => {
+    setExpandedCategory((previous) => ({
+      period: expansionPeriod,
+      id: previous.period === expansionPeriod && previous.id === categoryId ? null : categoryId,
+    }));
+  };
   const incomeCategories = groupedReport.filter((category) => category.category_type === 'income');
   const expenseCategories = groupedReport.filter((category) => category.category_type === 'expense');
 
@@ -247,7 +235,7 @@ function RealVsBudgetPage() {
         return {
           budget: totals.budget + metrics.budget,
           actual: totals.actual + metrics.actual,
-          deviation: totals.deviation + metrics.deviation,
+          deviation: (totals.actual + metrics.actual) - (totals.budget + metrics.budget),
         };
       },
       { budget: 0, actual: 0, deviation: 0 }
@@ -261,11 +249,20 @@ function RealVsBudgetPage() {
         return {
           budget: totals.budget + metrics.budget,
           actual: totals.actual + metrics.actual,
-          deviation: totals.deviation + metrics.deviation,
+          deviation: (totals.actual + metrics.actual) - (totals.budget + metrics.budget),
         };
       },
       { budget: 0, actual: 0, deviation: 0 }
     );
+
+  const sortedCategories = groupedReport
+    .map((category) => ({ category, actual: getCategoryPeriodMetrics(category).actual }))
+    .sort((a, b) => {
+      if (a.category.category === 'Ingresos' && b.category.category !== 'Ingresos') return -1;
+      if (b.category.category === 'Ingresos' && a.category.category !== 'Ingresos') return 1;
+      return b.actual - a.actual || a.category.category.localeCompare(b.category.category, 'es');
+    })
+    .map(({ category }) => category);
 
   const incomeMetrics = getCategoriesMetrics(incomeCategories);
   const expenseMetrics = getCategoriesMetrics(expenseCategories);
@@ -281,7 +278,7 @@ function RealVsBudgetPage() {
         width: '100%',
         maxWidth: '100%',
         minWidth: 0,
-        height: 'calc(100vh - 96px)',
+        height: 'calc(100vh - 20px)',
         minHeight: 0,
         boxSizing: 'border-box',
         overflow: 'hidden',
@@ -301,135 +298,137 @@ function RealVsBudgetPage() {
           <h1>Variaciones</h1>
           <p>Analiza las diferencias entre lo presupuestado y lo real</p>
         </header>
-        <div className="responsive-filter-bar real-view-toggle-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12, width: '100%', maxWidth: '100%', minWidth: 0 }}>
-          <button
-            className="real-view-toggle-button"
-            type="button"
-            onClick={() => handleViewModeChange('monthly')}
-            style={getToggleButtonStyle(theme, viewMode === 'monthly')}
-          >
-            Mensual
-          </button>
-          <button
-            className="real-view-toggle-button"
-            type="button"
-            onClick={() => handleViewModeChange('annual')}
-            style={getToggleButtonStyle(theme, viewMode === 'annual')}
-          >
-            Acumulado
-          </button>
-        </div>
+        <div className="real-period-toolbar">
+          <div className="responsive-filter-bar real-view-toggle-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', width: 'auto', maxWidth: '100%', minWidth: 0 }}>
+            <button
+              className="real-view-toggle-button"
+              type="button"
+              onClick={() => handleViewModeChange('monthly')}
+              style={getToggleButtonStyle(theme, viewMode === 'monthly')}
+            >
+              Mensual
+            </button>
+            <button
+              className="real-view-toggle-button"
+              type="button"
+              onClick={() => handleViewModeChange('annual')}
+              style={getToggleButtonStyle(theme, viewMode === 'annual')}
+            >
+              Acumulado
+            </button>
+          </div>
 
-        <div className={`responsive-filter-bar real-filters-bar real-filters-${viewMode}`} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 30, width: '100%', maxWidth: '100%', minWidth: 0 }}>
-          <label className="real-filter-label real-year-label" style={labelStyle}>Año</label>
-          <input
-            className="real-filter-control real-year-input"
-            type="number"
-            value={year}
-            onChange={(event) => setYear(Number(event.target.value) || currentYear)}
-            style={getControlStyle(theme, 120)}
-          />
+          <div className={`responsive-filter-bar real-filters-bar real-filters-${viewMode}`} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 30, width: 'auto', maxWidth: '100%', minWidth: 0 }}>
+            <label className="real-filter-label real-year-label" style={labelStyle}>Año</label>
+            <input
+              className="real-filter-control real-year-input"
+              type="number"
+              value={year}
+              onChange={(event) => setYear(Number(event.target.value) || currentYear)}
+              style={getControlStyle(theme, 120)}
+            />
 
-          {viewMode === 'monthly' && (
-            <>
-              <label className="real-filter-label real-month-label" style={labelStyle}>Mes</label>
-              <select
-                className="real-filter-control real-month-input"
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(Number(event.target.value))}
-                style={getControlStyle(theme, 180)}
-              >
-                {monthOptions.map((monthName, index) => (
-                  <option key={monthName} value={index + 1}>
-                    {monthName}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          {viewMode === 'annual' && (
-            <>
-              {periodType === 'quarter' ? (
+            {viewMode === 'monthly' && (
+              <>
+                <label className="real-filter-label real-month-label" style={labelStyle}>Mes</label>
                 <select
-                  className="real-period-control real-quarter-control"
-                  value={selectedQuarter ?? 1}
-                  onChange={(event) => {
-                    setPeriodType('quarter');
-                    setSelectedQuarter(Number(event.target.value));
-                    setSelectedSemester(null);
-                  }}
-                  style={getIntegratedSelectStyle(theme, true)}
+                  className="real-filter-control real-month-input"
+                  value={selectedMonth}
+                  onChange={(event) => setSelectedMonth(Number(event.target.value))}
+                  style={getControlStyle(theme, 180)}
                 >
-                  <option value={1}>Q1</option>
-                  <option value={2}>Q2</option>
-                  <option value={3}>Q3</option>
-                  <option value={4}>Q4</option>
+                  {monthOptions.map((monthName, index) => (
+                    <option key={monthName} value={index + 1}>
+                      {monthName}
+                    </option>
+                  ))}
                 </select>
-              ) : (
-                <button
-                  className="real-period-control real-quarter-control"
-                  type="button"
-                  onClick={() => handlePeriodTypeChange('quarter')}
-                  style={getToggleButtonStyle(theme, false)}
-                >
-                  Trimestre
-                </button>
-              )}
+              </>
+            )}
 
-              {periodType === 'semester' ? (
-                <select
-                  className="real-period-control real-semester-control"
-                  value={selectedSemester ?? 1}
-                  onChange={(event) => {
-                    setPeriodType('semester');
-                    setSelectedSemester(Number(event.target.value));
-                    setSelectedQuarter(null);
-                  }}
-                  style={getIntegratedSelectStyle(theme, true)}
-                >
-                  <option value={1}>H1</option>
-                  <option value={2}>H2</option>
-                </select>
-              ) : (
-                <button
-                  className="real-period-control real-semester-control"
-                  type="button"
-                  onClick={() => handlePeriodTypeChange('semester')}
-                  style={getToggleButtonStyle(theme, false)}
-                >
-                  Semestre
-                </button>
-              )}
-
-              <button
-                className="real-period-control real-ytd-button"
-                type="button"
-                onClick={() => handlePeriodTypeChange('ytd')}
-                style={getToggleButtonStyle(theme, periodType === 'ytd')}
-              >
-                Anual
-              </button>
-
-              {periodType === 'ytd' && (
-                <>
-                  <label className="real-filter-label real-until-label" style={labelStyle}>Hasta mes</label>
+            {viewMode === 'annual' && (
+              <>
+                {periodType === 'quarter' ? (
                   <select
-                    className="real-period-control real-until-month-input"
-                    value={selectedMonth}
-                    onChange={(event) => setSelectedMonth(Number(event.target.value))}
-                    style={getControlStyle(theme, 180)}
+                    className="real-period-control real-quarter-control"
+                    value={selectedQuarter ?? 1}
+                    onChange={(event) => {
+                      setPeriodType('quarter');
+                      setSelectedQuarter(Number(event.target.value));
+                      setSelectedSemester(null);
+                    }}
+                    style={getIntegratedSelectStyle(theme, true)}
                   >
-                    {monthOptions.map((monthName, index) => (
-                      <option key={monthName} value={index + 1}>
-                        {monthName}
-                      </option>
-                    ))}
+                    <option value={1}>Q1</option>
+                    <option value={2}>Q2</option>
+                    <option value={3}>Q3</option>
+                    <option value={4}>Q4</option>
                   </select>
-                </>
-              )}
-            </>
-          )}
+                ) : (
+                  <button
+                    className="real-period-control real-quarter-control"
+                    type="button"
+                    onClick={() => handlePeriodTypeChange('quarter')}
+                    style={getToggleButtonStyle(theme, false)}
+                  >
+                    Trimestre
+                  </button>
+                )}
+
+                {periodType === 'semester' ? (
+                  <select
+                    className="real-period-control real-semester-control"
+                    value={selectedSemester ?? 1}
+                    onChange={(event) => {
+                      setPeriodType('semester');
+                      setSelectedSemester(Number(event.target.value));
+                      setSelectedQuarter(null);
+                    }}
+                    style={getIntegratedSelectStyle(theme, true)}
+                  >
+                    <option value={1}>H1</option>
+                    <option value={2}>H2</option>
+                  </select>
+                ) : (
+                  <button
+                    className="real-period-control real-semester-control"
+                    type="button"
+                    onClick={() => handlePeriodTypeChange('semester')}
+                    style={getToggleButtonStyle(theme, false)}
+                  >
+                    Semestre
+                  </button>
+                )}
+
+                <button
+                  className="real-period-control real-ytd-button"
+                  type="button"
+                  onClick={() => handlePeriodTypeChange('ytd')}
+                  style={getToggleButtonStyle(theme, periodType === 'ytd')}
+                >
+                  Anual
+                </button>
+
+                {periodType === 'ytd' && (
+                  <>
+                    <label className="real-filter-label real-until-label" style={labelStyle}>Hasta mes</label>
+                    <select
+                      className="real-period-control real-until-month-input"
+                      value={selectedMonth}
+                      onChange={(event) => setSelectedMonth(Number(event.target.value))}
+                      style={getControlStyle(theme, 180)}
+                    >
+                      {monthOptions.map((monthName, index) => (
+                        <option key={monthName} value={index + 1}>
+                          {monthName}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -507,29 +506,34 @@ function RealVsBudgetPage() {
                 </colgroup>
                 <thead style={{ fontSize: 12, color: theme.textSecondary, borderBottom: `2px solid ${theme.border}` }}>
                   <tr>
-                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('left', true), ...getStickyHeaderCellStyle(theme) }}>
                       <span className="real-label-desktop">Categoría / Concepto</span>
                       <span className="real-label-mobile">Concepto</span>
                     </th>
-                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('right', true), ...getStickyHeaderCellStyle(theme) }}>
                       <span className="real-label-desktop">Presupuesto</span>
                       <span className="real-label-mobile">Presupuesto</span>
                     </th>
-                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>Real</th>
-                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('center', true), ...getStickyHeaderCellStyle(theme) }}>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('right', true), ...getStickyHeaderCellStyle(theme) }}>Real</th>
+                    <th className="real-detail-cell real-detail-heading" style={{ ...getTableCellStyle('right', true), ...getStickyHeaderCellStyle(theme) }}>
                       <span className="real-label-desktop">Desviación</span>
                       <span className="real-label-mobile">Variación</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody style={{ fontSize: 10, color: theme.textBody }}>
-                  {groupedReport.map((category) => (
+                  {sortedCategories.map((category, categoryIndex) => (
                     <CategoryRows
-                      key={category.category_id}
+                      key={`${category.category_id}:${year}:${viewMode}:${periodType}:${activeMonths.join(',')}`}
                       category={category}
+                      categoryIndex={categoryIndex}
+                      isExpanded={expandedCategoryId === category.category_id}
+                      toggleExpanded={() => toggleCategory(category.category_id)}
                       getCategoryPeriodMetrics={getCategoryPeriodMetrics}
                       getConceptPeriodMetrics={getConceptPeriodMetrics}
-                      theme={theme}
+                      movementCache={movementCache}
+                      movementRange={movementRange}
+                      theme={tableTheme}
                     />
                   ))}
                 </tbody>
@@ -675,67 +679,239 @@ function KpiGroup({ title, icon, items, theme }) {
 
 function CategoryRows({
   category,
+  categoryIndex,
+  isExpanded,
+  toggleExpanded,
   getCategoryPeriodMetrics,
   getConceptPeriodMetrics,
+  movementCache,
+  movementRange,
   theme,
 }) {
+  const [expandedConceptId, setExpandedConceptId] = useState(null);
+  if (!isExpanded && expandedConceptId !== null) {
+    setExpandedConceptId(null);
+  }
   const categoryMetrics = getCategoryPeriodMetrics(category);
+  const sortedConcepts = isExpanded
+    ? category.concepts
+      .map((concept) => ({ concept, metrics: getConceptPeriodMetrics(concept.concept_id) }))
+      .sort((a, b) => b.metrics.actual - a.metrics.actual || a.concept.concept.localeCompare(b.concept.concept, 'es'))
+    : [];
 
   return (
     <>
-      <tr className="real-category-row" style={{ background: theme.surfaceMuted, borderTop: `1px solid ${theme.border}` }}>
-        <td className="real-detail-cell real-concept-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }} title={category.category}>
-          {category.category}
+      <tr
+        className={`real-category-row${isExpanded ? ' is-expanded' : ''}`}
+        onClick={toggleExpanded}
+        style={{ '--real-category-base': categoryIndex % 2 === 0 ? theme.surfaceMuted : theme.surface }}
+      >
+        <td className="real-detail-cell real-concept-cell" style={{ ...getTableCellStyle('left'), fontWeight: 450, color: theme.textPrimary }} title={category.category}>
+          <button
+            className="real-category-toggle"
+            type="button"
+            aria-expanded={isExpanded}
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleExpanded();
+            }}
+          >
+            <i className={`bx bx-chevron-${isExpanded ? 'down' : 'right'}`} aria-hidden="true" />
+            {category.category}
+          </button>
         </td>
-        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('right'), fontWeight: 450, color: theme.textPrimary }}>
           {formatCurrencyMXN(categoryMetrics.budget)}
         </td>
-        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: theme.textPrimary }}>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('right'), fontWeight: 450, color: theme.textPrimary }}>
           {formatCurrencyMXN(categoryMetrics.actual)}
         </td>
         <td
           className="real-detail-cell real-amount-cell"
-          style={{ ...getTableCellStyle('center'), fontWeight: 'bold', color: getDeviationColor(categoryMetrics.deviation, theme.textPrimary) }}
+          style={{ ...getTableCellStyle('right'), fontWeight: 450, color: getDeviationColor(categoryMetrics.deviation, category.category_type, theme.textPrimary) }}
         >
           {formatDeviationValue(categoryMetrics.deviation)}
         </td>
       </tr>
 
-      {category.concepts.map((concept) => {
-        const metrics = getConceptPeriodMetrics(concept.concept_id);
-
-        return (
-          <tr key={concept.concept_id} style={{ borderTop: `1px solid ${theme.border}` }}>
-            <td className="real-detail-cell real-concept-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }} title={concept.concept}>
-              <span style={{ display: 'inline-block', maxWidth: '100%' }}>{concept.concept}</span>
-            </td>
-            <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
-              {formatCurrencyMXN(metrics.budget)}
-            </td>
-            <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('center'), color: theme.textBody }}>
-              {formatCurrencyMXN(metrics.actual)}
-            </td>
-            <td
-              className="real-detail-cell real-amount-cell"
-              style={{ ...getTableCellStyle('center'), color: getDeviationColor(metrics.deviation, theme.textBody) }}
-            >
-              {formatDeviationValue(metrics.deviation)}
-            </td>
-          </tr>
-        );
-      })}
+      {sortedConcepts.map(({ concept, metrics }) => (
+        <ConceptRows
+          key={concept.concept_id}
+          concept={concept}
+          isExpanded={expandedConceptId === concept.concept_id}
+          onToggle={() => setExpandedConceptId((previous) => previous === concept.concept_id ? null : concept.concept_id)}
+          categoryType={category.category_type}
+          metrics={metrics}
+          movementCache={movementCache}
+          movementRange={movementRange}
+          theme={theme}
+        />
+      ))}
     </>
   );
 }
 
-function getDeviationColor(value, fallbackColor) {
-  if (value > 0) return '#10B981';
-  if (value < 0) return '#EE1F28';
+function ConceptRows({ concept, isExpanded, onToggle, categoryType, metrics, movementCache, movementRange, theme }) {
+  const [detail, setDetail] = useState({ status: 'loading', movements: [] });
+  const hasActivity = Number(metrics.actual.toFixed(2)) !== 0;
+  const startDate = movementRange?.startDate;
+  const endDate = movementRange?.endDate;
+  const canExpand = hasActivity && Boolean(startDate && endDate);
+  const conceptId = concept.concept_id;
+
+  useEffect(() => {
+    if (!isExpanded || !canExpand) return;
+    let ignore = false;
+
+    // The page owns a fresh cache per period. Share pending requests as well as results.
+    loadConceptMovements(movementCache, conceptId, startDate, endDate)
+      .then((movements) => {
+        if (!ignore) setDetail({ status: 'ready', movements });
+      })
+      .catch(() => {
+        if (!ignore) setDetail({ status: 'error', movements: [] });
+      });
+
+    return () => { ignore = true; };
+  }, [isExpanded, canExpand, movementCache, conceptId, startDate, endDate]);
+
+  const toggleExpanded = () => {
+    if (!canExpand) return;
+    if (!isExpanded) setDetail({ status: 'loading', movements: [] });
+    onToggle();
+  };
+
+  return (
+    <>
+      <tr
+        className={`real-concept-row${canExpand ? ' is-expandable' : ''}${isExpanded && canExpand ? ' is-expanded' : ''}`}
+        onClick={canExpand ? toggleExpanded : undefined}
+        style={{ borderTop: `1px solid ${theme.border}` }}
+      >
+        <td className="real-detail-cell real-concept-cell" style={{ ...getTableCellStyle('left'), color: theme.textBody }} title={concept.concept}>
+          <span className="real-concept-label" style={{ display: 'inline-block', maxWidth: '100%' }}>
+            {canExpand ? (
+              <button
+                className="real-concept-toggle"
+                type="button"
+                aria-expanded={isExpanded}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  toggleExpanded();
+                }}
+              >
+                <i className={`bx bx-chevron-${isExpanded ? 'down' : 'right'}`} aria-hidden="true" />
+                {concept.concept}
+              </button>
+            ) : <span className="real-concept-static-label">{concept.concept}</span>}
+          </span>
+        </td>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('right'), color: theme.textBody }}>
+          {formatCurrencyMXN(metrics.budget)}
+        </td>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('right'), color: theme.textBody }}>
+          {formatCurrencyMXN(metrics.actual)}
+        </td>
+        <td className="real-detail-cell real-amount-cell" style={{ ...getTableCellStyle('right'), color: getDeviationColor(metrics.deviation, categoryType, theme.textBody) }}>
+          {formatDeviationValue(metrics.deviation)}
+        </td>
+      </tr>
+      {isExpanded && canExpand && (
+        <tr>
+          <td colSpan={4} className="real-movement-detail-cell" style={{ color: theme.textBody }}>
+            <div className="real-movement-container">
+              {detail.status === 'loading' && <p className="real-movement-status" role="status">Cargando movimientos...</p>}
+              {detail.status === 'error' && (
+                <p className="real-movement-status" role="alert">
+                  No se pudieron cargar los movimientos. Cierra y vuelve a abrir el concepto para reintentar.
+                </p>
+              )}
+              {detail.status === 'ready' && (detail.movements.length === 0 ? (
+                <p className="real-movement-status" role="status">No hay movimientos para este período.</p>
+              ) : (
+                <table className="real-movements-table" aria-label={`Movimientos de ${concept.concept}`}>
+                  <colgroup>
+                    <col className="real-movement-date-col" />
+                    <col />
+                    <col className="real-movement-account-col" />
+                    <col className="real-movement-amount-col" />
+                  </colgroup>
+                  <thead>
+                    <tr><th scope="col">Fecha</th><th scope="col">Descripción</th><th scope="col">Cuenta</th><th scope="col">Importe</th></tr>
+                  </thead>
+                  <tbody>
+                    {detail.movements.map((movement) => (
+                      <tr key={movement.id}>
+                        <td>{formatMovementDate(movement.date)}</td>
+                        <td title={movement.description?.trim() || undefined}>{movement.description?.trim() || '—'}</td>
+                        <td title={movement.account_alias?.trim() || undefined}>{movement.account_alias?.trim() || (movement.account_type !== 'Otro' && movement.account_type) || '—'}</td>
+                        <td>{formatCurrencyMXN(movement.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function getMovementDateRange(year, activeMonths) {
+  if (activeMonths.length === 0) return null;
+  const firstMonth = activeMonths[0];
+  const lastMonth = activeMonths[activeMonths.length - 1];
+  const lastDay = new Date(year, lastMonth, 0).getDate();
+  return {
+    startDate: `${year}-${String(firstMonth).padStart(2, '0')}-01`,
+    endDate: `${year}-${String(lastMonth).padStart(2, '0')}-${lastDay}`,
+  };
+}
+
+function formatMovementDate(date) {
+  const [, month, day] = String(date).split('-');
+  const monthName = monthOptions[Number(month) - 1];
+  return monthName && day ? `${day} ${monthName.slice(0, 3)}` : '—';
+}
+
+function loadConceptMovements(cache, conceptId, startDate, endDate) {
+  const key = `${startDate}:${endDate}:${conceptId}`;
+  if (!cache.has(key)) {
+    const params = new URLSearchParams({ concept_id: conceptId, start_date: startDate, end_date: endDate });
+    const request = authFetch(`${API_BASE_URL}/api/expenses?${params}`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Error fetching concept movements');
+        const movements = await response.json();
+        if (!Array.isArray(movements)) throw new Error('Invalid movements response');
+        return movements;
+      })
+      .catch((error) => {
+        cache.delete(key);
+        throw error;
+      });
+    cache.set(key, request);
+  }
+  return cache.get(key);
+}
+
+function normalizeDeviation(value) {
+  // Match currency precision so floating-point residue and negative zero stay neutral.
+  return Number(value.toFixed(2)) || 0;
+}
+
+function getDeviationColor(value, categoryType, fallbackColor) {
+  const deviation = normalizeDeviation(value);
+  if (deviation === 0) return fallbackColor;
+  if (categoryType === 'income') return deviation > 0 ? '#10B981' : '#EE1F28';
+  if (categoryType === 'expense') return deviation < 0 ? '#10B981' : '#EE1F28';
   return fallbackColor;
 }
 
 function formatDeviationValue(value) {
-  return value === 0 ? 'Sin cambios.' : formatCurrencyMXN(value);
+  const deviation = normalizeDeviation(value);
+  return `${deviation > 0 ? '+' : ''}${formatCurrencyMXN(deviation)}`;
 }
 
 export default RealVsBudgetPage;
