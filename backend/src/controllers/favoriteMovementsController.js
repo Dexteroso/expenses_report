@@ -5,7 +5,7 @@ const FavoriteMovement = require('../models/sequelize/FavoriteMovement');
 const { logActivity } = require('../utils/activityLogger');
 const { sanitizeTextValue } = require('../utils/validators');
 
-const MAX_FAVORITES_PER_USER = 5;
+const MAX_FAVORITES_PER_USER = 6;
 
 const normalizeText = (value, options) => sanitizeTextValue(value, options);
 
@@ -18,6 +18,7 @@ const validateFavoritePayload = ({
   concept_id,
   description,
   account_id,
+  amount,
 }) => {
   if (
     !normalizeText(emoji) ||
@@ -37,11 +38,19 @@ const validateFavoritePayload = ({
   }
 
   if (
-    !Number.isInteger(Number(category_id)) ||
-    !Number.isInteger(Number(concept_id)) ||
-    !Number.isInteger(Number(account_id))
+    !Number.isSafeInteger(Number(category_id)) || Number(category_id) <= 0 || typeof category_id === 'boolean' ||
+    !Number.isSafeInteger(Number(concept_id)) || Number(concept_id) <= 0 || typeof concept_id === 'boolean' ||
+    !Number.isSafeInteger(Number(account_id)) || Number(account_id) <= 0 || typeof account_id === 'boolean'
   ) {
     return 'Invalid favorite movement ids';
+  }
+
+  if (amount !== undefined && amount !== null && (
+    !['number', 'string'].includes(typeof amount) ||
+    !/^\d+(\.\d{1,2})?$/.test(String(amount)) ||
+    Number(amount) <= 0 || Number(amount) > 99999999.99
+  )) {
+    return 'amount must be null or a positive decimal with at most two decimal places (maximum 99999999.99)';
   }
 
   return '';
@@ -60,6 +69,8 @@ const formatFavoriteMovement = (favorite) => {
     concept_id: row.concept_id,
     description: row.description,
     account_id: row.account_id,
+    amount: row.amount == null ? null : Number(row.amount),
+    usage_count: Number(row.usage_count || 0),
     created_at: row.created_at,
   };
 };
@@ -101,6 +112,7 @@ const getFavoriteMovements = async (req, res) => {
         user_id: req.user.id,
       },
       order: [
+        ['usage_count', 'DESC'],
         ['created_at', 'ASC'],
         ['id', 'ASC'],
       ],
@@ -114,9 +126,20 @@ const getFavoriteMovements = async (req, res) => {
   }
 };
 
-const createFavoriteMovement = async (req, res) => {
+const saveFavoriteMovement = (isUpdate) => async (req, res) => {
   try {
     const userId = req.user.id;
+    let existingFavorite;
+    if (isUpdate) {
+      const id = Number(req.params.id);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        return res.status(400).json({ error: 'Invalid favorite movement id' });
+      }
+      existingFavorite = await FavoriteMovement.findOne({ where: { id, user_id: userId } });
+      if (!existingFavorite) {
+        return res.status(404).json({ error: 'Favorite movement not found' });
+      }
+    }
     const {
       emoji,
       alias,
@@ -126,6 +149,7 @@ const createFavoriteMovement = async (req, res) => {
       concept_id,
       description,
       account_id,
+      amount,
     } = req.body;
     const validationError = validateFavoritePayload({
       emoji,
@@ -136,13 +160,20 @@ const createFavoriteMovement = async (req, res) => {
       concept_id,
       description,
       account_id,
+      amount,
     });
 
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
-    const favoriteCount = await FavoriteMovement.count({
+    // Preserve an unchanged legacy alias; all new/changed aliases use the tile limit.
+    const normalizedAlias = normalizeText(alias);
+    if (normalizedAlias.length > 13 && normalizedAlias !== existingFavorite?.alias) {
+      return res.status(400).json({ error: 'Alias must be at most 13 characters' });
+    }
+
+    const favoriteCount = isUpdate ? 0 : await FavoriteMovement.count({
       where: {
         user_id: userId,
       },
@@ -156,7 +187,7 @@ const createFavoriteMovement = async (req, res) => {
     const normalizedConceptId = Number(concept_id);
     const normalizedAccountId = Number(account_id);
     const sanitizedEmoji = normalizeText(emoji, { maxLength: 16 });
-    const sanitizedAlias = normalizeText(alias, { maxLength: 40 });
+    const sanitizedAlias = normalizedAlias;
     const sanitizedColor = normalizeText(color, { maxLength: 20 });
     const sanitizedDescription = normalizeText(description, { maxLength: 255 });
 
@@ -189,7 +220,7 @@ const createFavoriteMovement = async (req, res) => {
       return res.status(400).json({ error: 'Invalid favorite movement references' });
     }
 
-    const favorite = await FavoriteMovement.create({
+    const values = {
       user_id: userId,
       emoji: sanitizedEmoji,
       alias: sanitizedAlias,
@@ -199,7 +230,12 @@ const createFavoriteMovement = async (req, res) => {
       concept_id: normalizedConceptId,
       description: sanitizedDescription,
       account_id: normalizedAccountId,
-    });
+      // Older clients omit amount; preserve an existing value when editing.
+      amount: amount === undefined ? (existingFavorite?.amount ?? null) : amount,
+    };
+    const favorite = isUpdate
+      ? await existingFavorite.update(values)
+      : await FavoriteMovement.create(values);
     const activityFavorite = await FavoriteMovement.findOne({
       where: {
         id: favorite.id,
@@ -216,28 +252,31 @@ const createFavoriteMovement = async (req, res) => {
 
     logActivity({
       user: req.user,
-      eventType: 'favorite.created',
+      eventType: isUpdate ? 'favorite.updated' : 'favorite.created',
       entityType: 'favorite',
       entityId: favorite.id,
-      description: 'Favorite movement created',
+      description: isUpdate ? 'Favorite movement updated' : 'Favorite movement created',
       metadata: buildFavoriteActivityMetadata(activityDetails),
     });
 
-    res.status(201).json({
-      message: 'Favorite movement created successfully',
+    res.status(isUpdate ? 200 : 201).json({
+      message: `Favorite movement ${isUpdate ? 'updated' : 'created'} successfully`,
       favorite: formatFavoriteMovement(favorite),
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Error creating favorite movement' });
+    res.status(500).json({ error: `Error ${isUpdate ? 'updating' : 'creating'} favorite movement` });
   }
 };
+
+const createFavoriteMovement = saveFavoriteMovement(false);
+const updateFavoriteMovement = saveFavoriteMovement(true);
 
 const deleteFavoriteMovement = async (req, res) => {
   try {
     const favoriteId = Number(req.params.id);
 
-    if (!Number.isInteger(favoriteId)) {
+    if (!Number.isSafeInteger(favoriteId) || favoriteId <= 0) {
       return res.status(400).json({ error: 'Invalid favorite movement id' });
     }
 
@@ -284,5 +323,6 @@ const deleteFavoriteMovement = async (req, res) => {
 module.exports = {
   getFavoriteMovements,
   createFavoriteMovement,
+  updateFavoriteMovement,
   deleteFavoriteMovement,
 };

@@ -7,18 +7,12 @@ import CurrencyInput from './ui/CurrencyInput';
 import DateInput from './DateInput';
 import PrimaryButton from './ui/PrimaryButton';
 
-const favoriteEmojis = ['😎', '🛒', '🍕', '🥑', '🍎', '🍔', '⛽', '☕', '🍿', '🛍️', '🏠', '🐶', '🚕', '💊', '🎵', '💳'];
-const favoriteColors = ['#ffffff', '#565294', '#9d9d9d', '#005496', '#2dafe6', '#23d2aa', '#ff7f43', '#f3f3f3', '#d9d2e9', '#f3f3f3', '#cfe2f3', '#d0e0e3', '#d9ead3', '#fce5cd'];
-
 function AddExpenseForm({
     selectedExpense,
     onExpenseCreated,
     onCancelEdit,
     onDeleteExpense,
-    favoriteMode = false,
     favoritePrefill,
-    onFavoriteModeChange,
-    onFavoriteSaved,
     onFavoritePrefillClear,
     onboardingActive = false,
 }) {
@@ -39,18 +33,11 @@ function AddExpenseForm({
     };
 
     const [formData, setFormData] = useState(initialForm);
-    const [favoriteMeta, setFavoriteMeta] = useState({
-        emoji: favoriteEmojis[0],
-        alias: '',
-        color: favoriteColors[0],
-    });
-    const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-    const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const submittingRef = useRef(false);
     const [validationMessage, setValidationMessage] = useState('');
     const [isFormHighlightActive, setIsFormHighlightActive] = useState(false);
     const [contextMessage, setContextMessage] = useState('');
-    const [isFavoriteMetaModalOpen, setIsFavoriteMetaModalOpen] = useState(false);
-    const [pendingFavoritePayload, setPendingFavoritePayload] = useState(null);
     const cardRef = useRef(null);
     const amountInputRef = useRef(null);
     const contextMessageTimerRef = useRef(null);
@@ -77,11 +64,6 @@ function AddExpenseForm({
         fontSize: 12,
         boxSizing: 'border-box',
     };
-    const isFavoriteMetaValid = Boolean(
-        favoriteMeta.emoji &&
-        favoriteMeta.alias.trim() &&
-        favoriteMeta.color
-    );
     const isExpenseValid = Boolean(
         formData.date &&
         formData.type &&
@@ -91,14 +73,6 @@ function AddExpenseForm({
         formData.account_id &&
         formData.amount > 0
     );
-    const isFavoriteDraftValid = Boolean(
-        formData.type &&
-        formData.category_id &&
-        formData.concept_id &&
-        formData.description.trim() &&
-        formData.account_id
-    );
-    const isFormValid = favoriteMode ? isFavoriteDraftValid : isExpenseValid;
     const hasClearableFormValues = Object.keys(initialForm).some(
         (field) => field !== 'type' && String(formData[field] ?? '') !== String(initialForm[field] ?? '')
     );
@@ -118,7 +92,7 @@ function AddExpenseForm({
 
         return [...options, account];
     }, []);
-    const isCardHighlighted = isFormHighlightActive || favoriteMode;
+    const isCardHighlighted = isFormHighlightActive;
 
     const showFormContextFeedback = (message) => {
         if (contextMessageTimerRef.current) {
@@ -154,7 +128,6 @@ function AddExpenseForm({
 
     const clearFormState = () => {
         setFormData(initialForm);
-        setConcepts([]);
         setValidationMessage('');
         setContextMessage('');
         setIsFormHighlightActive(false);
@@ -180,17 +153,21 @@ function AddExpenseForm({
     }, []);
 
     useEffect(() => {
+        // Options belong to the category, not to an individual template prefill.
+        setConcepts([]);
         if (!formData.category_id) return;
+        let active = true;
 
         fetch(`${API_BASE_URL}/api/concepts?category_id=${formData.category_id}`)
             .then((response) => response.json())
-            .then((data) => setConcepts(data));
+            .then((data) => { if (active) setConcepts(data); })
+            .catch((error) => { if (active) console.error('Error fetching concepts:', error); });
+        return () => { active = false; };
     }, [formData.category_id]);
 
     useEffect(() => {
         if (!selectedExpense) {
             setFormData(initialForm);
-            setConcepts([]);
             return;
         }
 
@@ -217,25 +194,12 @@ function AddExpenseForm({
             category_id: favoritePrefill.category_id || '',
             concept_id: favoritePrefill.concept_id || '',
             description: favoritePrefill.description || '',
-            amount: 0,
+            amount: Number(favoritePrefill.amount) || 0,
             account_id: favoritePrefill.account_id || '',
         });
-        setConcepts([]);
         setValidationMessage('');
         showFormContextFeedback(`Frecuente “${favoritePrefill.alias || 'frecuente'}” cargado`);
     }, [favoritePrefill]);
-
-    useEffect(() => {
-        if (!favoriteMode) return;
-
-        setFormData((prev) => ({
-            ...prev,
-            date: '',
-            amount: 0,
-        }));
-        setValidationMessage('');
-        setIsFormHighlightActive(false);
-    }, [favoriteMode]);
 
     useEffect(() => {
         if (!onboardingActive) return;
@@ -270,47 +234,17 @@ function AddExpenseForm({
     const handleChange = (event) => {
         const { name, value } = event.target;
 
-        setFormData({
-            ...formData,
+        setFormData((previous) => ({
+            ...previous,
             [name]: value,
-        });
-
-        if (validationMessage) {
-            setValidationMessage('');
-        }
-    };
-
-    const handleFavoriteMetaChange = (field, value) => {
-        setFavoriteMeta((prev) => ({
-            ...prev,
-            [field]: value,
+            ...(name === 'category_id' && String(previous.category_id) !== String(value)
+                ? { concept_id: '' } : {}),
+            ...(name === 'type' && previous.type !== value
+                ? { category_id: '', concept_id: '' } : {}),
         }));
-        if (field === 'emoji') {
-            setIsEmojiPickerOpen(false);
-        }
-        if (field === 'color') {
-            setIsColorPickerOpen(false);
-        }
 
         if (validationMessage) {
             setValidationMessage('');
-        }
-    };
-
-    const handleCancelFavoriteMode = () => {
-        setFavoriteMeta({
-            emoji: favoriteEmojis[0],
-            alias: '',
-            color: favoriteColors[0],
-        });
-        setIsEmojiPickerOpen(false);
-        setIsColorPickerOpen(false);
-        setIsFavoriteMetaModalOpen(false);
-        setPendingFavoritePayload(null);
-        setValidationMessage('');
-
-        if (onFavoriteModeChange) {
-            onFavoriteModeChange(false);
         }
     };
 
@@ -325,82 +259,11 @@ function AddExpenseForm({
             onFavoritePrefillClear();
         }
 
-        if (favoriteMode && onFavoriteModeChange) {
-            onFavoriteModeChange(false);
-        }
-    };
-
-    const resetFavoriteMeta = () => {
-        setFavoriteMeta({
-            emoji: favoriteEmojis[0],
-            alias: '',
-            color: favoriteColors[0],
-        });
-        setIsEmojiPickerOpen(false);
-        setIsColorPickerOpen(false);
-    };
-
-    const handleSaveFavoriteMetadata = async () => {
-        if (!pendingFavoritePayload || !isFavoriteMetaValid) {
-            setValidationMessage('Completa los datos del movimiento frecuente.');
-            return;
-        }
-
-        const response = await authFetch(`${API_BASE_URL}/api/favorite-movements`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                emoji: favoriteMeta.emoji,
-                alias: favoriteMeta.alias.trim(),
-                color: favoriteMeta.color,
-                ...pendingFavoritePayload,
-            }),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-            setValidationMessage(data.error || 'No se pudo guardar el movimiento frecuente.');
-            return;
-        }
-
-        clearFormState();
-        resetFavoriteMeta();
-        setIsFavoriteMetaModalOpen(false);
-        setPendingFavoritePayload(null);
-
-        if (onFavoriteSaved) {
-            onFavoriteSaved();
-        }
-
-        if (onFavoriteModeChange) {
-            onFavoriteModeChange(false);
-        }
-
-        showFormContextFeedback('Movimiento frecuente guardado correctamente.');
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-
-        if (favoriteMode) {
-            if (!isFavoriteDraftValid) {
-                setValidationMessage('Completa los campos obligatorios para guardar el frecuente.');
-                return;
-            }
-
-            setValidationMessage('');
-            setPendingFavoritePayload({
-                type: formData.type,
-                category_id: formData.category_id,
-                concept_id: formData.concept_id,
-                description: formData.description.trim(),
-                account_id: formData.account_id,
-            });
-            setIsFavoriteMetaModalOpen(true);
-            return;
-        }
+        if (submittingRef.current) return;
 
         if (
             !formData.date ||
@@ -436,29 +299,37 @@ function AddExpenseForm({
 
         const method = selectedExpense ? 'PUT' : 'POST';
 
-        const response = await authFetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
+        submittingRef.current = true;
+        setIsSubmitting(true);
+        try {
+            const response = await authFetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                setValidationMessage(data.error || 'No se pudo guardar el movimiento.');
+                return;
+            }
 
-        const data = await response.json();
-        console.log(data);
-
-        setFormData(initialForm);
-        setConcepts([]);
-
-        if (onExpenseCreated) {
-            onExpenseCreated();
+            setFormData(initialForm);
+            onFavoritePrefillClear?.();
+            onExpenseCreated?.({ sourceFavoriteId: payload.source_favorite_id });
+        } catch (error) {
+            console.error('Error saving movement:', error);
+            setValidationMessage('No se pudo guardar el movimiento. Intenta de nuevo.');
+        } finally {
+            submittingRef.current = false;
+            setIsSubmitting(false);
         }
+
     };
 
     return (
         <div
             ref={cardRef}
-            className={`responsive-card expense-form-card ${favoriteMode ? 'is-favorite-target' : ''}`}
+            className="responsive-card expense-form-card"
             style={{
                 position: 'sticky',
                 top: '16px',
@@ -486,7 +357,8 @@ function AddExpenseForm({
                 </h2>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} aria-busy={isSubmitting}>
+                <fieldset disabled={isSubmitting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                 <div className="expense-type-segment" role="group" aria-label="Tipo de movimiento">
                     <button
                         type="button"
@@ -514,15 +386,14 @@ function AddExpenseForm({
                         flexWrap: 'wrap',
                     }}
                 >
-                    <div className={`responsive-field expense-field-date ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
+                    <div className="responsive-field expense-field-date" style={fieldStyle}>
                             <label style={labelStyle}>Fecha</label>
                             <DateInput
                                 name="date"
                                 value={formData.date}
                                 onChange={(value) => handleChange({ target: { name: 'date', value } })}
-                                placeholder={favoriteMode ? 'Se define al usar' : 'Selecciona fecha'}
-                                required={!favoriteMode}
-                                disabled={favoriteMode}
+                                placeholder="Selecciona fecha"
+                                required
                                 style={inputStyle}
                             />
                     </div>
@@ -566,19 +437,18 @@ function AddExpenseForm({
                     </div>
 
                     <div className="responsive-field expense-field-description" style={fieldStyle}>
-                            <label style={labelStyle}>Descripción {!favoriteMode && <span>(opcional)</span>}</label>
+                            <label style={labelStyle}>Descripción <span>(opcional)</span></label>
                             <input
                                 type="text"
                                 name="description"
                                 value={formData.description}
                                 onChange={handleChange}
-                                required={favoriteMode}
                                 style={inputStyle}
                                 placeholder="Súper, Amazon, etc."
                             />
                     </div>
 
-                    <div className={`responsive-field expense-field-amount ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
+                    <div className="responsive-field expense-field-amount" style={fieldStyle}>
                             <label style={labelStyle}>Cantidad</label>
                             <CurrencyInput
                                 name="amount"
@@ -589,8 +459,7 @@ function AddExpenseForm({
                                     setValidationMessage('');
                                 }}
                                 aria-label="Cantidad"
-                                required={!favoriteMode}
-                                disabled={favoriteMode}
+                                required
                                 style={inputStyle}
                             />
                     </div>
@@ -615,7 +484,7 @@ function AddExpenseForm({
                 </div>
 
                 <div
-                    className={`form-actions ${selectedExpense || favoriteMode ? 'expense-edit-actions' : ''}`}
+                    className={`form-actions ${selectedExpense ? 'expense-edit-actions' : ''}`}
                     style={{
                         display: 'flex',
                         gap: 10,
@@ -642,16 +511,6 @@ function AddExpenseForm({
                         </PrimaryButton>
                     )}
 
-                    {favoriteMode && !selectedExpense && (
-                        <PrimaryButton
-                            type="button"
-                            variant="secondary"
-                            onClick={handleCancelFavoriteMode}
-                        >
-                            Cancelar
-                        </PrimaryButton>
-                    )}
-
                     {!selectedExpense && (
                         <PrimaryButton
                             type="button"
@@ -666,9 +525,9 @@ function AddExpenseForm({
 
                     <PrimaryButton
                         type="submit"
-                        disabled={!isFormValid}
+                        disabled={isSubmitting || !isExpenseValid}
                     >
-                        {selectedExpense ? 'Guardar' : favoriteMode ? 'Guardar' : 'Agregar'}
+                        {selectedExpense ? 'Guardar' : 'Agregar'}
                     </PrimaryButton>
                 </div>
 
@@ -678,6 +537,7 @@ function AddExpenseForm({
                     </p>
                 )}
 
+                </fieldset>
             </form>
             {contextMessage && (
                 <div className="expense-form-context-toast" role="status" aria-live="polite">
@@ -686,110 +546,7 @@ function AddExpenseForm({
                 </div>
             )}
 
-            {isFavoriteMetaModalOpen && (
-                <div className="favorite-delete-overlay favorite-meta-overlay" role="dialog" aria-modal="true">
-                    <div className="favorite-delete-modal favorite-meta-modal">
-                        <h3>Configurar frecuente</h3>
-                        <div className="favorite-form-panel favorite-modal-panel">
-                            <div className="favorite-form-field favorite-selector-field">
-                                <label style={labelStyle}>Icono</label>
-                                <div className="favorite-picker-wrap">
-                                    <button
-                                        type="button"
-                                        className="favorite-selector-button favorite-emoji-selector"
-                                        onClick={() => {
-                                            setIsEmojiPickerOpen((prev) => !prev);
-                                            setIsColorPickerOpen(false);
-                                        }}
-                                        aria-expanded={isEmojiPickerOpen}
-                                        aria-label="Seleccionar emoji"
-                                    >
-                                        {favoriteMeta.emoji}
-                                    </button>
-                                    {isEmojiPickerOpen && (
-                                        <div className="favorite-picker-popover favorite-emoji-grid">
-                                            {favoriteEmojis.map((emoji) => (
-                                                <button
-                                                    type="button"
-                                                    key={emoji}
-                                                    className={`favorite-emoji-choice ${favoriteMeta.emoji === emoji ? 'is-selected' : ''}`}
-                                                    onClick={() => handleFavoriteMetaChange('emoji', emoji)}
-                                                    aria-label={`Usar emoji ${emoji}`}
-                                                >
-                                                    {emoji}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
 
-                            <div className="favorite-form-field favorite-alias-field">
-                                <label style={labelStyle}>Alias</label>
-                                <input
-                                    type="text"
-                                    value={favoriteMeta.alias}
-                                    onChange={(event) => handleFavoriteMetaChange('alias', event.target.value)}
-                                    maxLength={40}
-                                    placeholder="Nombre del frecuente"
-                                    style={inputStyle}
-                                />
-                            </div>
-
-                            <div className="favorite-form-field favorite-selector-field">
-                                <label style={labelStyle}>Color</label>
-                                <div className="favorite-picker-wrap">
-                                    <button
-                                        type="button"
-                                        className="favorite-selector-button favorite-color-selector"
-                                        onClick={() => {
-                                            setIsColorPickerOpen((prev) => !prev);
-                                            setIsEmojiPickerOpen(false);
-                                        }}
-                                        aria-expanded={isColorPickerOpen}
-                                        aria-label="Seleccionar color"
-                                    >
-                                        <span style={{ background: favoriteMeta.color }} />
-                                    </button>
-                                    {isColorPickerOpen && (
-                                        <div className="favorite-picker-popover favorite-color-grid">
-                                            {favoriteColors.map((color) => (
-                                                <button
-                                                    type="button"
-                                                    key={color}
-                                                    className={`favorite-color-choice ${favoriteMeta.color === color ? 'is-selected' : ''}`}
-                                                    onClick={() => handleFavoriteMetaChange('color', color)}
-                                                    aria-label={`Usar color ${color}`}
-                                                    style={{ background: color }}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="favorite-delete-actions">
-                            <PrimaryButton
-                                type="button"
-                                variant="secondary"
-                                onClick={() => {
-                                    setIsFavoriteMetaModalOpen(false);
-                                    setPendingFavoritePayload(null);
-                                }}
-                            >
-                                Cancelar
-                            </PrimaryButton>
-                            <PrimaryButton
-                                type="button"
-                                onClick={handleSaveFavoriteMetadata}
-                                disabled={!isFavoriteMetaValid}
-                            >
-                                Guardar
-                            </PrimaryButton>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

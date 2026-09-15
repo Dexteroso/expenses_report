@@ -428,3 +428,76 @@ La próxima versión del proyecto buscará reducir deuda técnica, simplificar e
 - Mejorar automatización de despliegue.
 - Seguir mejorando la experiencia móvil.
 - Agregar onboarding y ayuda dentro de la app.
+
+
+### Frequent templates — Sprint 1
+
+Apply `backend/sql/favorite_templates_foundation_migration.sql` to an existing
+MySQL database **before starting the updated backend** (after the original
+favorite-movements migration if the table does not exist). It is safe to rerun;
+existing templates retain their IDs and fields, receive `amount = NULL` and
+`usage_count = 0`. Fresh databases use the updated `backend/sql/init.sql`.
+
+`POST /api/favorite-movements` creates an independent template and
+`PUT /api/favorite-movements/:id` edits one owned by the authenticated user.
+Both accept `type`, `category_id`, `concept_id`, `description`, `amount`,
+`account_id`, `emoji`, `alias`, and `color`. PUT requires the same fields as POST.
+Amount is a positive decimal (up to 99999999.99, at most two decimal places),
+or null to enter an amount when used. Legacy POST requests may omit amount;
+PUT omission preserves the stored amount. Responses include numeric `amount`
+(or null) and read-only `usage_count`. Accounts must be active and owned by the
+user; concept/category/type must agree. Six templates are allowed per user.
+No historical movement is required or changed by template CRUD.
+
+`usage_count` is a persistent unsigned lifetime counter, protected from template
+writes. Sprint 1 introduced its storage without backfilling activity logs.
+Sprint 3 now tracks successful uses and ranks the results as described below.
+
+
+### Frequent templates — Sprint 2
+
+`FavoriteMovementForm` is the shared create/edit dialog. It writes only to the
+favorite-movements API; the normal movement form stays mounted to preserve drafts.
+All nine template fields are preloaded into a local copy. `$0.00` is represented
+by `amount: null` for variable amounts; using a template prefills its stored
+amount while keeping the existing normal movement date behavior.
+
+“Editar frecuentes” switches tile clicks from use to edit. Delete is inside the
+editor and uses the movement destructive-dialog styles. Canceling confirmation
+keeps the editing session and unsaved draft open. Successful save/delete closes
+the editor and refreshes the six slots. Template editing preserves usage counts. The old personalization popup and floating delete buttons are removed.
+
+Run frontend interaction/currency checks with `cd frontend && npm test`.
+DOM tests cover CRUD routing, preloading, dependencies, cancel, failure recovery,
+and edit-mode tile behavior; browser layout and native-dialog focus behavior
+still require desktop/tablet/mobile checks in a connected browser.
+
+
+### Frequent templates — Sprint 3
+
+The existing `favoritePrefill.id` identifies the draft origin, independently of
+its editable fields. AddExpenseForm sends it as `source_favorite_id` only on
+movement POST. Clearing the form, switching to history editing, and successful
+saving remove it. Selecting another template replaces it. Failed saves retain
+the draft and origin; concurrent submissions are blocked until completion.
+
+After `Expense.create` commits, `createExpense` performs one atomic Sequelize
+`FavoriteMovement.increment('usage_count', { by: 1, where: { id, user_id } })`.
+This updates only the authenticated user's existing template. No other endpoint
+increments it; history edits/deletions never decrement it. Existing counts are
+preserved, with no monthly/yearly reset or inferred historical backfill.
+
+Movement persistence is the primary operation. The existing backend uses
+autocommit, so tracking runs afterward in the same request. A metric failure
+logs a warning with movement/template/user IDs and returns HTTP 201 with
+`usage_tracking_failed: true`. It never rolls back the movement or asks the UI
+to retry creation. No automatic metric retry is performed (an ambiguous database
+failure could have committed the increment); such failures can leave an undercount.
+Follow-up metadata/onboarding failures likewise do not turn a committed movement
+into a failed save response.
+
+The backend orders templates by `usage_count DESC, created_at ASC, id ASC`.
+The card renders this order directly. On successful template-origin creation,
+the existing refresh key triggers a refetch before showing the new ranking;
+there is no optimistic/client-side sort, page reload, counter UI, or new migration.
+The six-slot create/edit/delete experience remains unchanged.

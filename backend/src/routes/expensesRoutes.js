@@ -137,6 +137,9 @@ router.get('/', getExpenses);
  *                 type: number
  *               account_id:
  *                 type: integer
+ *               source_favorite_id:
+ *                 type: integer
+ *                 description: Optional originating template ID. Successful creation atomically increments the owning user's template lifetime count; edited draft fields do not change the origin.
  *           example:
  *             date: 2026-05-01
  *             type: expense
@@ -147,7 +150,7 @@ router.get('/', getExpenses);
  *             account_id: 2
  *     responses:
  *       201:
- *         description: Expense created
+ *         description: Expense created. If optional usage tracking fails, this still returns 201 with usage_tracking_failed true; do not retry movement creation.
  *         content:
  *           application/json:
  *             example:

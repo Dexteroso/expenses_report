@@ -4,6 +4,7 @@ import { Routes, Route, NavLink, useLocation, Navigate, useNavigate } from 'reac
 import ExpensesTable from './components/ExpensesTable';
 import AccountsPage from './components/AccountsPage';
 import AddExpenseForm from './components/AddExpenseForm';
+import FavoriteMovementForm from './components/FavoriteMovementForm';
 import FavoriteMovementsCard from './components/FavoriteMovementsCard';
 import BudgetPage from './components/BudgetPage';
 import RealVsBudgetPage from './components/RealVsBudgetPage';
@@ -31,13 +32,13 @@ function formatMovementDeleteDate(value) {
   }).format(date);
 }
 
-function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, onOnboardingDashboard }) {
+export function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, onOnboardingDashboard }) {
   const theme = lightTheme;
   const hasCompletedOnboarding = Boolean(getUser()?.onboarding_completed);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
-  const [favoriteMode, setFavoriteMode] = useState(false);
-  const [selectedFavoriteSlotIndex, setSelectedFavoriteSlotIndex] = useState(null);
+  const [favoriteEditor, setFavoriteEditor] = useState(null);
+  const [isFavoriteEditMode, setIsFavoriteEditMode] = useState(false);
   const [favoritePrefill, setFavoritePrefill] = useState(null);
   const [favoriteRefreshKey, setFavoriteRefreshKey] = useState(0);
   const [isMovementOnboardingActive, setIsMovementOnboardingActive] = useState(
@@ -81,7 +82,8 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
     setSelectedExpense(null);
   };
 
-  const handleExpenseSaved = () => {
+  const handleExpenseSaved = ({ sourceFavoriteId } = {}) => {
+    if (sourceFavoriteId) setFavoriteRefreshKey((prev) => prev + 1);
     if (isMovementOnboardingActive || isMovementOnboardingReady) {
       markOnboardingCompleted();
       setIsMovementOnboardingActive(false);
@@ -90,8 +92,6 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
     }
 
     setSelectedExpense(null);
-    setFavoriteMode(false);
-    setSelectedFavoriteSlotIndex(null);
     setFavoritePrefill(null);
     onExpenseCreated();
   };
@@ -101,37 +101,21 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
     setIsMovementOnboardingReady(true);
   };
 
-  const handleFavoriteModeChange = (nextFavoriteMode) => {
-    setFavoriteMode(nextFavoriteMode);
-
-    if (!nextFavoriteMode) {
-      setSelectedFavoriteSlotIndex(null);
-    }
-  };
-
-  const handleCreateFavorite = (slotIndex) => {
-    setSelectedExpense(null);
-    setFavoritePrefill(null);
-    setFavoriteMode(true);
-    setSelectedFavoriteSlotIndex(slotIndex);
-  };
+  const handleCreateFavorite = () => setFavoriteEditor({ template: null });
 
   const handleEditExpense = (expense) => {
-    setFavoriteMode(false);
-    setSelectedFavoriteSlotIndex(null);
     setFavoritePrefill(null);
     setSelectedExpense(expense);
   };
 
   const handleFavoriteSaved = () => {
+    setIsFavoriteEditMode(false);
     setFavoriteRefreshKey((prev) => prev + 1);
-    setSelectedFavoriteSlotIndex(null);
+    setFavoriteEditor(null);
   };
 
   const handleApplyFavorite = (favorite) => {
     setSelectedExpense(null);
-    setFavoriteMode(false);
-    setSelectedFavoriteSlotIndex(null);
     setFavoritePrefill({
       id: favorite.id,
       alias: favorite.alias,
@@ -141,6 +125,7 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
       concept_id: favorite.concept_id,
       description: favorite.description,
       account_id: favorite.account_id,
+      amount: favorite.amount,
     });
   };
 
@@ -222,21 +207,28 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
           onExpenseCreated={handleExpenseSaved}
           onCancelEdit={handleCancelEdit}
           onDeleteExpense={handleRequestDeleteExpense}
-          favoriteMode={favoriteMode}
           favoritePrefill={favoritePrefill}
-          onFavoriteModeChange={handleFavoriteModeChange}
-          onFavoriteSaved={handleFavoriteSaved}
           onFavoritePrefillClear={() => setFavoritePrefill(null)}
           onboardingActive={isMovementOnboardingReady}
         />
 
         <FavoriteMovementsCard
+          isEditMode={isFavoriteEditMode}
+          onEditModeChange={setIsFavoriteEditMode}
           refreshKey={favoriteRefreshKey}
           onApplyFavorite={handleApplyFavorite}
           onCreateFavorite={handleCreateFavorite}
-          selectedSlotIndex={selectedFavoriteSlotIndex}
+          onEditFavorite={(template) => setFavoriteEditor({ template })}
         />
       </div>
+
+      {favoriteEditor && (
+        <FavoriteMovementForm
+          template={favoriteEditor.template}
+          onCancel={() => setFavoriteEditor(null)}
+          onSaved={handleFavoriteSaved}
+        />
+      )}
 
       <ExpensesTable
         refreshExpenses={refreshExpenses}

@@ -380,40 +380,65 @@ const createExpense = async (req, res) => {
             account_id,
         });
 
-        const activityDetails = await getExpenseActivityDetails(expense.id, userId);
-        const favoriteDetails = await getFavoriteActivityDetails(source_favorite_id, userId);
+        // Expense.create has committed. Metrics must never turn this saved
+        // movement into an API failure that encourages a duplicate retry.
+        let usageTrackingFailed = false;
+        if (isIntegerValue(source_favorite_id) && Number(source_favorite_id) > 0) {
+            try {
+                await FavoriteMovement.increment('usage_count', {
+                    by: 1,
+                    where: { id: Number(source_favorite_id), user_id: userId },
+                });
+            } catch (error) {
+                usageTrackingFailed = true;
+                console.warn('Favorite usage tracking failed after expense creation:', {
+                    expenseId: expense.id, favoriteId: source_favorite_id, userId,
+                    error: error.message,
+                });
+            }
+        }
 
-        await markUserOnboardingCompleted(userId);
+        try {
+            const activityDetails = await getExpenseActivityDetails(expense.id, userId);
+            const favoriteDetails = await getFavoriteActivityDetails(source_favorite_id, userId);
 
-        logActivity({
-            user: req.user,
-            eventType: 'expense.created',
-            entityType: 'expense',
-            entityId: expense.id,
-            description: 'Expense created',
-            metadata: {
-                expenseCode,
-                categoryName: activityDetails.category,
-                conceptName: activityDetails.concept,
-                amount: normalizedAmount,
-                accountAlias: activityDetails.account_alias,
-                description: sanitizedDescription,
-                date,
-                type,
-            },
-        });
+            await markUserOnboardingCompleted(userId);
 
-        if (favoriteDetails) {
             logActivity({
                 user: req.user,
-                eventType: 'favorite.used',
-                entityType: 'favorite',
-                entityId: Number(favoriteDetails.id),
-                description: 'Favorite movement used',
-                metadata: buildFavoriteActivityMetadata(favoriteDetails, {
-                    id: expense.id,
-                    expense_code: expenseCode,
-                }),
+                eventType: 'expense.created',
+                entityType: 'expense',
+                entityId: expense.id,
+                description: 'Expense created',
+                metadata: {
+                    expenseCode,
+                    categoryName: activityDetails.category,
+                    conceptName: activityDetails.concept,
+                    amount: normalizedAmount,
+                    accountAlias: activityDetails.account_alias,
+                    description: sanitizedDescription,
+                    date,
+                    type,
+                },
+            });
+
+            if (favoriteDetails) {
+                logActivity({
+                    user: req.user,
+                    eventType: 'favorite.used',
+                    entityType: 'favorite',
+                    entityId: Number(favoriteDetails.id),
+                    description: 'Favorite movement used',
+                    metadata: buildFavoriteActivityMetadata(favoriteDetails, {
+                        id: expense.id,
+                        expense_code: expenseCode,
+                    }),
+                });
+            }
+
+        } catch (error) {
+            console.warn('Expense saved but follow-up metadata/onboarding failed:', {
+                expenseId: expense.id, error: error.message,
             });
         }
 
@@ -421,6 +446,7 @@ const createExpense = async (req, res) => {
             message: 'Expense created successfully',
             expense_id: expense.id,
             expense_code: expenseCode,
+            ...(usageTrackingFailed ? { usage_tracking_failed: true } : {}),
         });
     } catch (error) {
         console.error(error);

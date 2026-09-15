@@ -5,65 +5,34 @@ import { API_BASE_URL } from '../utils/api';
 import { typography } from '../styles/typography';
 import PrimaryButton from './ui/PrimaryButton';
 
-function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite, selectedSlotIndex = null }) {
+function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite, onEditFavorite, isEditMode, onEditModeChange }) {
   const theme = lightTheme;
   const [favorites, setFavorites] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [favoriteToDelete, setFavoriteToDelete] = useState(null);
-
-  const fetchFavorites = async () => {
-    setIsLoading(true);
-    setMessage('');
-
-    try {
-      const response = await authFetch(`${API_BASE_URL}/api/favorite-movements`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(data.error || 'No se pudieron cargar los frecuentes.');
-        return;
-      }
-
-      setFavorites(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-      setMessage('No se pudieron cargar los frecuentes.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchFavorites();
-  }, [refreshKey]);
-
-  const handleDelete = async () => {
-    if (!favoriteToDelete) return;
-
-    try {
-      const response = await authFetch(`${API_BASE_URL}/api/favorite-movements/${favoriteToDelete.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
+    let active = true;
+    const fetchFavorites = async () => {
+      try {
+        const response = await authFetch(`${API_BASE_URL}/api/favorite-movements`);
         const data = await response.json();
-        setMessage(data.error || 'No se pudo eliminar el frecuente.');
-        return;
+        if (!active) return;
+        if (!response.ok) throw new Error(data.error || 'No se pudieron cargar los frecuentes.');
+        setFavorites(Array.isArray(data) ? data : []);
+        setMessage('');
+      } catch (error) {
+        if (active) setMessage(error.message || 'No se pudieron cargar los frecuentes.');
+      } finally {
+        if (active) setIsLoading(false);
       }
-
-      setFavoriteToDelete(null);
-      await fetchFavorites();
-    } catch (error) {
-      console.error(error);
-      setMessage('No se pudo eliminar el frecuente.');
-    }
-  };
+    };
+    fetchFavorites();
+    return () => { active = false; };
+  }, [refreshKey]);
 
   const favoriteSlots = Array.from({ length: 6 }, (_, index) => favorites[index] || null);
   const firstEmptySlotIndex = favorites.length < 6 ? favorites.length : -1;
-  const deleteAlias = favoriteToDelete?.alias || 'este frecuente';
 
   return (
     <section
@@ -109,11 +78,10 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite, 
                     type="button"
                     className="favorite-movement-slot"
                     onClick={() => {
-                      if (!isEditMode) {
-                        onApplyFavorite(favorite);
-                      }
+                      if (isEditMode) onEditFavorite(favorite);
+                      else onApplyFavorite(favorite);
                     }}
-                    aria-label={`Usar movimiento frecuente ${favorite.alias}`}
+                    aria-label={`${isEditMode ? 'Editar' : 'Usar'} movimiento frecuente ${favorite.alias}`}
                     style={{
                       color: favorite.color,
                       '--favorite-color': favorite.color,
@@ -132,20 +100,6 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite, 
                       {favorite.alias}
                     </span>
                   </button>
-                  {isEditMode && (
-                    <button
-                      type="button"
-                      className="favorite-movement-delete"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setFavoriteToDelete(favorite);
-                      }}
-                      aria-label={`Eliminar movimiento frecuente ${favorite.alias}`}
-                      title="Eliminar frecuente"
-                    >
-                      <i className="bx bx-x"></i>
-                    </button>
-                  )}
                 </>
               ) : (() => {
                 const canCreateFavorite = index === firstEmptySlotIndex;
@@ -153,7 +107,7 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite, 
                 return (
                 <button
                   type="button"
-                  className={`favorite-movement-slot favorite-movement-empty-slot ${canCreateFavorite ? '' : 'is-placeholder'} ${selectedSlotIndex === index ? 'is-selected' : ''}`}
+                  className={`favorite-movement-slot favorite-movement-empty-slot ${canCreateFavorite ? '' : 'is-placeholder'}`}
                   onClick={() => {
                     if (canCreateFavorite) {
                       onCreateFavorite(index);
@@ -181,38 +135,14 @@ function FavoriteMovementsCard({ refreshKey, onApplyFavorite, onCreateFavorite, 
           type="button"
           variant="secondary"
           className="favorite-edit-toggle"
-          onClick={() => setIsEditMode((prev) => !prev)}
-          disabled={isLoading || favorites.length === 0}
+          aria-pressed={isEditMode}
+          onClick={() => onEditModeChange(!isEditMode)}
+          disabled={isLoading || (favorites.length === 0 && !isEditMode)}
         >
-          {isEditMode ? 'Listo' : 'Editar frecuentes'}
+          {isEditMode ? 'Cancelar' : 'Editar frecuentes'}
         </PrimaryButton>
       </div>
 
-      {favoriteToDelete && (
-        <div className="favorite-delete-overlay" role="dialog" aria-modal="true">
-          <div className="favorite-delete-modal">
-            <p className="favorite-delete-message">
-              Eliminar “{deleteAlias}” de frecuentes?
-            </p>
-            <div className="favorite-delete-actions">
-              <PrimaryButton
-                type="button"
-                variant="danger"
-                onClick={handleDelete}
-              >
-                Eliminar
-              </PrimaryButton>
-              <PrimaryButton
-                type="button"
-                variant="secondary"
-                onClick={() => setFavoriteToDelete(null)}
-              >
-                Cancelar
-              </PrimaryButton>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

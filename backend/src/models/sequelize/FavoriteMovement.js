@@ -49,6 +49,16 @@ const FavoriteMovement = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: null,
+    },
+    usage_count: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+    },
     created_at: {
       type: DataTypes.DATE,
     },

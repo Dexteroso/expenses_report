@@ -108,6 +108,8 @@ CREATE TABLE IF NOT EXISTS favorite_movements (
   concept_id INT NOT NULL,
   description VARCHAR(255) NOT NULL,
   account_id INT NOT NULL,
+  amount DECIMAL(10,2) NULL DEFAULT NULL,
+  usage_count INT UNSIGNED NOT NULL DEFAULT 0,
   created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY user_id (user_id),

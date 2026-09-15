@@ -3,6 +3,7 @@ const { authMiddleware } = require('../middleware/authMiddleware');
 const {
   getFavoriteMovements,
   createFavoriteMovement,
+  updateFavoriteMovement,
   deleteFavoriteMovement,
 } = require('../controllers/favoriteMovementsController');
 
@@ -15,13 +16,13 @@ router.use(authMiddleware);
  * /api/favorite-movements:
  *   get:
  *     summary: Get favorite movement presets
- *     description: Returns up to five favorite movement presets for the authenticated user.
+ *     description: Returns up to six favorite movement presets for the authenticated user.
  *     tags: [Favorite Movements]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of favorite movement presets ordered by creation time
+ *         description: List of favorite movement presets ordered by lifetime usage descending, then creation time and ID ascending
  *         content:
  *           application/json:
  *             schema:
@@ -57,6 +58,13 @@ router.use(authMiddleware);
  *                   account_id:
  *                     type: integer
  *                     example: 2
+ *                   amount:
+ *                     type: number
+ *                     nullable: true
+ *                   usage_count:
+ *                     type: integer
+ *                     readOnly: true
+ *                     description: Lifetime count of successfully created movements from this template.
  *                   created_at:
  *                     type: string
  *                     format: date-time
@@ -88,7 +96,7 @@ router.get('/', getFavoriteMovements);
  * /api/favorite-movements:
  *   post:
  *     summary: Create favorite movement preset
- *     description: Creates a reusable movement preset for the authenticated user. Amount is intentionally not stored.
+ *     description: Creates a reusable movement preset for the authenticated user. Amount is optional for legacy clients; null means it is entered when used. No historical movement is required.
  *     tags: [Favorite Movements]
  *     security:
  *       - bearerAuth: []
@@ -105,7 +113,7 @@ router.get('/', getFavoriteMovements);
  *                 example: 🚕
  *               alias:
  *                 type: string
- *                 maxLength: 40
+ *                 maxLength: 13
  *                 example: Uber
  *               color:
  *                 type: string
@@ -125,6 +133,12 @@ router.get('/', getFavoriteMovements);
  *                 type: string
  *                 maxLength: 255
  *                 example: Uber
+ *               amount:
+ *                 type: number
+ *                 nullable: true
+ *                 minimum: 0.01
+ *                 maximum: 99999999.99
+ *                 multipleOf: 0.01
  *               account_id:
  *                 type: integer
  *                 example: 2
@@ -156,7 +170,7 @@ router.get('/', getFavoriteMovements);
  *                 account_id: 2
  *                 created_at: 2026-05-14T18:30:00.000Z
  *       400:
- *         description: Validation error, invalid references, or five-favorite limit reached
+ *         description: Validation error, invalid references, or six-favorite limit reached
  *         content:
  *           application/json:
  *             examples:
@@ -221,5 +235,76 @@ router.post('/', createFavoriteMovement);
  *               error: Error deleting favorite movement
  */
 router.delete('/:id', deleteFavoriteMovement);
+
+/**
+ * @swagger
+ * /api/favorite-movements/{id}:
+ *   put:
+ *     summary: Update an independent frequent template
+ *     description: Accepts the same fields as POST. All existing required fields must be supplied. Omitted amount preserves its value; null clears it. Ownership and references are validated. Usage count and creation time cannot be edited. Historical movements are unaffected.
+ *     tags: [Favorite Movements]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [emoji, alias, color, type, category_id, concept_id, description, account_id]
+ *             properties:
+ *               emoji:
+ *                 type: string
+ *                 example: 🚕
+ *               alias:
+ *                 type: string
+ *                 description: New or changed aliases allow at most 13 characters. An unchanged legacy alias may be preserved.
+ *                 example: Uber
+ *               color:
+ *                 type: string
+ *                 maxLength: 20
+ *                 example: "#005496"
+ *               type:
+ *                 type: string
+ *                 enum: [income, expense]
+ *                 example: expense
+ *               category_id:
+ *                 type: integer
+ *                 example: 3
+ *               concept_id:
+ *                 type: integer
+ *                 example: 11
+ *               description:
+ *                 type: string
+ *                 maxLength: 255
+ *                 example: Uber
+ *               amount:
+ *                 type: number
+ *                 nullable: true
+ *                 minimum: 0.01
+ *                 maximum: 99999999.99
+ *                 multipleOf: 0.01
+ *               account_id:
+ *                 type: integer
+ *                 example: 2
+ *     responses:
+ *       200:
+ *         description: Updated template in the favorite property
+ *       400:
+ *         description: Invalid fields or references
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Template not found for the current user
+ *       500:
+ *         description: Server error
+ */
+router.put('/:id', updateFavoriteMovement);
 
 module.exports = router;

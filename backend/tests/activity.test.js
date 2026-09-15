@@ -244,7 +244,7 @@ describe('Activity endpoints', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         emoji: '✅',
-        alias: 'Uso frecuente',
+        alias: 'Uso habitual',
         color: '#384f7f',
         type: categoryType,
         category_id: categoryId,
@@ -278,7 +278,7 @@ describe('Activity endpoints', () => {
         entityType: 'favorite',
         entityId: favoriteResponse.body.favorite.id,
         metadata: expect.objectContaining({
-          favoriteAlias: 'Uso frecuente',
+          favoriteAlias: 'Uso habitual',
           expenseCode: expenseResponse.body.expense_code,
         }),
       })
