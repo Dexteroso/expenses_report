@@ -3746,8 +3746,13 @@ body {
   .movements-page {
     display: flex;
     flex-direction: column;
-    min-height: calc(100dvh - 20px);
-    box-sizing: border-box;    
+    height: calc(100dvh - 20px);
+    box-sizing: border-box;
+  }
+
+  .movements-page > .movements-header-card,
+  .movements-page > .movements-top-grid {
+    flex: 0 0 auto;
   }
 
   .movements-page > .expenses-table-card {
@@ -3756,8 +3761,13 @@ body {
     flex: 1;
   }
 
-  .movements-page .expenses-table-scroll {
-    flex: 1;
+  .movements-page > .expenses-table-card > * {
+    flex: 0 0 auto;
+  }
+
+  .movements-page .expenses-pagination {
+    margin-top: auto;
+    padding-top: 8px;
   }
 }
 

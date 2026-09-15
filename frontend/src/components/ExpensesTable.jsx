@@ -54,7 +54,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     const [accountId, setAccountId] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-    const pageSize = 6;
+    const pageSize = showAdvancedFilters ? 5 : 6;
     const [appliedFilters, setAppliedFilters] = useState({
         searchQuery: '',
         typeFilter: '',
@@ -64,31 +64,6 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
         accountId: '',
         defaultLimited: true,
     });
-
-    const fetchExpenses = (filters = {}) => {
-        const params = new URLSearchParams();
-
-        if (filters.start_date) {
-            params.append('start_date', filters.start_date);
-        }
-
-        if (filters.end_date) {
-            params.append('end_date', filters.end_date);
-        }
-
-        if (filters.category_id) {
-            params.append('category_id', filters.category_id);
-        }
-
-        if (filters.limit) {
-            params.append('limit', filters.limit);
-        }
-
-        authFetch(`${API_BASE_URL}/api/expenses?${params.toString()}`)
-            .then((response) => response.json())
-            .then((data) => setExpenses(data))
-            .catch((error) => console.error('Error fetching expenses:', error));
-    };
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/api/categories`)
@@ -103,18 +78,34 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     }, []);
 
     useEffect(() => {
+        const controller = new AbortController();
+        const params = new URLSearchParams();
+
         if (appliedFilters.defaultLimited) {
-            fetchExpenses({ limit: 6 });
-            return;
+            params.set('limit', pageSize);
+        } else {
+            // Search loads all matches; the table paginates them using the current page size.
+            if (appliedFilters.startDate) params.set('start_date', appliedFilters.startDate);
+            if (appliedFilters.endDate) params.set('end_date', appliedFilters.endDate);
+            if (appliedFilters.categoryId) params.set('category_id', appliedFilters.categoryId);
         }
 
-        fetchExpenses({
-            start_date: appliedFilters.startDate,
-            end_date: appliedFilters.endDate,
-            category_id: appliedFilters.categoryId,
-        });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- filters are intentionally applied only when refreshExpenses changes.
-    }, [refreshExpenses]);
+        authFetch(`${API_BASE_URL}/api/expenses?${params.toString()}`, { signal: controller.signal })
+            .then((response) => response.json())
+            .then((data) => {
+                if (!controller.signal.aborted) setExpenses(data);
+            })
+            .catch((error) => {
+                if (!controller.signal.aborted) console.error('Error fetching expenses:', error);
+            });
+
+        return () => controller.abort();
+    }, [refreshExpenses, appliedFilters, pageSize]);
+
+    const handleToggleAdvancedFilters = () => {
+        setCurrentPage(1);
+        setShowAdvancedFilters((prev) => !prev);
+    };
 
     const handleSearch = () => {
         setAppliedFilters({
@@ -127,11 +118,6 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             defaultLimited: false,
         });
         setCurrentPage(1);
-        fetchExpenses({
-            start_date: startDate,
-            end_date: endDate,
-            category_id: categoryId,
-        });
     };
 
     const handleClear = () => {
@@ -151,7 +137,6 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
             defaultLimited: true,
         });
         setCurrentPage(1);
-        fetchExpenses({ limit: 5 });
     };
 
     const areFiltersDirty =
@@ -396,7 +381,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
                         type="button"
                         variant="secondary"
                         className="expenses-more-filters-button"
-                        onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                        onClick={handleToggleAdvancedFilters}
                         aria-expanded={showAdvancedFilters}
                     >
                         <span>Filtros</span>
