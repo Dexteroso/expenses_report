@@ -54,7 +54,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
     const [accountId, setAccountId] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-    const pageSize = 5;
+    const pageSize = 6;
     const [appliedFilters, setAppliedFilters] = useState({
         searchQuery: '',
         typeFilter: '',
@@ -104,7 +104,7 @@ function ExpensesTable({ refreshExpenses, onEditExpense, selectedExpense }) {
 
     useEffect(() => {
         if (appliedFilters.defaultLimited) {
-            fetchExpenses({ limit: 5 });
+            fetchExpenses({ limit: 6 });
             return;
         }
 

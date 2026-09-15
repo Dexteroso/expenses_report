@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
-import { formatNumberForInput, parseCurrencyInput } from '../utils/formatters';
+import CurrencyInput from './ui/CurrencyInput';
 import DateInput from './DateInput';
 import PrimaryButton from './ui/PrimaryButton';
 
@@ -34,7 +34,7 @@ function AddExpenseForm({
         category_id: '',
         concept_id: '',
         description: '',
-        amount: '',
+        amount: 0,
         account_id: '',
     };
 
@@ -89,7 +89,7 @@ function AddExpenseForm({
         formData.concept_id &&
         formData.amount &&
         formData.account_id &&
-        parseCurrencyInput(formData.amount) > 0
+        formData.amount > 0
     );
     const isFavoriteDraftValid = Boolean(
         formData.type &&
@@ -200,7 +200,7 @@ function AddExpenseForm({
             category_id: selectedExpense.category_id,
             concept_id: selectedExpense.concept_id,
             description: selectedExpense.description || '',
-            amount: formatNumberForInput(selectedExpense.amount),
+            amount: Number(selectedExpense.amount) || 0,
             account_id: selectedExpense.account_id || '',
         });
 
@@ -217,7 +217,7 @@ function AddExpenseForm({
             category_id: favoritePrefill.category_id || '',
             concept_id: favoritePrefill.concept_id || '',
             description: favoritePrefill.description || '',
-            amount: '',
+            amount: 0,
             account_id: favoritePrefill.account_id || '',
         });
         setConcepts([]);
@@ -231,7 +231,7 @@ function AddExpenseForm({
         setFormData((prev) => ({
             ...prev,
             date: '',
-            amount: '',
+            amount: 0,
         }));
         setValidationMessage('');
         setIsFormHighlightActive(false);
@@ -269,13 +269,10 @@ function AddExpenseForm({
 
     const handleChange = (event) => {
         const { name, value } = event.target;
-        const nextValue = name === 'amount'
-            ? value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1')
-            : value;
 
         setFormData({
             ...formData,
-            [name]: nextValue,
+            [name]: value,
         });
 
         if (validationMessage) {
@@ -417,7 +414,7 @@ function AddExpenseForm({
             return;
         }
 
-        if (parseCurrencyInput(formData.amount) <= 0) {
+        if (formData.amount <= 0) {
             setValidationMessage('La cantidad debe ser mayor a 0.');
             return;
         }
@@ -426,7 +423,7 @@ function AddExpenseForm({
 
         const payload = {
             ...formData,
-            amount: parseCurrencyInput(formData.amount),
+            amount: formData.amount,
             account_id: formData.account_id || null,
             ...(!selectedExpense && favoritePrefill?.id
                 ? { source_favorite_id: favoritePrefill.id }
@@ -583,17 +580,18 @@ function AddExpenseForm({
 
                     <div className={`responsive-field expense-field-amount ${favoriteMode ? 'is-template-disabled' : ''}`} style={fieldStyle}>
                             <label style={labelStyle}>Cantidad</label>
-                            <input
-                                type="text"
-                                inputMode="decimal"
+                            <CurrencyInput
                                 name="amount"
                                 ref={amountInputRef}
                                 value={formData.amount}
-                                onChange={handleChange}
+                                onValueChange={(amount) => {
+                                    setFormData((prev) => ({ ...prev, amount }));
+                                    setValidationMessage('');
+                                }}
+                                aria-label="Cantidad"
                                 required={!favoriteMode}
                                 disabled={favoriteMode}
                                 style={inputStyle}
-                                placeholder={favoriteMode ? 'Se define al usar' : '0.00'}
                             />
                     </div>
 

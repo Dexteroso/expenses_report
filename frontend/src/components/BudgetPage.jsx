@@ -1,8 +1,9 @@
+import CurrencyInput from './ui/CurrencyInput';
 import { useEffect, useRef, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
-import { formatCurrencyMXN, formatNumberForInput, parseCurrencyInput } from '../utils/formatters';
+import { formatCurrencyMXN } from '../utils/formatters';
 import { typography } from '../styles/typography';
 import PrimaryButton from './ui/PrimaryButton';
 
@@ -57,7 +58,6 @@ function BudgetPage() {
   const [year, setYear] = useState(2026);
   const [budgetRows, setBudgetRows] = useState([]);
   const [pendingChanges, setPendingChanges] = useState({});
-  const [clearedZeroCells, setClearedZeroCells] = useState(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -79,7 +79,6 @@ function BudgetPage() {
       const data = await response.json();
       setBudgetRows(data);
       setPendingChanges({});
-      setClearedZeroCells(new Set());
     } catch (fetchError) {
       console.error(fetchError);
       setError('No se pudo cargar el presupuesto.');
@@ -109,80 +108,18 @@ function BudgetPage() {
       return pendingChanges[key];
     }
 
-    if (clearedZeroCells.has(key)) {
-      return '';
-    }
-
-    return formatNumberForInput(getOriginalAmount(conceptId, month));
+    return getOriginalAmount(conceptId, month);
   };
 
-  const getNumericCellValue = (conceptId, month) => {
-    return parseCurrencyInput(getCellValue(conceptId, month));
-  };
+  const getNumericCellValue = getCellValue;
 
   const handleCellChange = (conceptId, month, value) => {
     const key = getCellKey(conceptId, month);
-    const originalAmount = getOriginalAmount(conceptId, month);
-    const normalizedInput = String(value).replaceAll(',', '').replaceAll('$', '').trim();
-    const normalizedValue = parseCurrencyInput(value);
-
-    if (!normalizedInput && originalAmount === 0) {
-      setClearedZeroCells((prev) => {
-        if (prev.has(key)) return prev;
-
-        const nextClearedCells = new Set(prev);
-        nextClearedCells.add(key);
-        return nextClearedCells;
-      });
-    }
-
-    if (normalizedInput) {
-      setClearedZeroCells((prev) => {
-        if (!prev.has(key)) return prev;
-
-        const nextClearedCells = new Set(prev);
-        nextClearedCells.delete(key);
-        return nextClearedCells;
-      });
-    }
-
     setPendingChanges((prev) => {
-      const nextChanges = { ...prev };
-
-      if (!normalizedInput || !Number.isFinite(normalizedValue) || normalizedValue === originalAmount) {
-        delete nextChanges[key];
-        return nextChanges;
-      }
-
-      nextChanges[key] = formatNumberForInput(normalizedInput);
-      return nextChanges;
-    });
-  };
-
-  const handleCellFocus = (conceptId, month) => {
-    const key = getCellKey(conceptId, month);
-    const currentValue = getCellValue(conceptId, month);
-
-    if (String(currentValue).trim() !== '' && parseCurrencyInput(currentValue) === 0) {
-      setClearedZeroCells((prev) => {
-        if (prev.has(key)) return prev;
-
-        const nextClearedCells = new Set(prev);
-        nextClearedCells.add(key);
-        return nextClearedCells;
-      });
-    }
-  };
-
-  const handleCellBlur = (conceptId, month) => {
-    const key = getCellKey(conceptId, month);
-
-    setClearedZeroCells((prev) => {
-      if (!prev.has(key)) return prev;
-
-      const nextClearedCells = new Set(prev);
-      nextClearedCells.delete(key);
-      return nextClearedCells;
+      const next = { ...prev };
+      if (value === getOriginalAmount(conceptId, month)) delete next[key];
+      else next[key] = value;
+      return next;
     });
   };
 
@@ -318,7 +255,7 @@ function BudgetPage() {
       return {
         concept_id: conceptId,
         month,
-        amount: value === '' ? 0 : parseCurrencyInput(value),
+        amount: value,
       };
     });
 
@@ -540,8 +477,6 @@ function BudgetPage() {
                         getCellValue={getCellValue}
                         getConceptAnnualTotal={getConceptAnnualTotal}
                         handleCellChange={handleCellChange}
-                        handleCellFocus={handleCellFocus}
-                        handleCellBlur={handleCellBlur}
                         theme={theme}
                       />
                     );
@@ -715,8 +650,6 @@ function FragmentRows({
   getCellValue,
   getConceptAnnualTotal,
   handleCellChange,
-  handleCellFocus,
-  handleCellBlur,
   theme,
 }) {
   return (
@@ -757,16 +690,13 @@ function FragmentRows({
                 borderTop: `1px solid ${theme.border}`,
               }}
             >
-              <input
+              <CurrencyInput
                 className="budget-input"
-                type="text"
-                inputMode="decimal"
+                aria-label={`${concept.concept} — ${monthLabels[monthIndex]}`}
                 value={getCellValue(concept.concept_id, monthIndex + 1)}
-                onFocus={() => handleCellFocus(concept.concept_id, monthIndex + 1)}
-                onChange={(event) =>
-                  handleCellChange(concept.concept_id, monthIndex + 1, event.target.value)
+                onValueChange={(amount) =>
+                  handleCellChange(concept.concept_id, monthIndex + 1, amount)
                 }
-                onBlur={() => handleCellBlur(concept.concept_id, monthIndex + 1)}
                 style={{
                   width: '100%',
                   minWidth: 84,

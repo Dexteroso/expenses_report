@@ -17,13 +17,22 @@ import { useEffect, useState } from 'react';
 import { authFetch, clearAuth, getUser, isAuthenticated, markOnboardingCompleted } from './utils/auth';
 import { API_BASE_URL } from './utils/api';
 import { formatCurrencyMXN } from './utils/formatters';
-import { typography } from './styles/typography';
 import dexforgeIcon from './assets/brand/dexforge-icon-transparent.png';
 import transactionIllustration from './assets/Transaction.png';
 import PrimaryButton from './components/ui/PrimaryButton';
 
+function formatMovementDeleteDate(value) {
+  if (!value) return '';
+  // Movement dates are calendar dates; parse locally to avoid shifting the day.
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  }).format(date);
+}
 
 function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, onOnboardingDashboard }) {
+  const theme = lightTheme;
   const hasCompletedOnboarding = Boolean(getUser()?.onboarding_completed);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -187,10 +196,25 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
         </div>
       )}
 
-      <header className="movements-page-header">
-        <h1>Movimientos</h1>
-        <p>Registra y administra tus ingresos y egresos.</p>
-      </header>
+      <div
+        className="responsive-card movements-header-card"
+        style={{
+          background: theme.surface,
+          border: `1px solid ${theme.border}`,
+          borderRadius: 12,
+          padding: 16,
+          boxShadow: theme.shadow,
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
+        }}
+      >
+        <header className="page-header">
+          <h1>Movimientos</h1>
+          <p>Registra y administra tus ingresos y egresos.</p>
+        </header>
+      </div>
 
       <div className="movements-top-grid">
         <AddExpenseForm
@@ -228,31 +252,51 @@ function Expenses({ refreshExpenses, onExpenseCreated, onboardingStart = false, 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          padding: 16,
+          boxSizing: 'border-box',
         }}>
-          <div className="modal-content expense-delete-modal" style={{
-            background: '#fff',
+          <div className="modal-content expense-delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="expense-delete-title"
+            aria-describedby="expense-delete-question expense-delete-warning"
+            style={{
+            background: theme.overlaySurface,
+            border: `1px solid ${theme.border}`,
+            boxShadow: theme.shadow,
             padding: 24,
             borderRadius: 12,
-            width: 330
+            width: '100%',
+            boxSizing: 'border-box',
           }}>
-            <h2 style={{ ...typography.sectionTitle, marginTop: 10, marginBottom: 0 }}>
-              Estas por eliminar este movimiento
+            <div className="expense-delete-icon" aria-hidden="true">
+              <i className="bx bx-trash" />
+            </div>
+            <h2 id="expense-delete-title" className="expense-delete-title">
+              Eliminar movimiento
             </h2>
-            <p style={{ fontSize: 11, fontWeight: 'bold', marginTop: -8, color: '#e84a4a' }}>
-              Este cambio no se puede deshacer.
+            <p id="expense-delete-question" className="expense-delete-question">
+              ¿Seguro que quieres eliminar este movimiento?
             </p>
-            <div className="expense-delete-details" style={{ display: 'flex', flexDirection: 'column', gap: 0, fontSize: 11, marginTop: 12, marginBottom: 20 }}>
-              <div style={{ lineHeight: 1.2 }}>ID: {expenseToDelete.expense_code}</div>
-              <div style={{ lineHeight: 1.2 }}>Fecha: {expenseToDelete.date}</div>
-              <div style={{ lineHeight: 1.2 }}>Concepto: {expenseToDelete.concept}</div>
-              <div style={{ lineHeight: 1.2 }}>Descripción: {expenseToDelete.description}</div>
-              <div style={{ lineHeight: 1.2 }}>Monto: {formatCurrencyMXN(expenseToDelete.amount)}</div>
+            <p id="expense-delete-warning" className="expense-delete-warning">
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="expense-delete-summary" style={{ background: theme.surfaceMuted, borderColor: theme.border }}>
+              <strong className="expense-delete-concept">{expenseToDelete.concept}</strong>
+              {expenseToDelete.description?.trim() && (
+                <p className="expense-delete-description">{expenseToDelete.description}</p>
+              )}
+              <p className="expense-delete-meta">
+                <time dateTime={expenseToDelete.date}>{formatMovementDeleteDate(expenseToDelete.date)}</time>
+                <span aria-hidden="true">·</span>
+                <strong>{formatCurrencyMXN(expenseToDelete.amount)}</strong>
+              </p>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button style={{ ...typography.buttonStyle }} onClick={handleCancelDelete}>Cancelar</button>
-              <button style={{ ...typography.buttonStyle }} onClick={handleConfirmDelete}>Eliminar</button>
+            <div className="expense-delete-actions">
+              <PrimaryButton variant="secondary" className="expense-delete-button" onClick={handleCancelDelete}>Cancelar</PrimaryButton>
+              <PrimaryButton variant="danger" className="expense-delete-button" onClick={handleConfirmDelete}>Eliminar</PrimaryButton>
             </div>
           </div>
         </div>
@@ -299,7 +343,7 @@ function App() {
     ...(currentUser?.role === 'admin'
       ? [{ to: '/usuarios', icon: 'bx bxs-user-account', label: 'Usuarios' }]
       : []),
-      { to: '/ayuda', icon: 'bx bx-help-circle', label: 'Ayuda' },
+    { to: '/ayuda', icon: 'bx bx-help-circle', label: 'Ayuda' },
   ];
 
   const getSidebarLinkStyle = ({ isActive }) => ({
@@ -504,152 +548,152 @@ function App() {
     >
       {showSidebar ? (
         <>
-        <div className="mobile-topbar">
-          <button
-            type="button"
-            className="mobile-menu-button"
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Abrir menú"
-            aria-expanded={isMobileMenuOpen}
-          >
-            <i className="bx bx-menu"></i>
-          </button>
-          {renderBrandMark('mobile-topbar-logo')}
-          <span className="mobile-topbar-spacer" aria-hidden="true" />
-        </div>
+          <div className="mobile-topbar">
+            <button
+              type="button"
+              className="mobile-menu-button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Abrir menú"
+              aria-expanded={isMobileMenuOpen}
+            >
+              <i className="bx bx-menu"></i>
+            </button>
+            {renderBrandMark('mobile-topbar-logo')}
+            <span className="mobile-topbar-spacer" aria-hidden="true" />
+          </div>
 
-        {isMobileMenuOpen && (
-          <div className="mobile-menu-overlay" onClick={() => setIsMobileMenuOpen(false)}>
+          {isMobileMenuOpen && (
+            <div className="mobile-menu-overlay" onClick={() => setIsMobileMenuOpen(false)}>
+              <div
+                className="mobile-menu-panel"
+                onClick={(event) => event.stopPropagation()}
+                style={{
+                  background: 'linear-gradient(180deg, #582888 0%, #557EFA 100%)',
+                  color: theme.sidebarText,
+                }}
+              >
+                <div className="mobile-menu-header">
+                  {renderBrandMark('mobile-menu-logo')}
+                  <button
+                    type="button"
+                    className="mobile-menu-close"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    aria-label="Cerrar menú"
+                  >
+                    <i className="bx bx-x"></i>
+                  </button>
+                </div>
+                {renderNavigation({ onNavigate: () => setIsMobileMenuOpen(false) })}
+                {renderSidebarProfile('mobile-sidebar-profile')}
+              </div>
+            </div>
+          )}
+
+          <div
+            className="app-shell"
+            style={{
+              minHeight: '100vh',
+              minWidth: 0,
+              maxWidth: `${appShellMaxWidth}px`,
+              margin: '0 auto',
+              display: 'grid',
+              gridTemplateColumns: `${sidebarWidth}px minmax(${contentMinWidth}px, 1fr)`,
+              alignItems: 'start',
+              gap: 20,
+              padding: '0 20px',
+              boxSizing: 'border-box',
+            }}
+          >
             <div
-              className="mobile-menu-panel"
-              onClick={(event) => event.stopPropagation()}
+              className="desktop-sidebar"
               style={{
+                position: 'sticky',
+                top: 0,
+                height: '100vh',
+                overflowY: 'auto',
+                width: '100%',
+                boxSizing: 'border-box',
                 background: 'linear-gradient(180deg, #582888 0%, #557EFA 100%)',
                 color: theme.sidebarText,
+                padding: '20px 16px',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              <div className="mobile-menu-header">
-                {renderBrandMark('mobile-menu-logo')}
-                <button
-                  type="button"
-                  className="mobile-menu-close"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label="Cerrar menú"
-                >
-                  <i className="bx bx-x"></i>
-                </button>
-              </div>
-              {renderNavigation({ onNavigate: () => setIsMobileMenuOpen(false) })}
-              {renderSidebarProfile('mobile-sidebar-profile')}
+              <div className="desktop-sidebar-brand">{renderBrandMark('desktop-sidebar-logo')}</div>
+              {renderNavigation()}
+              {renderSidebarProfile()}
             </div>
-          </div>
-        )}
 
-        <div
-          className="app-shell"
-          style={{
-            minHeight: '100vh',
-            minWidth: 0,
-            maxWidth: `${appShellMaxWidth}px`,
-            margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns: `${sidebarWidth}px minmax(${contentMinWidth}px, 1fr)`,
-            alignItems: 'start',
-            gap: 20,
-            padding: '0 20px',
-            boxSizing: 'border-box',
-          }}
-        >
-          <div
-            className="desktop-sidebar"
-            style={{
-              position: 'sticky',
-              top: 0,
-              height: '100vh',
-              overflowY: 'auto',
-              width: '100%',
-              boxSizing: 'border-box',
-              background: 'linear-gradient(180deg, #582888 0%, #557EFA 100%)',
-              color: theme.sidebarText,
-              padding: '20px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div className="desktop-sidebar-brand">{renderBrandMark('desktop-sidebar-logo')}</div>
-            {renderNavigation()}
-            {renderSidebarProfile()}
-          </div>
-
-          <div
-            className="app-content"
-            style={{
-              minWidth: 0,
-              width: '100%',
-              background: isDashboardRoute ? 'transparent' : theme.background,
-              padding: '10px 0',
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-            }}
-          >
             <div
-              className="app-content-inner"
+              className="app-content"
               style={{
-                width: '100%',
                 minWidth: 0,
+                width: '100%',
+                background: isDashboardRoute ? 'transparent' : theme.background,
+                padding: '10px 0',
                 boxSizing: 'border-box',
+                overflowX: 'hidden',
               }}
             >
-              <Routes>
-                <Route
-                  path="/auth"
-                  element={authenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />}
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <DashboardPage
-                        onboardingSuccess={showDashboardOnboardingSuccess}
-                        onDismissOnboardingSuccess={() => setShowDashboardOnboardingSuccess(false)}
-                      />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/gastos"
-                  element={
-                    <ProtectedRoute>
-                      <Expenses
-                        onExpenseCreated={() => setRefreshExpenses(prev => !prev)}
-                        refreshExpenses={refreshExpenses}
-                        onboardingStart={location.state?.onboarding === 'first-movement'}
-                        onOnboardingDashboard={handleOnboardingDashboard}
-                      />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/cuentas"
-                  element={
-                    <ProtectedRoute>
-                      <AccountsPage
-                        onFirstAccountCreated={handleFirstAccountCreated}
-                        showFirstAccountOnboarding={!hasCompletedOnboarding}
-                      />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/actividad" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
-                <Route path="/ayuda" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
-                <Route path="/presupuesto" element={<ProtectedRoute><BudgetPage /></ProtectedRoute>} />
-                <Route path="/real-vs-presupuesto" element={<ProtectedRoute><RealVsBudgetPage /></ProtectedRoute>} />
-                <Route path="/usuarios" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
-                <Route path="*" element={<Navigate to={authenticated ? '/dashboard' : '/auth'} replace />} />
-              </Routes>
+              <div
+                className="app-content-inner"
+                style={{
+                  width: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <Routes>
+                  <Route
+                    path="/auth"
+                    element={authenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />}
+                  />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <DashboardPage
+                          onboardingSuccess={showDashboardOnboardingSuccess}
+                          onDismissOnboardingSuccess={() => setShowDashboardOnboardingSuccess(false)}
+                        />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/gastos"
+                    element={
+                      <ProtectedRoute>
+                        <Expenses
+                          onExpenseCreated={() => setRefreshExpenses(prev => !prev)}
+                          refreshExpenses={refreshExpenses}
+                          onboardingStart={location.state?.onboarding === 'first-movement'}
+                          onOnboardingDashboard={handleOnboardingDashboard}
+                        />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/cuentas"
+                    element={
+                      <ProtectedRoute>
+                        <AccountsPage
+                          onFirstAccountCreated={handleFirstAccountCreated}
+                          showFirstAccountOnboarding={!hasCompletedOnboarding}
+                        />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/actividad" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
+                  <Route path="/ayuda" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+                  <Route path="/presupuesto" element={<ProtectedRoute><BudgetPage /></ProtectedRoute>} />
+                  <Route path="/real-vs-presupuesto" element={<ProtectedRoute><RealVsBudgetPage /></ProtectedRoute>} />
+                  <Route path="/usuarios" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
+                  <Route path="*" element={<Navigate to={authenticated ? '/dashboard' : '/auth'} replace />} />
+                </Routes>
+              </div>
             </div>
           </div>
-        </div>
         </>
       ) : (
         <div

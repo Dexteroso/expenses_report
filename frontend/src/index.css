@@ -427,7 +427,7 @@ body {
 
 .primary-button {
   width: 100%;
-  min-height: 48px;
+  min-height: 30px;
   padding: 0 18px;
   border: 1px solid transparent;
   border-radius: var(--auth-button-radius, 15px);
@@ -768,7 +768,8 @@ body {
   margin-top: 14px;
 }
 
-.logout-modal {
+.logout-modal,
+.expense-delete-modal {
   display: grid;
   justify-items: center;
   text-align: center;
@@ -786,7 +787,8 @@ body {
   font-size: 22px;
 }
 
-.logout-modal-title {
+.logout-modal-title,
+.expense-delete-title {
   margin: 0 0 6px;
   color: #0f172a;
   font-size: 18px;
@@ -794,27 +796,97 @@ body {
   line-height: 1.25;
 }
 
-.logout-modal-description {
+.logout-modal-description,
+/* Keep the dialog cap when shared mobile .modal-content rules override max-width. */
+.modal-content.expense-delete-modal {
+  max-width: 400px !important;
+}
+
+.expense-delete-warning {
   margin: 0 0 16px;
   color: #64748b;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1.45;
 }
 
-.logout-modal-actions {
+.logout-modal-actions,
+.expense-delete-actions {
   display: flex;
   justify-content: center;
   gap: 8px;
   width: 100%;
 }
 
-.logout-modal-button {
+.logout-modal-button,
+.expense-delete-button {
   width: auto !important;
   min-width: 128px;
   min-height: 40px !important;
   padding: 0 16px !important;
   border-radius: 14px !important;
+}
+
+.expense-delete-icon {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 10px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  font-size: 22px;
+}
+
+.expense-delete-question {
+  margin: 0 0 4px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.expense-delete-summary {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0 0 16px;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.expense-delete-concept {
+  display: block;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.expense-delete-description {
+  margin: 3px 0 0;
+}
+
+.expense-delete-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+.expense-delete-meta strong {
+  min-width: 0;
+  color: #334155;
+  font-weight: 700;
+}
+
+.expense-delete-actions {
+  flex-wrap: wrap;
 }
 
 @media (min-width: 1024px) {
@@ -3505,17 +3577,6 @@ body {
     padding: 18px !important;
   }
 
-  .expense-delete-modal {
-    width: min(300px, calc(100vw - 56px)) !important;
-    text-align: center;
-  }
-
-  .expense-delete-modal h2,
-  .expense-delete-modal p,
-  .expense-delete-details {
-    text-align: center;
-  }
-
   .auth-layout {
     padding: 20px 14px;
   }
@@ -3679,6 +3740,25 @@ body {
   gap: 14px;
   width: 100%;
   min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .movements-page {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 20px);
+    box-sizing: border-box;    
+  }
+
+  .movements-page > .expenses-table-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .movements-page .expenses-table-scroll {
+    flex: 1;
+  }
 }
 
 .movements-top-grid {
@@ -3857,7 +3937,7 @@ body {
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
-  min-height: 40px !important;
+  min-height: 30px !important;
   padding: 0 14px !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 14px !important;
@@ -3891,6 +3971,11 @@ body {
   background: #f8fafc !important;
   color: #94a3b8 !important;
   cursor: not-allowed;
+}
+
+/* Match the existing placeholder color; override inline and page input colors only at zero. */
+input.currency-input[data-currency-zero="true"] {
+  color: #94a3b8 !important;
 }
 
 .movements-page .expense-form-card input:focus,
@@ -3958,6 +4043,8 @@ body {
   color: #64748b;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1;
+  text-align: start;
 }
 
 .movements-page .expenses-export-button {
@@ -4086,6 +4173,9 @@ body {
 
 .movements-page .expenses-filter-primary-fields .expenses-filter-field {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .movements-page .expenses-filter-bar-advanced {
