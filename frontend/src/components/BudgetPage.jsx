@@ -56,6 +56,7 @@ function BudgetPage() {
     fontWeight: 'bold',
   };
   const [year, setYear] = useState(2026);
+  const [expandedCategoryId, setExpandedCategoryId] = useState(null);
   const [budgetRows, setBudgetRows] = useState([]);
   const [pendingChanges, setPendingChanges] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -305,22 +306,25 @@ function BudgetPage() {
           <h1>Presupuesto</h1>
           <p>Planifica y ajusta tus presupuestos mensuales.</p>
         </header>
-        <div className="responsive-filter-bar budget-top-controls" style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-          <div className="budget-year-and-pending" style={{ display: 'flex', alignItems: 'end', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
-            <div className="budget-year-control" style={{ display: 'grid', gap: 4 }}>
+        <div className="budget-top-controls">
+            <div className="budget-year-control">
               <label style={labelStyle}>Año</label>
               <input
                 className="text-input budget-year-input"
                 type="number"
                 value={year}
-                onChange={(event) => setYear(Number(event.target.value) || 2026)}
+                onChange={(event) => {
+                  const nextYear = Number(event.target.value) || 2026;
+                  if (nextYear !== year) setExpandedCategoryId(null);
+                  setYear(nextYear);
+                }}
               />
             </div>
 
-            <span className="budget-pending-count" style={{ color: theme.textSecondary, fontSize: 12, paddingBottom: 6 }}>
+          <div className="budget-save-controls">
+            <span className="budget-pending-count" style={{ color: theme.textSecondary, fontSize: 12 }}>
               Cambios pendientes: {pendingChangesCount}
             </span>
-          </div>
 
           <PrimaryButton
             className="budget-save-button"
@@ -330,6 +334,7 @@ function BudgetPage() {
           >
             {isSaving ? 'Guardando...' : 'Guardar cambios'}
           </PrimaryButton>
+          </div>
         </div>
 
         {error && (
@@ -423,13 +428,6 @@ function BudgetPage() {
           <p style={{ color: theme.textSecondary, margin: 0 }}>Cargando presupuesto...</p>
         ) : (
           <>
-            <div className="budget-mobile-detail-header" aria-hidden="true">
-              <span>Categoría / Concepto</span>
-              {monthLabels.map((label) => (
-                <span key={`mobile-budget-header-${label}`}>{label}</span>
-              ))}
-              <span>Total anual</span>
-            </div>
             <div
               className="table-scroll budget-table-scroll budget-detail-scroll"
               ref={detailScrollRef}
@@ -446,6 +444,13 @@ function BudgetPage() {
                 display: 'block',
               }}
             >
+              <div className="budget-mobile-detail-header" aria-hidden="true">
+                <span>Categoría / Concepto</span>
+                {monthLabels.map((label) => (
+                  <span key={`mobile-budget-header-${label}`}>{label}</span>
+                ))}
+                <span>Total anual</span>
+              </div>
               <table className="budget-table" style={{ width: '100%', minWidth: budgetTableMinWidth, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
                 <BudgetTableColGroup />
                 <thead style={{ fontSize: 12, color: theme.textSecondary }}>
@@ -464,7 +469,7 @@ function BudgetPage() {
                   </tr>
                 </thead>
                 <tbody style={{ fontSize: 10, color: theme.textBody }}>
-                  {groupedBudget.map((category) => {
+                  {groupedBudget.map((category, categoryIndex) => {
                     const categoryMonthlyTotals = getCategoryMonthlyTotals(category);
                     const categoryAnnualTotal = getCategoryAnnualTotal(category);
 
@@ -472,6 +477,18 @@ function BudgetPage() {
                       <FragmentRows
                         key={category.category_id}
                         category={category}
+                        categoryIndex={categoryIndex}
+                        hasPendingChanges={category.concepts.some((concept) =>
+                          monthLabels.some((_, monthIndex) =>
+                            Object.prototype.hasOwnProperty.call(
+                              pendingChanges, getCellKey(concept.concept_id, monthIndex + 1)
+                            )
+                          )
+                        )}
+                        isExpanded={expandedCategoryId === category.category_id}
+                        onToggle={() => setExpandedCategoryId((previous) => (
+                          previous === category.category_id ? null : category.category_id
+                        ))}
                         categoryMonthlyTotals={categoryMonthlyTotals}
                         categoryAnnualTotal={categoryAnnualTotal}
                         getCellValue={getCellValue}
@@ -645,6 +662,10 @@ function SummaryRow({ label, monthlyTotals, annualTotal, theme, textColor, highl
 
 function FragmentRows({
   category,
+  categoryIndex,
+  hasPendingChanges,
+  isExpanded,
+  onToggle,
   categoryMonthlyTotals,
   categoryAnnualTotal,
   getCellValue,
@@ -654,9 +675,26 @@ function FragmentRows({
 }) {
   return (
     <>
-      <tr className="budget-category-row">
-        <StickySummaryCell align="center" sticky="left" theme={theme} textColor={theme.textPrimary} className="budget-category-cell">
-          {category.category}
+      <tr
+        className="budget-category-row"
+        onClick={onToggle}
+        style={{ '--budget-category-background': categoryIndex % 2 === 0 ? '#f7f9fd' : theme.surface }}
+      >
+        <StickySummaryCell align="left" sticky="left" theme={theme} textColor={theme.textPrimary} className="budget-category-cell">
+          <button
+            className="budget-category-toggle"
+            type="button"
+            aria-expanded={isExpanded}
+            aria-label={hasPendingChanges ? `${category.category}, con cambios sin guardar` : category.category}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggle();
+            }}
+          >
+            <i className={`bx bx-chevron-${isExpanded ? 'down' : 'right'}`} aria-hidden="true" />
+            {category.category}
+            {hasPendingChanges && <span className="budget-category-pending-dot" aria-hidden="true" />}
+          </button>
         </StickySummaryCell>
         {categoryMonthlyTotals.map((amount, index) => (
           <StickySummaryCell
@@ -674,17 +712,16 @@ function FragmentRows({
         </StickySummaryCell>
       </tr>
 
-      {category.concepts.map((concept) => (
-        <tr key={concept.concept_id}>
-          <StickyBodyCell align="center" sticky="left" theme={theme}>
-            <span>{concept.concept}</span>
+      {isExpanded && category.concepts.map((concept) => (
+        <tr key={concept.concept_id} className="budget-concept-row">
+          <StickyBodyCell align="left" sticky="left" theme={theme}>
+            <span className="budget-concept-label">{concept.concept}</span>
           </StickyBodyCell>
           {monthLabels.map((_, monthIndex) => (
             <td
               className="budget-month-cell"
               key={`${concept.concept_id}-${monthIndex + 1}`}
               style={{
-                padding: '4px',
                 textAlign: 'center',
                 background: theme.surface,
                 borderTop: `1px solid ${theme.border}`,

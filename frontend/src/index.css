@@ -829,13 +829,12 @@ body {
 
 
 .budget-top-controls {
-  display: grid !important;
-  grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-items: center !important;
-  justify-content: stretch !important;
-  column-gap: 12px !important;
-  row-gap: 6px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  min-width: 0;
 }
 
 .budget-card-title-row {
@@ -852,55 +851,42 @@ body {
   text-align: left !important;
 }
 
-.budget-year-and-pending {
-  display: contents !important;
+.budget-year-control,
+.budget-save-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.budget-year-control {
-  display: contents !important;
-  min-width: 0;
+.budget-save-controls {
+  margin-left: auto;
+  flex-wrap: wrap;
 }
 
 .budget-year-control label {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: end !important;
-  justify-self: start;
-  display: block;
-  line-height: 1.1;
-  text-align: start;
-  padding-left: 5px;
-  padding-bottom: 0 !important;
-}
-
-.budget-year-control input {
-  grid-column: 1;
-  grid-row: 2;
-  width: 100% !important;
-  min-width: 0;
+  line-height: 30px;
+  flex-shrink: 0;
 }
 
 .budget-year-input {
-  min-height: 40px !important;
-  border-radius: 14px !important;
-  font-size: 13px !important;
-  font-weight: 600;
+  width: 140px;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 40px;
 }
 
 .budget-pending-count {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-  align-self: end;
-  padding-bottom: 0 !important;
-  text-align: right;
-  line-height: 1.1;
+  line-height: 30px;
 }
 
 .budget-save-button {
-  grid-column: 2;
-  grid-row: 2;
-  justify-self: end;
   width: auto !important;
   min-width: 146px;
   min-height: 40px !important;
@@ -924,18 +910,123 @@ body {
 }
 
 .budget-category-row .budget-category-cell {
-  background: #f1f5f9 !important;
-  color: #384F7F !important;
-  font-weight: 700 !important;
+  border-top-color: transparent !important;
+  background: var(--budget-category-background) !important;
+  color: #193b91 !important;
+  padding-block: 5px !important;
+  font-size: 13px !important;
+  font-weight: 450 !important;
+  line-height: 1.5;
 }
 
-.budget-category-row .budget-sticky-cell {
-  background: #f1f5f9 !important;
+.budget-category-row:has(.budget-category-toggle[aria-expanded="true"]) .budget-category-cell {
+  background: color-mix(in srgb, #11A9CC 10%, var(--budget-category-background)) !important;
+}
+
+.budget-page .budget-concept-row > td {
+  border-top-color: #e5ebf3 !important;
+  color: #465b87 !important;
+  font-size: 12px;
+  font-weight: 400 !important;
+  line-height: 1.5;
+}
+
+.budget-page .budget-concept-row > .budget-sticky-right {
+  font-weight: 450 !important;
+}
+
+.budget-concept-row .budget-input {
+  font-family: inherit;
+  font-weight: 400;
+  color: #465b87 !important;
+}
+
+.budget-category-row .budget-sticky-right {
+  font-weight: 500 !important;
+}
+
+.budget-concept-label {
+  display: inline-block;
+  /* Variaciones: 28px concept inset + 18px reserved child-chevron space. */
+  padding-left: 46px;
+  box-sizing: border-box;
+  font-weight: 400;
+}
+
+.budget-summary-card {
+  padding-block: 10px !important;
+}
+
+.budget-summary-card .budget-card-title-row {
+  margin-bottom: 6px;
+}
+
+.budget-summary-card .budget-summary-cell {
+  font-weight: 500 !important;
+}
+
+.budget-summary-card .budget-sticky-left,
+.budget-summary-card .budget-sticky-right {
+  font-weight: 600 !important;
 }
 
 .budget-input {
   min-width: 72px !important;
 }
+
+.budget-category-row {
+  cursor: pointer;
+}
+
+.budget-category-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.budget-category-pending-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #557EFA;
+}
+
+.budget-category-toggle i {
+  flex: 0 0 16px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.budget-category-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.budget-month-cell {
+  padding: 4px;
+}
+
+@media (min-width: 900px) {
+  .budget-month-cell {
+    padding: 2px 4px;
+  }
+
+  .budget-input {
+    height: 24px;
+    box-sizing: border-box;
+    line-height: 16px;
+  }
+}
+
 
 .accounts-page-header-row {
   display: grid;
@@ -2146,17 +2237,14 @@ body {
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
-    max-height: min(620px, calc(100dvh - 300px));
     overflow: hidden !important;
   }
 
   .budget-detail-scroll {
-    flex: 1 1 auto !important;
-    min-height: 260px !important;
-    max-height: min(520px, calc(100dvh - 370px));
+    flex: none !important;
+    min-height: 0 !important;
     overflow-x: auto !important;
     overflow-y: auto !important;
-    overscroll-behavior: contain;
   }
 
   .budget-detail-card .budget-table thead {
@@ -2223,6 +2311,11 @@ body {
 
   .budget-month-cell {
     padding: 3px !important;
+  }
+
+  .budget-category-row .budget-category-cell,
+  .budget-page .budget-concept-row > td {
+    font-size: 10px !important;
   }
 
   .budget-input {
@@ -2378,14 +2471,7 @@ body {
     margin-bottom: 10px !important;
   }
 
-  .budget-pending-count {
-    justify-self: end;
-    text-align: right;
-  }
-
   .budget-save-button {
-    justify-self: end;
-    align-self: stretch;
     min-width: 128px;
     padding: 7px 10px !important;
     font-size: 12px !important;
@@ -2549,15 +2635,6 @@ body {
 
   .dashboard-page {
     gap: 10px !important;
-  }
-
-  .budget-page .budget-detail-card {
-    max-height: min(560px, calc(100dvh - 280px));
-  }
-
-  .budget-detail-scroll {
-    min-height: 240px !important;
-    max-height: min(460px, calc(100dvh - 340px));
   }
 
   .real-vs-budget-page .real-table-card {
