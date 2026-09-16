@@ -23,7 +23,7 @@ async function compile(name, exported = 'default') {
   });
   try {
     return (await import(`data:text/javascript;base64,${Buffer.from(result[0].output[0].code + `\n//# sourceURL=${name}.compiled.mjs`).toString('base64')}`))[exported];
-  } catch (error) { throw new Error(error.message); }
+  } catch (error) { throw new Error(error.message, { cause: error }); }
 }
 const Form = await compile('FavoriteMovementForm');
 const Expenses = await compile('../App', 'Expenses');
@@ -519,4 +519,181 @@ test('legacy long alias and arbitrary stored hex color preload and survive unrel
   assert.equal(saved.alias, legacy.alias);
   assert.equal(saved.color, legacy.color);
   await cleanup();
+});
+
+const budgetImpact = (status = 'WOULD_EXCEED') => ({
+  status, categoryName: 'Alimentos', conceptName: 'Supermercado',
+  available: status === 'ALREADY_EXCEEDED' ? '-20.00' : '10.00',
+  newAmount: '12.34', currentOverage: '20.00',
+  projectedOverage: status === 'ALREADY_EXCEEDED' ? '32.34' : '2.34',
+});
+function setupBudgetFetch(status = 'WOULD_EXCEED', confirmationFails = false) {
+  setupFetch();
+  const fallback = globalThis.fetch;
+  const writes = [];
+  globalThis.fetch = async (url, init = {}) => {
+    if (init.method === 'POST' && url.endsWith('/api/expenses')) {
+      const payload = JSON.parse(init.body);
+      writes.push(payload);
+      if (!payload.budget_confirmation) return { ok: false, status: 409, json: async () => ({
+        code: 'BUDGET_CONFIRMATION_REQUIRED', requiresConfirmation: true, budgetImpact: budgetImpact(status),
+      }) };
+      return { ok: !confirmationFails, status: confirmationFails ? 500 : 201,
+        json: async () => confirmationFails ? { error: 'No se pudo guardar' } : { expense_id: 90 } };
+    }
+    return fallback(url, init);
+  };
+  return writes;
+}
+const budgetDialog = () => document.querySelector('.budget-warning-dialog');
+async function openBudgetWarning() {
+  await click(tile('Groceries'));
+  await movementField('date', '2025-08-31');
+  await submit();
+}
+
+for (const status of ['WOULD_EXCEED', 'ALREADY_EXCEEDED']) {
+  test(`budget warning ${status}: exact copy, inline amounts, disabled reassignment, cancel preserves draft/origin`, async () => {
+    const writes = setupBudgetFetch(status);
+    await mount(Expenses, { onExpenseCreated() {} });
+    await openBudgetWarning();
+    const dialog = budgetDialog();
+    assert.equal(dialog.open, true);
+    assert.equal(dialog.querySelector('h2').textContent, status === 'ALREADY_EXCEEDED' ? 'Presupuesto excedido' : 'Presupuesto insuficiente');
+    assert.equal(dialog.querySelector('#budget-warning-description').textContent,
+      status === 'ALREADY_EXCEEDED'
+        ? 'Ya has excedido el presupuesto de Alimentos · Supermercado en $20.00.'
+        : 'Tienes $10.00 disponibles en Alimentos · Supermercado.');
+    assert.deepEqual([...dialog.querySelectorAll('#budget-warning-impact p')].map((line) => line.textContent),
+      ['Nuevo movimiento: $12.34', `Excedente después del movimiento: ${status === 'ALREADY_EXCEEDED' ? '$32.34' : '$2.34'}`]);
+    assert.equal(buttons('Reasignar presupuesto', dialog)[0].disabled, true);
+    assert.equal(document.querySelector('form fieldset').disabled, true);
+    await submit();
+    assert.equal(writes.length, 1);
+    await click(buttons('Cancelar', dialog)[0]);
+    assert.equal(budgetDialog(), null);
+    assert.equal(document.querySelector('[name="date"]').value, '2025-08-31');
+    assert.equal(document.querySelector('[name="description"]').value, template.description);
+    await submit();
+    assert.deepEqual(writes[1], writes[0]);
+    assert.equal(writes[1].source_favorite_id, template.id);
+    await cleanup();
+  });
+}
+
+test('budget confirmation uses immutable pending draft, refreshes ranking and clears success once', async () => {
+  const writes = setupBudgetFetch();
+  let saved = 0;
+  let favoriteReads = 0;
+  const fallback = globalThis.fetch;
+  globalThis.fetch = (url, init = {}) => {
+    if (url.includes('/api/favorite-movements') && !init.method) favoriteReads++;
+    return fallback(url, init);
+  };
+  await mount(Expenses, { onExpenseCreated: () => saved++ });
+  await openBudgetWarning();
+  const original = { ...writes[0] };
+  const readsBefore = favoriteReads;
+  await movementField('description', 'Changed after warning');
+  await click(buttons('Registrar de todos modos', budgetDialog())[0]);
+  assert.deepEqual(writes[1], { ...original, budget_confirmation: true });
+  assert.equal(saved, 1);
+  assert.equal(favoriteReads, readsBefore + 1);
+  assert.equal(budgetDialog(), null);
+  assert.equal(document.querySelector('[name="description"]').value, '');
+  await fillManualMovement();
+  await submit();
+  assert.equal(writes[2].source_favorite_id, undefined);
+  assert.equal(writes[2].budget_confirmation, undefined);
+  await cleanup();
+});
+
+test('failed confirmation retains dialog, draft and origin and permits confirmed retry', async () => {
+  const writes = setupBudgetFetch('ALREADY_EXCEEDED', true);
+  let saved = 0;
+  await mount(Expenses, { onExpenseCreated: () => saved++ });
+  await openBudgetWarning();
+  await click(buttons('Registrar de todos modos', budgetDialog())[0]);
+  assert.equal(saved, 0);
+  assert.equal(budgetDialog().querySelector('[role="alert"]').textContent, 'No se pudo guardar');
+  assert.equal(document.querySelector('[name="description"]').value, template.description);
+  await submit();
+  assert.equal(writes.length, 2);
+  await click(buttons('Registrar de todos modos', budgetDialog())[0]);
+  assert.deepEqual(writes[2], writes[1]);
+  await click(buttons('Cancelar', budgetDialog())[0]);
+  await submit();
+  assert.deepEqual(writes[3], writes[0]);
+  await cleanup();
+});
+
+test('duplicate initial and confirmation events remain guarded across warning transition', async () => {
+  setupFetch();
+  const fallback = globalThis.fetch;
+  const writes = [];
+  let release;
+  globalThis.fetch = (url, init = {}) => {
+    if (init.method === 'POST' && url.endsWith('/api/expenses')) {
+      writes.push(JSON.parse(init.body));
+      return new Promise((resolve) => { release = () => resolve(writes.length === 1
+        ? { ok: false, status: 409, json: async () => ({ code: 'BUDGET_CONFIRMATION_REQUIRED', budgetImpact: budgetImpact() }) }
+        : { ok: true, status: 201, json: async () => ({ expense_id: 90 }) }); });
+    }
+    return fallback(url, init);
+  };
+  let saved = 0;
+  await mount(Expenses, { onExpenseCreated: () => saved++ });
+  await click(tile('Groceries'));
+  await movementField('date', '2025-08-31');
+  const form = document.querySelector('form');
+  await act(async () => {
+    for (let i = 0; i < 2; i++) form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+  });
+  assert.equal(writes.length, 1);
+  await act(async () => release());
+  await submit();
+  assert.equal(writes.length, 1);
+  const confirm = buttons('Registrar de todos modos', budgetDialog())[0];
+  await act(async () => { confirm.click(); confirm.click(); });
+  assert.equal(writes.length, 2);
+  const cancelEvent = new dom.window.Event('cancel', { cancelable: true });
+  await act(async () => budgetDialog().dispatchEvent(cancelEvent));
+  assert.equal(cancelEvent.defaultPrevented, true);
+  assert.ok(budgetDialog());
+  await act(async () => release());
+  assert.equal(saved, 1);
+  assert.equal(budgetDialog(), null);
+  await cleanup();
+});
+
+test('budget dialog follows app-content bounds, restores focus and handles Escape without writes', async () => {
+  const writes = setupBudgetFetch();
+  const container = document.getElementById('root');
+  container.className = 'app-content movements-page';
+  let bounds = { left: 240, right: 1000 };
+  container.getBoundingClientRect = () => bounds;
+  let resized;
+  let disconnected = false;
+  globalThis.ResizeObserver = class {
+    constructor(callback) { resized = callback; }
+    observe(element) { assert.equal(element, container); }
+    disconnect() { disconnected = true; }
+  };
+  await mount(Expenses, { onExpenseCreated() {} });
+  await click(tile('Groceries'));
+  await movementField('date', '2025-08-31');
+  const save = buttons('Agregar')[0];
+  save.focus();
+  await submit();
+  assert.equal(budgetDialog().style.getPropertyValue('--frequent-content-left'), '240px');
+  bounds = { left: 16, right: window.innerWidth - 16 };
+  resized();
+  assert.equal(budgetDialog().style.getPropertyValue('--frequent-content-width'), `${window.innerWidth - 32}px`);
+  await act(async () => budgetDialog().dispatchEvent(new dom.window.Event('cancel', { cancelable: true })));
+  assert.equal(budgetDialog(), null);
+  assert.equal(disconnected, true);
+  assert.equal(document.activeElement, save);
+  assert.equal(writes.length, 1);
+  await cleanup();
+  container.className = '';
 });

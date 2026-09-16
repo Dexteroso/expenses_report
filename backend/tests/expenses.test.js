@@ -84,6 +84,7 @@ describe('Expenses endpoints', () => {
     });
 
     const buildExpensePayload = (overrides = {}) => ({
+        budget_confirmation: true,
         date: '2026-05-01',
         amount: 100,
         category_id: categoryId,
@@ -92,6 +93,48 @@ describe('Expenses endpoints', () => {
         account_id: testAccountId,
         type: 'expense',
         ...overrides,
+    });
+
+    test('budget handshake matches persisted Variaciones actuals, dates, zero rows and deletion', async () => {
+        const post = (overrides = {}) => request(app).post('/api/expenses')
+            .set('Authorization', `Bearer ${token}`)
+            .send(buildExpensePayload({ budget_confirmation: false, date: '2024-08-31', ...overrides }));
+        const saveBudget = (month, amount) => request(app).put('/api/budgets')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ year: 2024, items: [{ concept_id: conceptId, month, amount }] });
+        try {
+            expect((await saveBudget(8, 100)).statusCode).toBe(200);
+            // Real currently includes all surviving records for a concept, including income.
+            expect((await post({ type: 'income', amount: 20 })).statusCode).toBe(201);
+            expect((await post({ amount: 79.99 })).statusCode).toBe(201);
+            expect((await post({ amount: 0.01 })).statusCode).toBe(201);
+            const warning = await post({ amount: 1 });
+            expect(warning.statusCode).toBe(409);
+            expect(warning.body.budgetImpact).toMatchObject({
+                status: 'WOULD_EXCEED', currentSpent: '100.00', available: '0.00',
+                year: 2024, month: 8, projectedOverage: '1.00',
+            });
+            const saved = await post({ amount: 1, budget_confirmation: true });
+            expect(saved.statusCode).toBe(201);
+            const exceeded = await post({ amount: 1 });
+            expect(exceeded.body.budgetImpact).toMatchObject({ status: 'ALREADY_EXCEEDED', currentOverage: '1.00', projectedOverage: '2.00' });
+            const report = await request(app).get('/api/reports/real-vs-budget?year=2024').set('Authorization', `Bearer ${token}`);
+            expect(report.statusCode).toBe(200);
+            expect(report.body.find((row) => row.concept_id === conceptId && row.month === 8).actual).toBe(101);
+            const missing = await post({ date: '2024-09-01', amount: 1 });
+            expect(missing.body.budgetImpact).toMatchObject({ budget: '0.00', currentSpent: '0.00', status: 'WOULD_EXCEED' });
+            expect((await saveBudget(9, 0)).statusCode).toBe(200);
+            const zero = await post({ date: '2024-09-01', amount: 1 });
+            expect(zero.body.budgetImpact).toEqual(missing.body.budgetImpact);
+            const deleted = await request(app).delete(`/api/expenses/${saved.body.expense_id}`).set('Authorization', `Bearer ${token}`);
+            expect(deleted.statusCode).toBe(200);
+            expect((await post({ amount: 1 })).body.budgetImpact.currentSpent).toBe('100.00');
+            const [rows] = await pool.query('SELECT id FROM expenses WHERE user_id = ? AND YEAR(date) = 2024', [testUserId]);
+            expect(rows).toHaveLength(3);
+        } finally {
+            await pool.query('DELETE FROM expenses WHERE user_id = ? AND YEAR(date) = 2024', [testUserId]);
+            await pool.query('DELETE FROM budgets WHERE user_id = ? AND year = 2024', [testUserId]);
+        }
     });
 
     test('POST /api/expenses creates yearly sequential expense codes', async () => {

@@ -165,6 +165,7 @@ describe('Activity endpoints', () => {
       .post('/api/expenses')
       .set('Authorization', `Bearer ${token}`)
       .send({
+        budget_confirmation: true,
         date: '2026-05-01',
         amount: 100,
         category_id: categoryId,
@@ -260,6 +261,7 @@ describe('Activity endpoints', () => {
       .post('/api/expenses')
       .set('Authorization', `Bearer ${token}`)
       .send({
+        budget_confirmation: true,
         date: '2026-05-02',
         amount: 150,
         category_id: categoryId,

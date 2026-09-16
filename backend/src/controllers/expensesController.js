@@ -14,6 +14,8 @@ const {
     isValidMonthValue,
 } = require('../utils/validators');
 
+const { getBudgetImpact, toCents, money } = require('../utils/budgetImpact');
+
 const MAX_EXPENSE_QUERY_LIMIT = 100;
 
 const validateExpensePayload = ({
@@ -363,8 +365,35 @@ const createExpense = async (req, res) => {
             return res.status(400).json({ error: validationError });
         }
 
-        const normalizedAmount = Number(amount);
+        // Only new expenses participate; income and historical edits keep their flow.
+        const amountCents = type === 'expense' ? toCents(amount) : null;
+        const normalizedAmount = type === 'expense' ? money(amountCents) : Number(amount);
         const sanitizedDescription = sanitizeOptionalTextValue(description);
+
+        if (type === 'expense' && req.body.budget_confirmation !== true) {
+            let budgetImpact;
+            try {
+                budgetImpact = await getBudgetImpact({
+                    userId, date, conceptId: Number(concept_id), amountCents,
+                });
+            } catch (error) {
+                // This branch is before all writes. Explicit confirmation can still
+                // record a legitimate movement if the advisory read is unavailable.
+                console.warn('Budget check unavailable:', error.message);
+                return res.status(409).json({
+                    code: 'BUDGET_CHECK_UNAVAILABLE',
+                    requiresConfirmation: true,
+                    error: 'No se pudo consultar el presupuesto. Puedes registrar el movimiento de todos modos.',
+                });
+            }
+            if (budgetImpact.status !== 'ENOUGH') {
+                return res.status(409).json({
+                    code: 'BUDGET_CONFIRMATION_REQUIRED',
+                    requiresConfirmation: true,
+                    budgetImpact,
+                });
+            }
+        }
 
         const expenseCode = await getNextExpenseCode();
 
@@ -414,7 +443,7 @@ const createExpense = async (req, res) => {
                     expenseCode,
                     categoryName: activityDetails.category,
                     conceptName: activityDetails.concept,
-                    amount: normalizedAmount,
+                    amount: Number(normalizedAmount),
                     accountAlias: activityDetails.account_alias,
                     description: sanitizedDescription,
                     date,

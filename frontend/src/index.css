@@ -5493,6 +5493,7 @@ input.currency-input[data-currency-zero="true"] {
 
 /* Frequent template editor uses the movement controls and existing breakpoints. */
 .movements-page .frequent-template-dialog,
+.movements-page .budget-warning-dialog,
 .movements-page .frequent-confirm-dialog {
   position: fixed;
   inset: 0;
@@ -5511,6 +5512,7 @@ input.currency-input[data-currency-zero="true"] {
   box-shadow: 0 20px 60px rgba(15, 23, 42, .2);
 }
 .frequent-template-dialog::backdrop,
+.budget-warning-dialog::backdrop,
 .frequent-confirm-dialog::backdrop { background: rgba(15, 23, 42, .45); }
 .frequent-template-dialog .expense-form-header h2 { overflow-wrap: anywhere; }
 .frequent-template-dialog .responsive-field { display: grid; min-width: 0; }
@@ -5562,4 +5564,28 @@ input.currency-input[data-currency-zero="true"] {
 @media (max-width: 374px) {
   .frequent-personalization { grid-template-columns: 40px 40px; }
   .frequent-personalization > :last-child { grid-column: 1 / -1; width: 160px; justify-self: center; }
+}
+
+/* Budget confirmation reuses the native dialog and PrimaryButton treatments. */
+.movements-page .budget-warning-dialog {
+  width: min(620px, calc(var(--frequent-content-width, 100vw) - 32px));
+}
+.budget-warning-dialog .expense-delete-summary { margin-top: 12px; }
+.budget-warning-dialog .expense-delete-summary p { margin: 4px 0; }
+.budget-warning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+.budget-warning-actions .primary-button {
+  width: auto;
+  flex: 1 1 auto;
+  min-height: 40px;
+}
+@media (max-width: 600px) {
+  .movements-page .budget-warning-dialog { padding: 16px; }
+  .budget-warning-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .budget-warning-actions > :last-child { grid-column: 1 / -1; }
 }

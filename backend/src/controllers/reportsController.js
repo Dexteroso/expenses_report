@@ -1,8 +1,7 @@
-const { Op, fn, col, where: sequelizeWhere } = require('sequelize');
 const Budget = require('../models/sequelize/Budget');
 const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
-const Expense = require('../models/sequelize/Expense');
+const { getMonthlyActuals } = require('../utils/budgetImpact');
 const { isIntegerValue } = require('../utils/validators');
 
 const getRealVsBudgetReport = async (req, res) => {
@@ -45,21 +44,7 @@ const getRealVsBudgetReport = async (req, res) => {
       raw: true,
     });
 
-    const actualRows = await Expense.findAll({
-      attributes: [
-        'concept_id',
-        [fn('MONTH', col('date')), 'month'],
-        [fn('SUM', col('amount')), 'actual'],
-      ],
-      where: {
-        user_id: userId,
-        [Op.and]: [
-          sequelizeWhere(fn('YEAR', col('date')), normalizedYear),
-        ],
-      },
-      group: ['concept_id', fn('MONTH', col('date'))],
-      raw: true,
-    });
+    const actualRows = await getMonthlyActuals({ userId, year: normalizedYear });
 
     const budgetMap = new Map();
     const actualMap = new Map();

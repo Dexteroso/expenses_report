@@ -253,7 +253,7 @@ describe('Favorite movements endpoints', () => {
 
     const movement = await request(app).post('/api/expenses')
       .set('Authorization', `Bearer ${token}`)
-      .send({ date: '2026-09-14', type: category.type, category_id: category.id,
+      .send({ budget_confirmation: true, date: '2026-09-14', type: category.type, category_id: category.id,
         concept_id: conceptId, description: 'Historical snapshot', amount: 42,
         account_id: accountId, source_favorite_id: favoriteId });
     expect(movement.statusCode).toBe(201);
@@ -292,6 +292,7 @@ describe('Favorite movements endpoints', () => {
     return rows[0].id;
   };
   const movementPayload = (overrides = {}) => ({
+    budget_confirmation: true,
     date: '2026-09-14', type: category.type, category_id: category.id,
     concept_id: conceptId, account_id: accountId, amount: 425,
     description: 'Adjusted before saving', ...overrides,
@@ -314,6 +315,19 @@ describe('Favorite movements endpoints', () => {
     const [history] = await pool.query('SELECT description, amount FROM expenses WHERE id = ?', [first.body.expense_id]);
     expect(history[0].description).toBe('Adjusted before saving');
     expect(Number(history[0].amount)).toBe(425);
+  });
+
+  test('budget warning preserves favorite lifetime count until confirmed creation', async () => {
+    const id = await ownedFavoriteId();
+    const before = await usage(id);
+    const payload = movementPayload({ source_favorite_id: id, type: 'expense', budget_confirmation: false });
+    const warning = await postMovement(payload);
+    expect(warning.statusCode).toBe(409);
+    expect(warning.body.code).toBe('BUDGET_CONFIRMATION_REQUIRED');
+    expect(await usage(id)).toBe(before);
+    const saved = await postMovement({ ...payload, budget_confirmation: true });
+    expect(saved.statusCode).toBe(201);
+    expect(await usage(id)).toBe(before + 1);
   });
 
   test('manual creation, historical editing and validation failure do not count as template use', async () => {

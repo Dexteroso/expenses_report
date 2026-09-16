@@ -137,6 +137,9 @@ router.get('/', getExpenses);
  *                 type: number
  *               account_id:
  *                 type: integer
+ *               budget_confirmation:
+ *                 type: boolean
+ *                 description: Explicit permission to create despite budget impact. Only literal true bypasses the advisory check; normal validation still applies.
  *               source_favorite_id:
  *                 type: integer
  *                 description: Optional originating template ID. Successful creation atomically increments the owning user's template lifetime count; edited draft fields do not change the origin.
@@ -149,6 +152,8 @@ router.get('/', getExpenses);
  *             amount: 3500
  *             account_id: 2
  *     responses:
+ *       409:
+ *         description: No writes occurred. BUDGET_CONFIRMATION_REQUIRED includes requiresConfirmation and budgetImpact (status, date/year/month, catalog IDs/names, currency, budget, currentSpent, available, newAmount, projectedSpent, projectedAvailable, currentOverage, projectedOverage). Monetary fields are two-decimal strings. BUDGET_CHECK_UNAVAILABLE also permits explicit confirmation without a budget read.
  *       201:
  *         description: Expense created. If optional usage tracking fails, this still returns 201 with usage_tracking_failed true; do not retry movement creation.
  *         content:

@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Form prefill/highlight effects intentionally synchronize local UI state. */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { lightTheme } from '../theme/theme';
 import { authFetch } from '../utils/auth';
 import { API_BASE_URL } from '../utils/api';
 import CurrencyInput from './ui/CurrencyInput';
 import DateInput from './DateInput';
 import PrimaryButton from './ui/PrimaryButton';
+import { formatCurrencyMXN } from '../utils/formatters';
 
 function AddExpenseForm({
     selectedExpense,
@@ -35,6 +36,36 @@ function AddExpenseForm({
     const [formData, setFormData] = useState(initialForm);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const submittingRef = useRef(false);
+    const pendingRef = useRef(null);
+    const [pendingConfirmation, setPendingConfirmation] = useState(null);
+    const dialogRef = useRef(null);
+    const hasPendingConfirmation = Boolean(pendingConfirmation);
+
+    useLayoutEffect(() => {
+        if (!hasPendingConfirmation) return;
+        const dialog = dialogRef.current;
+        const content = dialog.closest('.app-content');
+        const previousFocus = document.activeElement;
+        const position = () => {
+            const bounds = content?.getBoundingClientRect();
+            const left = Math.max(0, bounds?.left ?? 0);
+            const right = Math.max(0, bounds ? window.innerWidth - bounds.right : 0);
+            dialog.style.setProperty('--frequent-content-left', `${left}px`);
+            dialog.style.setProperty('--frequent-content-right', `${right}px`);
+            dialog.style.setProperty('--frequent-content-width', `${window.innerWidth - left - right}px`);
+        };
+        position();
+        const observer = content ? new ResizeObserver(position) : null;
+        if (content) observer.observe(content);
+        window.addEventListener('resize', position);
+        dialog.showModal();
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener('resize', position);
+            dialog.close();
+            previousFocus?.focus();
+        };
+    }, [hasPendingConfirmation]);
     const [validationMessage, setValidationMessage] = useState('');
     const [isFormHighlightActive, setIsFormHighlightActive] = useState(false);
     const [contextMessage, setContextMessage] = useState('');
@@ -263,7 +294,7 @@ function AddExpenseForm({
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (submittingRef.current) return;
+        if (submittingRef.current || pendingRef.current) return;
 
         if (
             !formData.date ||
@@ -299,8 +330,21 @@ function AddExpenseForm({
 
         const method = selectedExpense ? 'PUT' : 'POST';
 
+        await saveMovement(Object.freeze(payload), url, method);
+    };
+
+    const cancelBudgetConfirmation = () => {
+        if (submittingRef.current) return;
+        pendingRef.current = null;
+        setPendingConfirmation(null);
+        setValidationMessage('');
+    };
+
+    const saveMovement = async (payload, url, method) => {
+        if (submittingRef.current) return;
         submittingRef.current = true;
         setIsSubmitting(true);
+        setValidationMessage('');
         try {
             const response = await authFetch(url, {
                 method,
@@ -308,11 +352,20 @@ function AddExpenseForm({
                 body: JSON.stringify(payload),
             });
             const data = await response.json();
+            if (method === 'POST' && !payload.budget_confirmation && response.status === 409 &&
+                ['BUDGET_CONFIRMATION_REQUIRED', 'BUDGET_CHECK_UNAVAILABLE'].includes(data.code)) {
+                const pending = { payload, url, method, impact: data.budgetImpact, error: data.error };
+                pendingRef.current = pending;
+                setPendingConfirmation(pending);
+                return;
+            }
             if (!response.ok) {
                 setValidationMessage(data.error || 'No se pudo guardar el movimiento.');
                 return;
             }
 
+            pendingRef.current = null;
+            setPendingConfirmation(null);
             setFormData(initialForm);
             onFavoritePrefillClear?.();
             onExpenseCreated?.({ sourceFavoriteId: payload.source_favorite_id });
@@ -325,6 +378,9 @@ function AddExpenseForm({
         }
 
     };
+
+    const impact = pendingConfirmation?.impact;
+    const alreadyExceeded = impact?.status === 'ALREADY_EXCEEDED';
 
     return (
         <div
@@ -358,7 +414,7 @@ function AddExpenseForm({
             </div>
 
             <form onSubmit={handleSubmit} aria-busy={isSubmitting}>
-                <fieldset disabled={isSubmitting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+                <fieldset disabled={isSubmitting || hasPendingConfirmation} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                 <div className="expense-type-segment" role="group" aria-label="Tipo de movimiento">
                     <button
                         type="button"
@@ -539,6 +595,35 @@ function AddExpenseForm({
 
                 </fieldset>
             </form>
+            {pendingConfirmation && (
+                <dialog ref={dialogRef} className="budget-warning-dialog expense-delete-modal"
+                    aria-labelledby="budget-warning-title" aria-describedby="budget-warning-description budget-warning-impact"
+                    aria-busy={isSubmitting}
+                    onCancel={(event) => { event.preventDefault(); cancelBudgetConfirmation(); }}>
+                    <div className="expense-delete-icon" aria-hidden="true"><i className="bx bx-error-circle" /></div>
+                    <h2 id="budget-warning-title" className="expense-delete-title">
+                        {!impact ? 'No se pudo consultar el presupuesto' : alreadyExceeded ? 'Presupuesto excedido' : 'Presupuesto insuficiente'}
+                    </h2>
+                    <p id="budget-warning-description" className="expense-delete-question">
+                        {!impact ? pendingConfirmation.error : alreadyExceeded
+                            ? <>Ya has excedido el presupuesto de {impact.categoryName} · {impact.conceptName} en <strong className="financial-negative-value">{formatCurrencyMXN(impact.currentOverage)}</strong>.</>
+                            : <>Tienes {formatCurrencyMXN(impact.available)} disponibles en {impact.categoryName} · {impact.conceptName}.</>}
+                    </p>
+                    <div id="budget-warning-impact" className="expense-delete-summary">
+                        <p>Nuevo movimiento: <strong>{formatCurrencyMXN(impact?.newAmount ?? pendingConfirmation.payload.amount)}</strong></p>
+                        {impact && <p>Excedente después del movimiento: <strong className="financial-negative-value">{formatCurrencyMXN(impact.projectedOverage)}</strong></p>}
+                    </div>
+                    {validationMessage && <p className="financial-negative-value" role="alert">{validationMessage}</p>}
+                    <div className="budget-warning-actions">
+                        <PrimaryButton variant="secondary" disabled={isSubmitting} onClick={cancelBudgetConfirmation}>Cancelar</PrimaryButton>
+                        <PrimaryButton variant="secondary" disabled={isSubmitting} onClick={() => {
+                            const pending = pendingRef.current;
+                            if (pending) saveMovement({ ...pending.payload, budget_confirmation: true }, pending.url, pending.method);
+                        }}>{isSubmitting ? 'Guardando...' : 'Registrar de todos modos'}</PrimaryButton>
+                        <PrimaryButton disabled>Reasignar presupuesto</PrimaryButton>
+                    </div>
+                </dialog>
+            )}
             {contextMessage && (
                 <div className="expense-form-context-toast" role="status" aria-live="polite">
                     <i className={selectedExpense ? 'bx bx-edit-alt' : 'bx bx-check'}></i>
