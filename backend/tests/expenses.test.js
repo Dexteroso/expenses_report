@@ -181,6 +181,7 @@ describe('Expenses endpoints', () => {
 
     test('PUT /api/expenses/:id does not change expense_code', async () => {
         const updatedExpense = {
+            budget_confirmation: true,
             date: '2026-05-02',
             amount: 150,
             category_id: categoryId,

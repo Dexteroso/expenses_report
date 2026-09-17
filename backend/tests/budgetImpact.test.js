@@ -5,6 +5,12 @@ const Concept = require('../src/models/sequelize/Concept');
 const Favorite = require('../src/models/sequelize/FavoriteMovement');
 jest.mock('../src/utils/activityLogger', () => ({ logActivity: jest.fn() }));
 jest.mock('../src/utils/onboardingStatus', () => ({ markUserOnboardingCompleted: jest.fn() }));
+jest.mock('../src/utils/financialTransaction', () => ({
+  ...jest.requireActual('../src/utils/financialTransaction'),
+  withFinancialTransaction: async (_userId, work) => {
+    try { return await work(undefined); } catch (error) { error.financialRolledBack = true; throw error; }
+  },
+}));
 const { logActivity } = require('../src/utils/activityLogger');
 const { markUserOnboardingCompleted } = require('../src/utils/onboardingStatus');
 const { createExpense, updateExpense } = require('../src/controllers/expensesController');
@@ -89,10 +95,11 @@ test('confirmation requires literal true and never bypasses validation', async (
   expect(Expense.create).not.toHaveBeenCalled();
 });
 
-test('income and PUT skip all budget queries', async () => {
+test('income and explicitly confirmed PUT skip budget queries', async () => {
   await create({ type: 'income' });
   expect(res.status).toHaveBeenCalledWith(201);
-  await updateExpense({ user: { id: 7 }, params: { id: '99' }, body }, res);
+  Expense.findOne.mockResolvedValueOnce({ ...body, id: 99 });
+  await updateExpense({ user: { id: 7 }, params: { id: '99' }, body: { ...body, budget_confirmation: true } }, res);
   expect(Expense.update).toHaveBeenCalledTimes(1);
   expect(Budget.findOne).not.toHaveBeenCalled();
   expect(Expense.findAll).not.toHaveBeenCalled();
@@ -107,7 +114,7 @@ test('currency boundaries use the same normalized amount for preflight and persi
   await create({ amount: '1.005' });
   expect(res.json.mock.calls[0][0].budgetImpact.newAmount).toBe('1.01');
   await create({ amount: '1.005', budget_confirmation: true });
-  expect(Expense.create).toHaveBeenCalledWith(expect.objectContaining({ amount: '1.01' }));
+  expect(Expense.create).toHaveBeenCalledWith(expect.objectContaining({ amount: '1.01' }), expect.any(Object));
   Budget.findOne.mockResolvedValue({ amount: '0.30' });
   Expense.findAll.mockResolvedValue([{ actual: '0.10' }]);
   await create({ amount: 0.2 });

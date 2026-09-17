@@ -1,4 +1,5 @@
-const { sequelize } = require('../config/sequelize');
+const { withFinancialTransaction, financialFailure } = require('../utils/financialTransaction');
+const { getReassignmentSources } = require('../utils/budgetReassignment');
 const Budget = require('../models/sequelize/Budget');
 const Category = require('../models/sequelize/Category');
 const Concept = require('../models/sequelize/Concept');
@@ -170,8 +171,6 @@ const getBudgets = async (req, res) => {
 };
 
 const saveBudgets = async (req, res) => {
-  let transaction;
-
   try {
     const userId = req.user.id;
     const { year, items } = req.body;
@@ -191,31 +190,19 @@ const saveBudgets = async (req, res) => {
       month: Number(item.month),
       amount: Number(item.amount),
     }));
-    transaction = await sequelize.transaction();
-
-    const budgetChanges = await getBudgetChangeDetails(
-      transaction,
-      userId,
-      normalizedYear,
-      normalizedItems
-    );
-
-    for (const item of normalizedItems) {
-      await Budget.upsert(
-        {
+    const budgetChanges = await withFinancialTransaction(userId, async (transaction) => {
+      const changes = await getBudgetChangeDetails(transaction, userId, normalizedYear, normalizedItems);
+      for (const item of normalizedItems) {
+        await Budget.upsert({
           user_id: userId,
           concept_id: item.concept_id,
           year: normalizedYear,
           month: item.month,
           amount: item.amount,
-        },
-        {
-          transaction,
-        }
-      );
-    }
-
-    await transaction.commit();
+        }, { transaction });
+      }
+      return changes;
+    });
 
     const firstChange = budgetChanges[0];
 
@@ -242,16 +229,22 @@ const saveBudgets = async (req, res) => {
       saved: items.length,
     });
   } catch (error) {
-    if (transaction) {
-      await transaction.rollback().catch(() => {});
-    }
+    financialFailure(res, error, 'Error saving budgets');
+  }
+};
 
-    console.error(error);
-    res.status(500).json({ error: 'Error saving budgets' });
+const discoverReassignmentSources = async (req, res) => {
+  try {
+    const data = await getReassignmentSources({ userId: req.user.id, date: req.query.date,
+      conceptId: req.query.concept_id, amount: req.query.amount, expenseId: req.query.expense_id });
+    res.json(data);
+  } catch (error) {
+    financialFailure(res, error, 'No se pudieron consultar las fuentes de presupuesto.');
   }
 };
 
 module.exports = {
   getBudgets,
   saveBudgets,
+  discoverReassignmentSources,
 };

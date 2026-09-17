@@ -6,7 +6,7 @@ const Category = require('../models/sequelize/Category');
 
 // Real is grouped by concept and movement month, regardless of the record's
 // type/category/account. Keep this definition shared with Variaciones.
-const getMonthlyActuals = ({ userId, year, month, conceptId }) => Expense.findAll({
+const getMonthlyActuals = ({ userId, year, month, conceptId, transaction, excludeExpenseId }) => Expense.findAll({
   attributes: [
     'concept_id',
     [fn('MONTH', col('date')), 'month'],
@@ -14,6 +14,7 @@ const getMonthlyActuals = ({ userId, year, month, conceptId }) => Expense.findAl
   ],
   where: {
     user_id: userId,
+    ...(excludeExpenseId === undefined ? {} : { id: { [Op.ne]: excludeExpenseId } }),
     ...(conceptId === undefined ? {} : { concept_id: conceptId }),
     [Op.and]: [
       sequelizeWhere(fn('YEAR', col('date')), year),
@@ -22,6 +23,7 @@ const getMonthlyActuals = ({ userId, year, month, conceptId }) => Expense.findAl
   },
   group: ['concept_id', fn('MONTH', col('date'))],
   raw: true,
+  ...(transaction ? { transaction } : {}),
 });
 
 // Round decimal input half-up without binary floating-point multiplication.
@@ -46,21 +48,27 @@ const money = (cents) => {
   return `${cents < 0 ? '-' : ''}${Math.floor(Math.abs(cents) / 100)}.${String(Math.abs(cents) % 100).padStart(2, '0')}`;
 };
 
-const getBudgetImpact = async ({ userId, date, conceptId, amountCents }) => {
+const getBudgetImpact = async ({ userId, date, conceptId, amountCents, transaction, previousExpense }) => {
   const [year, month] = date.trim().split('-').map(Number);
   const [budgetRow, actualRows, concept] = await Promise.all([
-    Budget.findOne({ where: { user_id: userId, concept_id: conceptId, year, month }, raw: true }),
-    getMonthlyActuals({ userId, year, month, conceptId }),
+    Budget.findOne({ where: { user_id: userId, concept_id: conceptId, year, month }, raw: true, ...(transaction ? { transaction } : {}) }),
+    getMonthlyActuals({ userId, year, month, conceptId, transaction }),
     Concept.findByPk(conceptId, {
+      ...(transaction ? { transaction } : {}),
       include: [{ model: Category, as: 'category', attributes: ['id', 'name'], required: true }],
     }),
   ]);
   const catalog = concept.get({ plain: true });
   const budget = toCents(budgetRow?.amount ?? 0);
   const currentSpent = toCents(actualRows[0]?.actual ?? 0);
-  const projectedSpent = currentSpent + amountCents;
+  const previousPeriod = String(previousExpense?.date || '').slice(0, 7);
+  const sameBucket = previousExpense && Number(previousExpense.concept_id) === Number(conceptId)
+    && previousPeriod === date.trim().slice(0, 7);
+  const removedCents = sameBucket ? toCents(previousExpense.amount) : 0;
+  const projectedSpent = currentSpent - removedCents + amountCents;
   return {
-    status: currentSpent > budget ? 'ALREADY_EXCEEDED' : projectedSpent > budget ? 'WOULD_EXCEED' : 'ENOUGH',
+    status: projectedSpent <= budget ? 'ENOUGH' : currentSpent > budget ? 'ALREADY_EXCEEDED' : 'WOULD_EXCEED',
+    ...(previousExpense ? { previousExpenseId: previousExpense.id, removedAmount: money(removedCents), deltaAmount: money(amountCents - removedCents) } : {}),
     date, year, month,
     categoryId: catalog.category.id,
     categoryName: catalog.category.name,

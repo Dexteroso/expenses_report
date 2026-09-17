@@ -6,6 +6,8 @@ import { API_BASE_URL } from '../utils/api';
 import CurrencyInput from './ui/CurrencyInput';
 import DateInput from './DateInput';
 import PrimaryButton from './ui/PrimaryButton';
+import BudgetReassignmentPanel from './BudgetReassignmentPanel';
+import { toCents } from '../utils/currencyInput';
 import { formatCurrencyMXN } from '../utils/formatters';
 
 function AddExpenseForm({
@@ -40,6 +42,20 @@ function AddExpenseForm({
     const [pendingConfirmation, setPendingConfirmation] = useState(null);
     const dialogRef = useRef(null);
     const hasPendingConfirmation = Boolean(pendingConfirmation);
+    const [dialogView, setDialogView] = useState('warning');
+    const [discovery, setDiscovery] = useState(null);
+    const [selections, setSelections] = useState({});
+    const [loadingSources, setLoadingSources] = useState(false);
+    const [outcomeUnknown, setOutcomeUnknown] = useState(false);
+    const sourceRequestRef = useRef(0);
+    const reassignmentButtonRef = useRef(null);
+    const previousViewRef = useRef('warning');
+
+    useEffect(() => {
+        if (dialogView === 'reassignment') dialogRef.current?.querySelector('#budget-reassignment-title')?.focus();
+        else if (hasPendingConfirmation && previousViewRef.current === 'reassignment') reassignmentButtonRef.current?.focus();
+        previousViewRef.current = dialogView;
+    }, [dialogView, hasPendingConfirmation]);
 
     useLayoutEffect(() => {
         if (!hasPendingConfirmation) return;
@@ -338,10 +354,57 @@ function AddExpenseForm({
         pendingRef.current = null;
         setPendingConfirmation(null);
         setValidationMessage('');
+        resetReassignment();
+    };
+
+    const resetReassignment = () => {
+        sourceRequestRef.current++;
+        setDialogView('warning');
+        setDiscovery(null);
+        setSelections({});
+        setLoadingSources(false);
+        setOutcomeUnknown(false);
+    };
+
+    const loadSources = async () => {
+        const pending = pendingRef.current;
+        if (!pending) return;
+        const requestId = ++sourceRequestRef.current;
+        setLoadingSources(true);
+        setValidationMessage('');
+        try {
+            const params = new URLSearchParams({ date: pending.payload.date, concept_id: pending.payload.concept_id, amount: pending.payload.amount });
+            if (pending.method === 'PUT') params.set('expense_id', pending.url.split('/').pop());
+            const response = await authFetch(`${API_BASE_URL}/api/budgets/reassignment-sources?${params}`);
+            const data = await response.json();
+            if (requestId !== sourceRequestRef.current || pending !== pendingRef.current) return;
+            if (!response.ok) throw new Error(data.error || 'No se pudieron consultar las fuentes.');
+            setDiscovery(data);
+        } catch (error) {
+            if (requestId === sourceRequestRef.current) setValidationMessage(error.message || 'No se pudieron consultar las fuentes.');
+        } finally {
+            if (requestId === sourceRequestRef.current) setLoadingSources(false);
+        }
+    };
+
+    const openReassignment = () => {
+        setDialogView('reassignment');
+        if (!discovery && !loadingSources) loadSources();
+    };
+
+    const confirmReassignment = () => {
+        const pending = pendingRef.current;
+        if (!pending || submittingRef.current || loadingSources || outcomeUnknown || !discovery) return;
+        const available = new Map(discovery.categories.flatMap((group) => group.concepts).map((row) => [row.conceptId, toCents(row.available)]));
+        const entries = Object.entries(selections).filter(([, amount]) => toCents(amount) > 0);
+        if (entries.reduce((sum, [, amount]) => sum + toCents(amount), 0) > toCents(discovery.destination.requiredAmount)) return;
+        if (!entries.length || entries.some(([id, amount]) => toCents(amount) > (available.get(Number(id)) || 0))) return;
+        const sources = entries.map(([id, amount]) => ({ concept_id: Number(id), amount: (toCents(amount) / 100).toFixed(2) }));
+        saveMovement({ ...pending.payload, budget_confirmation: true, budget_reassignment: { sources } }, pending.url, pending.method);
     };
 
     const saveMovement = async (payload, url, method) => {
-        if (submittingRef.current) return;
+        if (submittingRef.current || outcomeUnknown) return;
         submittingRef.current = true;
         setIsSubmitting(true);
         setValidationMessage('');
@@ -352,26 +415,51 @@ function AddExpenseForm({
                 body: JSON.stringify(payload),
             });
             const data = await response.json();
-            if (method === 'POST' && !payload.budget_confirmation && response.status === 409 &&
+            if (!payload.budget_confirmation && response.status === 409 &&
                 ['BUDGET_CONFIRMATION_REQUIRED', 'BUDGET_CHECK_UNAVAILABLE'].includes(data.code)) {
                 const pending = { payload, url, method, impact: data.budgetImpact, error: data.error };
                 pendingRef.current = pending;
                 setPendingConfirmation(pending);
                 return;
             }
+            if (data.code === 'REASSIGNMENT_SOURCE_CHANGED' && data.discovery) {
+                // Keep selected rows visible even if their refreshed balance is zero.
+                const refreshed = data.discovery;
+                const present = new Set(refreshed.categories.flatMap((group) => group.concepts).map((row) => row.conceptId));
+                for (const group of discovery?.categories || []) {
+                    for (const row of group.concepts) {
+                        if (!present.has(row.conceptId) && toCents(selections[row.conceptId] || 0) > 0) {
+                            let target = refreshed.categories.find((item) => item.categoryId === group.categoryId);
+                            if (!target) { target = { ...group, available: '0.00', concepts: [] }; refreshed.categories.push(target); }
+                            const conflict = data.conflicts?.find((item) => item.conceptId === row.conceptId);
+                            target.concepts.push({ ...row, available: conflict?.available || '0.00' });
+                        }
+                    }
+                }
+                setDiscovery(refreshed);
+            }
             if (!response.ok) {
+                if (payload.budget_reassignment && response.status >= 500 && data.rolledBack !== true) {
+                    setOutcomeUnknown(true);
+                    setValidationMessage('No se pudo confirmar el resultado. Revisa Movimientos y Presupuesto antes de volver a intentar.');
+                    return;
+                }
                 setValidationMessage(data.error || 'No se pudo guardar el movimiento.');
                 return;
             }
 
             pendingRef.current = null;
             setPendingConfirmation(null);
+            resetReassignment();
             setFormData(initialForm);
             onFavoritePrefillClear?.();
             onExpenseCreated?.({ sourceFavoriteId: payload.source_favorite_id });
         } catch (error) {
             console.error('Error saving movement:', error);
-            setValidationMessage('No se pudo guardar el movimiento. Intenta de nuevo.');
+            if (payload.budget_reassignment) {
+                setOutcomeUnknown(true);
+                setValidationMessage('No se pudo confirmar el resultado. Revisa Movimientos y Presupuesto antes de volver a intentar.');
+            } else setValidationMessage('No se pudo guardar el movimiento. Intenta de nuevo.');
         } finally {
             submittingRef.current = false;
             setIsSubmitting(false);
@@ -596,10 +684,17 @@ function AddExpenseForm({
                 </fieldset>
             </form>
             {pendingConfirmation && (
-                <dialog ref={dialogRef} className="budget-warning-dialog expense-delete-modal"
-                    aria-labelledby="budget-warning-title" aria-describedby="budget-warning-description budget-warning-impact"
+                <dialog ref={dialogRef} className={`budget-warning-dialog expense-delete-modal${dialogView === 'reassignment' ? ' is-reassignment' : ''}`}
+                    aria-labelledby={dialogView === 'reassignment' ? 'budget-reassignment-title' : 'budget-warning-title'}
+                    aria-describedby={dialogView === 'reassignment' ? (discovery ? 'budget-reassignment-summary' : undefined) : 'budget-warning-description budget-warning-impact'}
                     aria-busy={isSubmitting}
                     onCancel={(event) => { event.preventDefault(); cancelBudgetConfirmation(); }}>
+                    {dialogView === 'reassignment' ? <BudgetReassignmentPanel
+                        discovery={discovery} selections={selections} loading={loadingSources} busy={isSubmitting}
+                        outcomeUnknown={outcomeUnknown} error={validationMessage}
+                        onChange={(id, amount) => setSelections((previous) => ({ ...previous, [id]: amount }))}
+                        onRetry={loadSources} onBack={() => { setDialogView('warning'); if (!outcomeUnknown) setValidationMessage(''); }}
+                        onCancel={cancelBudgetConfirmation} onConfirm={confirmReassignment} /> : <>
                     <div className="expense-delete-icon" aria-hidden="true"><i className="bx bx-error-circle" /></div>
                     <h2 id="budget-warning-title" className="expense-delete-title">
                         {!impact ? 'No se pudo consultar el presupuesto' : alreadyExceeded ? 'Presupuesto excedido' : 'Presupuesto insuficiente'}
@@ -610,18 +705,19 @@ function AddExpenseForm({
                             : <>Tienes {formatCurrencyMXN(impact.available)} disponibles en {impact.categoryName} · {impact.conceptName}.</>}
                     </p>
                     <div id="budget-warning-impact" className="expense-delete-summary">
-                        <p>Nuevo movimiento: <strong>{formatCurrencyMXN(impact?.newAmount ?? pendingConfirmation.payload.amount)}</strong></p>
+                        <p>Nuevo importe: <strong>{formatCurrencyMXN(impact?.newAmount ?? pendingConfirmation.payload.amount)}</strong></p>
                         {impact && <p>Excedente después del movimiento: <strong className="financial-negative-value">{formatCurrencyMXN(impact.projectedOverage)}</strong></p>}
                     </div>
                     {validationMessage && <p className="financial-negative-value" role="alert">{validationMessage}</p>}
                     <div className="budget-warning-actions">
                         <PrimaryButton variant="secondary" disabled={isSubmitting} onClick={cancelBudgetConfirmation}>Cancelar</PrimaryButton>
-                        <PrimaryButton variant="secondary" disabled={isSubmitting} onClick={() => {
+                        <PrimaryButton variant="secondary" disabled={isSubmitting || outcomeUnknown} onClick={() => {
                             const pending = pendingRef.current;
                             if (pending) saveMovement({ ...pending.payload, budget_confirmation: true }, pending.url, pending.method);
                         }}>{isSubmitting ? 'Guardando...' : 'Registrar de todos modos'}</PrimaryButton>
-                        <PrimaryButton disabled>Reasignar presupuesto</PrimaryButton>
+                        <PrimaryButton ref={reassignmentButtonRef} disabled={isSubmitting || outcomeUnknown} onClick={openReassignment}>Reasignar presupuesto</PrimaryButton>
                     </div>
+                    </>}
                 </dialog>
             )}
             {contextMessage && (

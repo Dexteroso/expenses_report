@@ -16,6 +16,9 @@ const {
 
 const { getBudgetImpact, toCents, money } = require('../utils/budgetImpact');
 
+const { withFinancialTransaction, FinancialError, financialFailure } = require('../utils/financialTransaction');
+const { applyBudgetReassignment } = require('../utils/budgetReassignment');
+
 const MAX_EXPENSE_QUERY_LIMIT = 100;
 
 const validateExpensePayload = ({
@@ -112,12 +115,13 @@ const validateExpenseQuery = ({
     return null;
 };
 
-const getNextExpenseCode = async () => {
+const getNextExpenseCode = async (transaction) => {
     const captureDate = new Date();
     const captureYear = String(captureDate.getFullYear()).slice(-2);
     const expenseCodePrefix = `EX${captureYear}`;
 
     const lastExpenseRow = await Expense.findOne({
+        transaction,
         attributes: ['expense_code'],
         where: {
             expense_code: {
@@ -260,9 +264,10 @@ const formatExpenseRow = (expense) => {
     };
 };
 
-const getExpenseActivityDetails = async (expenseId, userId) => {
+const getExpenseActivityDetails = async (expenseId, userId, transaction) => {
     try {
         const expense = await Expense.findOne({
+            transaction,
             include: expenseIncludes,
             where: {
                 id: expenseId,
@@ -337,6 +342,28 @@ const buildExpenseChangedFields = (beforeExpense, afterExpense) => {
     return comparisons.filter(({ from, to }) => from !== to);
 };
 
+// Reassignment is an explicit decision, including accepting any remaining variance.
+const prepareBudgetWrite = async (userId, payload, transaction, previousExpense) => {
+    if (payload.budget_reassignment !== undefined) {
+        return applyBudgetReassignment({ userId, payload, transaction, previousExpense });
+    }
+    if (payload.type !== 'expense' || payload.budget_confirmation === true) return null;
+    let budgetImpact;
+    try {
+        budgetImpact = await getBudgetImpact({ userId, date: payload.date, conceptId: Number(payload.concept_id),
+            amountCents: toCents(payload.amount), transaction, previousExpense });
+    } catch (error) {
+        console.warn('Budget check unavailable:', error.message);
+        throw new FinancialError(409, { code: 'BUDGET_CHECK_UNAVAILABLE', requiresConfirmation: true,
+            error: 'No se pudo consultar el presupuesto. Puedes registrar el movimiento de todos modos.' });
+    }
+    const worsens = !previousExpense || toCents(budgetImpact.projectedOverage) > toCents(budgetImpact.currentOverage);
+    if (budgetImpact.status !== 'ENOUGH' && worsens) {
+        throw new FinancialError(409, { code: 'BUDGET_CONFIRMATION_REQUIRED', requiresConfirmation: true, budgetImpact });
+    }
+    return null;
+};
+
 const createExpense = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -365,48 +392,17 @@ const createExpense = async (req, res) => {
             return res.status(400).json({ error: validationError });
         }
 
-        // Only new expenses participate; income and historical edits keep their flow.
-        const amountCents = type === 'expense' ? toCents(amount) : null;
-        const normalizedAmount = type === 'expense' ? money(amountCents) : Number(amount);
+        const normalizedAmount = type === 'expense' ? money(toCents(amount)) : Number(amount);
         const sanitizedDescription = sanitizeOptionalTextValue(description);
-
-        if (type === 'expense' && req.body.budget_confirmation !== true) {
-            let budgetImpact;
-            try {
-                budgetImpact = await getBudgetImpact({
-                    userId, date, conceptId: Number(concept_id), amountCents,
-                });
-            } catch (error) {
-                // This branch is before all writes. Explicit confirmation can still
-                // record a legitimate movement if the advisory read is unavailable.
-                console.warn('Budget check unavailable:', error.message);
-                return res.status(409).json({
-                    code: 'BUDGET_CHECK_UNAVAILABLE',
-                    requiresConfirmation: true,
-                    error: 'No se pudo consultar el presupuesto. Puedes registrar el movimiento de todos modos.',
-                });
-            }
-            if (budgetImpact.status !== 'ENOUGH') {
-                return res.status(409).json({
-                    code: 'BUDGET_CONFIRMATION_REQUIRED',
-                    requiresConfirmation: true,
-                    budgetImpact,
-                });
-            }
-        }
-
-        const expenseCode = await getNextExpenseCode();
-
-        const expense = await Expense.create({
-            expense_code: expenseCode,
-            user_id: userId,
-            date,
-            type,
-            category_id,
-            concept_id,
-            description: sanitizedDescription,
-            amount: normalizedAmount,
-            account_id,
+        const { expense, expenseCode, budgetReassignment } = await withFinancialTransaction(userId, async (transaction) => {
+            const reassignment = await prepareBudgetWrite(userId, req.body, transaction);
+            const code = await getNextExpenseCode(transaction);
+            const created = await Expense.create({
+                expense_code: code, user_id: userId, date, type, category_id, concept_id,
+                description: sanitizedDescription, amount: normalizedAmount, account_id,
+            }, { transaction });
+            return { expense: created, expenseCode: code,
+                budgetReassignment: reassignment ? { ...reassignment, expenseId: created.id, expenseCode: code } : null };
         });
 
         // Expense.create has committed. Metrics must never turn this saved
@@ -476,10 +472,10 @@ const createExpense = async (req, res) => {
             expense_id: expense.id,
             expense_code: expenseCode,
             ...(usageTrackingFailed ? { usage_tracking_failed: true } : {}),
+            ...(budgetReassignment ? { budgetReassignment } : {}),
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error creating expense' });
+        financialFailure(res, error, 'Error creating expense');
     }
 };
 
@@ -604,31 +600,18 @@ const updateExpense = async (req, res) => {
       return res.status(400).json({ error: validationError });
     }
 
-    const normalizedAmount = Number(amount);
+    const normalizedAmount = type === 'expense' ? money(toCents(amount)) : Number(amount);
     const sanitizedDescription = sanitizeOptionalTextValue(description);
-    const beforeDetails = await getExpenseActivityDetails(id, userId);
-
-    const [affectedRows] = await Expense.update(
-      {
-        date,
-        type,
-        category_id,
-        concept_id,
-        description: sanitizedDescription,
-        amount: normalizedAmount,
-        account_id,
-      },
-      {
-        where: {
-          id,
-          user_id: userId,
-        },
-      }
-    );
-
-    if (affectedRows === 0) {
-      return res.status(404).json({ error: 'Expense not found' });
-    }
+    const { beforeDetails, budgetReassignment } = await withFinancialTransaction(userId, async (transaction) => {
+      const previousExpense = await Expense.findOne({ where: { id, user_id: userId }, transaction, raw: true });
+      if (!previousExpense) throw new FinancialError(404, { error: 'Expense not found' });
+      const before = await getExpenseActivityDetails(id, userId, transaction);
+      const reassignment = await prepareBudgetWrite(userId, req.body, transaction, previousExpense);
+      await Expense.update({ date, type, category_id, concept_id, description: sanitizedDescription,
+        amount: normalizedAmount, account_id }, { where: { id, user_id: userId }, transaction });
+      return { beforeDetails: before, budgetReassignment: reassignment ? { ...reassignment,
+        expenseId: Number(id), expenseCode: previousExpense.expense_code } : null };
+    });
 
     const activityDetails = await getExpenseActivityDetails(id, userId);
 
@@ -651,10 +634,9 @@ const updateExpense = async (req, res) => {
       },
     });
 
-    res.json({ message: 'Expense updated successfully' });
+    res.json({ message: 'Expense updated successfully', ...(budgetReassignment ? { budgetReassignment } : {}) });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error updating expense' });
+    financialFailure(res, error, 'Error updating expense');
   }
 };
 
@@ -667,18 +649,12 @@ const deleteExpense = async (req, res) => {
       return res.status(400).json({ error: 'Invalid expense id' });
     }
 
-    const activityDetails = await getExpenseActivityDetails(id, userId);
-
-    const deletedRows = await Expense.destroy({
-      where: {
-        id,
-        user_id: userId,
-      },
+    const activityDetails = await withFinancialTransaction(userId, async (transaction) => {
+      const details = await getExpenseActivityDetails(id, userId, transaction);
+      const deletedRows = await Expense.destroy({ where: { id, user_id: userId }, transaction });
+      if (deletedRows === 0) throw new FinancialError(404, { error: 'Expense not found' });
+      return details;
     });
-
-    if (deletedRows === 0) {
-      return res.status(404).json({ error: 'Expense not found' });
-    }
 
     logActivity({
       user: req.user,
@@ -700,8 +676,7 @@ const deleteExpense = async (req, res) => {
 
     res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error deleting expense' });
+    financialFailure(res, error, 'Error deleting expense');
   }
 };
 

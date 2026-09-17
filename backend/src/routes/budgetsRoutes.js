@@ -3,11 +3,34 @@ const { authMiddleware } = require('../middleware/authMiddleware');
 const {
   getBudgets,
   saveBudgets,
+  discoverReassignmentSources,
 } = require('../controllers/budgetsController');
 
 const router = express.Router();
 
 router.use(authMiddleware);
+
+/**
+ * @swagger
+ * /api/budgets/reassignment-sources:
+ *   get:
+ *     summary: Advisory expense-budget sources for a movement (no reservations)
+ *     tags: [Budgets]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: query, name: date, required: true, schema: { type: string, format: date } }
+ *       - { in: query, name: concept_id, required: true, schema: { type: integer } }
+ *       - { in: query, name: amount, required: true, schema: { type: number } }
+ *       - { in: query, name: expense_id, schema: { type: integer }, description: Owned movement being edited; excludes its old impact from donor availability. }
+ *     responses:
+ *       200:
+ *         description: Destination impact, sameCategoryAvailable, totalAvailable and eligible expense categories/concepts. Currency values are decimal strings.
+ *       400:
+ *         description: Invalid movement inputs
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/reassignment-sources', discoverReassignmentSources);
 
 /**
  * @swagger

@@ -923,7 +923,8 @@ body {
   background: color-mix(in srgb, #11A9CC 10%, var(--budget-category-background)) !important;
 }
 
-.budget-page .budget-concept-row > td {
+.budget-page .budget-concept-row > td,
+.budget-reassignment-panel .budget-concept-row > td {
   border-top-color: #e5ebf3 !important;
   color: #465b87 !important;
   font-size: 12px;
@@ -5589,3 +5590,22 @@ input.currency-input[data-currency-zero="true"] {
   .budget-warning-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); }
   .budget-warning-actions > :last-child { grid-column: 1 / -1; }
 }
+
+/* Reassignment uses the same modal, monetary inputs and budget category rows. */
+.budget-reassignment-panel { width: 100%; min-width: 0; text-align: left; }
+.budget-reassignment-panel .expense-delete-title { text-align: center; }
+.budget-reassignment-summary { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0; font-size: 12px; }
+.budget-reassignment-summary > div { flex: 1 1 auto; }
+.budget-reassignment-summary dt { color: #64748b; }
+.budget-reassignment-summary dd { margin: 4px 0 0; font-weight: 700; }
+.budget-reassignment-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 12px 0; }
+.budget-reassignment-table th { font-size: 12px; font-weight: 600; color: #64748b; }
+.budget-reassignment-table th:first-child { width: 42%; }
+.budget-reassignment-table th, .budget-reassignment-table td { padding: 5px 4px; overflow-wrap: anywhere; }
+.budget-reassignment-table th:not(:first-child), .budget-reassignment-table td:not(:first-child) { text-align: right; }
+.budget-reassignment-table .budget-input { width: 100%; min-width: 0 !important; box-sizing: border-box; padding: 4px; text-align: right; border: 1px solid var(--border); border-radius: 5px; }
+.budget-reassignment-table .budget-input[aria-invalid="true"] { border-color: #dc2626; }
+.budget-source-error { display: block; font-size: 11px; }
+.budget-reassignment-panel .budget-warning-actions { margin-top: 12px; }
+.budget-reassignment-submit { white-space: nowrap; }
+.budget-reassignment-submit.is-over-limit:disabled { background: #fef2f2; color: #dc2626; }

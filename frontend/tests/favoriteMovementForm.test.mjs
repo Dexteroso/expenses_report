@@ -553,7 +553,7 @@ async function openBudgetWarning() {
 }
 
 for (const status of ['WOULD_EXCEED', 'ALREADY_EXCEEDED']) {
-  test(`budget warning ${status}: exact copy, inline amounts, disabled reassignment, cancel preserves draft/origin`, async () => {
+  test(`budget warning ${status}: exact copy, inline amounts, enabled reassignment, cancel preserves draft/origin`, async () => {
     const writes = setupBudgetFetch(status);
     await mount(Expenses, { onExpenseCreated() {} });
     await openBudgetWarning();
@@ -565,8 +565,8 @@ for (const status of ['WOULD_EXCEED', 'ALREADY_EXCEEDED']) {
         ? 'Ya has excedido el presupuesto de Alimentos · Supermercado en $20.00.'
         : 'Tienes $10.00 disponibles en Alimentos · Supermercado.');
     assert.deepEqual([...dialog.querySelectorAll('#budget-warning-impact p')].map((line) => line.textContent),
-      ['Nuevo movimiento: $12.34', `Excedente después del movimiento: ${status === 'ALREADY_EXCEEDED' ? '$32.34' : '$2.34'}`]);
-    assert.equal(buttons('Reasignar presupuesto', dialog)[0].disabled, true);
+      ['Nuevo importe: $12.34', `Excedente después del movimiento: ${status === 'ALREADY_EXCEEDED' ? '$32.34' : '$2.34'}`]);
+    assert.equal(buttons('Reasignar presupuesto', dialog)[0].disabled, false);
     assert.equal(document.querySelector('form fieldset').disabled, true);
     await submit();
     assert.equal(writes.length, 1);
@@ -696,4 +696,395 @@ test('budget dialog follows app-content bounds, restores focus and handles Escap
   assert.equal(writes.length, 1);
   await cleanup();
   container.className = '';
+});
+
+const sourceDiscovery = () => ({ date: '2025-08-31', year: 2025, month: 8, currency: 'MXN',
+  destination: { conceptId: 2, categoryId: 1, categoryName: 'Alimentos', conceptName: 'Supermercado', requiredAmount: '2.34' },
+  sameCategoryAvailable: '5.00', totalAvailable: '15.00', categories: [
+    { categoryId: 1, categoryName: 'Alimentos', isDestinationCategory: true, available: '5.00', concepts: [
+      { conceptId: 7, conceptName: 'Restaurantes', available: '5.00' },
+    ] },
+    { categoryId: 6, categoryName: 'Transporte', isDestinationCategory: false, available: '10.00', concepts: [
+      { conceptId: 8, conceptName: 'Gasolina', available: '10.00' },
+    ] },
+  ] });
+function setupReassignmentFetch({ failure, discoveryFailure = false, deferred = false, discovery = sourceDiscovery() } = {}) {
+  const writes = setupBudgetFetch();
+  const fallback = globalThis.fetch;
+  const reads = [];
+  let release;
+  globalThis.fetch = (url, init = {}) => {
+    if (url.includes('/api/budgets/reassignment-sources')) {
+      reads.push(url);
+      return Promise.resolve({ ok: !discoveryFailure, status: discoveryFailure ? 500 : 200,
+        json: async () => discoveryFailure ? { error: 'Consulta no disponible' } : discovery });
+    }
+    if (init.method && JSON.parse(init.body || '{}').budget_reassignment) {
+      const payload = JSON.parse(init.body);
+      writes.push(payload);
+      const response = () => failure === 'network' ? Promise.reject(new TypeError('Network lost')) : Promise.resolve({
+        ok: !failure, status: failure === 'conflict' ? 409 : failure ? 500 : 201,
+        json: async () => failure === 'conflict' ? {
+          code: 'REASSIGNMENT_SOURCE_CHANGED', rolledBack: true, error: 'Cambió el disponible',
+          discovery: { ...sourceDiscovery(), categories: [sourceDiscovery().categories[1]] },
+          conflicts: [{ conceptId: 7, available: '0.00' }],
+        } : failure ? { code: 'FINANCIAL_OPERATION_FAILED', rolledBack: true, error: 'Operación revertida' } : { expense_id: 91 },
+      });
+      if (deferred) return new Promise((resolve, reject) => { release = () => response().then(resolve, reject); });
+      return response();
+    }
+    return fallback(url, init);
+  };
+  return { writes, reads, release: () => release() };
+}
+async function editContribution(name, digits) {
+  const input = document.querySelector(`[aria-label="Reasignar de ${name}"]`);
+  assert.ok(input);
+  input.setSelectionRange(0, input.value.length);
+  for (const key of digits) {
+    await act(async () => input.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })));
+  }
+}
+const confirmTransfer = () => budgetDialog().querySelector('.budget-reassignment-submit');
+async function openReassignment() {
+  await openBudgetWarning();
+  const dialog = budgetDialog();
+  await click(buttons('Reasignar presupuesto', dialog)[0]);
+  assert.equal(budgetDialog(), dialog);
+  return dialog;
+}
+
+test('reassignment starts at warning, reuses dialog, same-category first and manual amounts preserve collapsed selections', async () => {
+  const { writes, reads } = setupReassignmentFetch();
+  await mount(Expenses, { onExpenseCreated() {} });
+  await openBudgetWarning();
+  assert.equal(reads.length, 0);
+  const dialog = budgetDialog();
+  await click(buttons('Reasignar presupuesto', dialog)[0]);
+  assert.equal(budgetDialog(), dialog);
+  assert.equal(document.querySelectorAll('dialog').length, 1);
+  assert.equal(document.activeElement.id, 'budget-reassignment-title');
+  assert.ok(reads[0].includes('date=2025-08-31'));
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]').value, '$0.00');
+  assert.equal(document.querySelector('[aria-label="Reasignar de Gasolina"]'), null);
+  assert.equal(confirmTransfer().disabled, true);
+  await editContribution('Restaurantes', '100');
+  assert.deepEqual([...dialog.querySelectorAll('dd')].map((node) => node.textContent), ['$2.34', '$1.00', '$1.34']);
+  assert.equal(confirmTransfer().disabled, false);
+  await click(dialog.querySelector('.budget-category-toggle'));
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]'), null);
+  await click(dialog.querySelector('.budget-category-toggle'));
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]').value, '$1.00');
+  await click(buttons('Ver otras categorías', dialog)[0]);
+  const toggles = [...dialog.querySelectorAll('.budget-category-toggle')];
+  await click(toggles[1]);
+  await editContribution('Gasolina', '050');
+  assert.equal(confirmTransfer().textContent, 'Reasignar $1.50');
+  assert.equal(writes.length, 1);
+  await cleanup();
+});
+
+test('single-open categories retain drafts, pending dots, totals and multi-source payload', async () => {
+  const discovery = sourceDiscovery();
+  discovery.categories[0].concepts.push({ conceptId: 9, conceptName: 'Despensa', available: '5.00' });
+  discovery.categories.push({ categoryId: 10, categoryName: 'Misceláneos', available: '5.00', isDestinationCategory: false,
+    concepts: [{ conceptId: 10, conceptName: 'Regalos', available: '5.00' }] });
+  const { writes } = setupReassignmentFetch({ discovery });
+  await mount(Expenses, { onExpenseCreated() {} });
+  const dialog = await openReassignment();
+  const category = (name) => [...dialog.querySelectorAll('.budget-category-toggle')].find((node) => node.textContent === name);
+  const dots = (name) => category(name).querySelectorAll('.budget-category-pending-dot').length;
+  const expanded = () => [...dialog.querySelectorAll('.budget-category-toggle[aria-expanded="true"]')].map((node) => node.textContent);
+  const totals = () => [...dialog.querySelectorAll('dd')].map((node) => node.textContent);
+  assert.deepEqual(expanded(), ['Alimentos']);
+  assert.equal(dots('Alimentos'), 0);
+  await editContribution('Restaurantes', '100');
+  await editContribution('Despensa', '025');
+  assert.equal(dots('Alimentos'), 1);
+  assert.equal(category('Alimentos').getAttribute('aria-label'), 'Alimentos, con reasignaciones sin guardar');
+  const initialTotals = totals();
+  assert.deepEqual(initialTotals, ['$2.34', '$1.25', '$1.09']);
+  await click(buttons('Ver otras categorías', dialog)[0]);
+  await click(category('Transporte'));
+  assert.deepEqual(expanded(), ['Transporte']);
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]'), null);
+  assert.equal(dots('Alimentos'), 1);
+  assert.deepEqual(totals(), initialTotals);
+  await editContribution('Gasolina', '050');
+  assert.equal(dots('Transporte'), 1);
+  assert.equal(dots('Alimentos'), 1);
+  assert.equal(dots('Misceláneos'), 0);
+  const combinedTotals = totals();
+  assert.deepEqual(combinedTotals, ['$2.34', '$1.75', '$0.59']);
+  await click(category('Misceláneos'));
+  assert.deepEqual(expanded(), ['Misceláneos']);
+  assert.deepEqual(totals(), combinedTotals);
+  await click(category('Misceláneos'));
+  assert.deepEqual(expanded(), []);
+  assert.deepEqual(totals(), combinedTotals);
+  await click(category('Alimentos'));
+  assert.deepEqual(expanded(), ['Alimentos']);
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]').value, '$1.00');
+  assert.equal(document.querySelector('[aria-label="Reasignar de Despensa"]').value, '$0.25');
+  await editContribution('Restaurantes', '0');
+  assert.equal(dots('Alimentos'), 1);
+  await editContribution('Despensa', ['Backspace']);
+  assert.equal(dots('Alimentos'), 0);
+  assert.equal(category('Alimentos').getAttribute('aria-label'), 'Alimentos');
+  assert.equal(dots('Transporte'), 1);
+  await editContribution('Restaurantes', '100');
+  await click(category('Transporte'));
+  assert.equal(document.querySelector('[aria-label="Reasignar de Gasolina"]').value, '$0.50');
+  assert.deepEqual(totals(), ['$2.34', '$1.50', '$0.84']);
+  await click(confirmTransfer());
+  assert.deepEqual(writes[1], { ...writes[0], budget_confirmation: true,
+    budget_reassignment: { sources: [{ concept_id: 7, amount: '1.00' }, { concept_id: 8, amount: '0.50' }] } });
+  await cleanup();
+});
+
+test('621 deficit caps all categories including collapsed drafts and recovers when reduced', async () => {
+  const discovery = sourceDiscovery();
+  discovery.destination.requiredAmount = '621.00';
+  discovery.categories[0].concepts[0].available = '5000.00';
+  discovery.categories[1].concepts[0].available = '5000.00';
+  discovery.categories.push({ categoryId: 10, categoryName: 'Vivienda', available: '5000.00',
+    concepts: [{ conceptId: 10, conceptName: 'Gas', available: '5000.00' }] });
+  const { writes } = setupReassignmentFetch({ discovery });
+  await mount(Expenses, { onExpenseCreated() {} });
+  const dialog = await openReassignment();
+  const toggle = (index) => dialog.querySelectorAll('.budget-category-toggle')[index];
+  await editContribution('Restaurantes', '30000');
+  assert.equal(confirmTransfer().disabled, false);
+  assert.equal(dialog.querySelectorAll('dd')[2].textContent, '$321.00');
+  assert.equal(confirmTransfer().textContent, 'Reasignar $300.00');
+  assert.equal(confirmTransfer().classList.contains('is-over-limit'), false);
+  await click(buttons('Ver otras categorías', dialog)[0]);
+  await click(toggle(1));
+  await editContribution('Gasolina', '32100');
+  assert.equal(confirmTransfer().disabled, false);
+  assert.equal(dialog.querySelectorAll('dd')[1].textContent, '$621.00');
+  assert.equal(dialog.querySelector('.budget-source-error[role="alert"]'), null);
+  await click(toggle(2));
+  await editContribution('Gas', '37900');
+  assert.equal(confirmTransfer().textContent, 'Excedente $379.00');
+  assert.ok(confirmTransfer().classList.contains('is-over-limit'));
+  assert.equal(confirmTransfer().disabled, true);
+  assert.equal(confirmTransfer().querySelector('i, svg, img'), null);
+  assert.doesNotMatch(dialog.textContent, /Supera el excedente por/);
+  assert.equal(dialog.querySelector('.budget-source-error[role="alert"]'), null);
+  await editContribution('Gas', '0');
+  assert.equal(confirmTransfer().textContent, 'Reasignar $621.00');
+  assert.equal(confirmTransfer().classList.contains('is-over-limit'), false);
+  assert.equal(confirmTransfer().disabled, false);
+  await editContribution('Gas', '100');
+  assert.equal(confirmTransfer().disabled, true);
+  assert.equal(dialog.querySelectorAll('dd')[1].textContent, '$622.00');
+  assert.equal(confirmTransfer().textContent, 'Excedente $1.00');
+  await click(confirmTransfer());
+  assert.equal(writes.length, 1);
+  await editContribution('Gas', '142900');
+  assert.equal(dialog.querySelectorAll('dd')[1].textContent, '$2,050.00');
+  assert.equal(dialog.querySelectorAll('dd')[2].textContent, '$0.00');
+  assert.equal(confirmTransfer().disabled, true);
+  await click(confirmTransfer());
+  assert.equal(writes.length, 1);
+  assert.equal(dialog.querySelectorAll('.budget-category-pending-dot').length, 3);
+  assert.equal(dialog.querySelectorAll('[aria-expanded="true"]').length, 1);
+  await click(toggle(0));
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]').value, '$300.00');
+  assert.equal(confirmTransfer().disabled, true);
+  await click(toggle(2));
+  await editContribution('Gas', '0');
+  assert.equal(confirmTransfer().disabled, false);
+  assert.equal(dialog.querySelectorAll('.budget-category-pending-dot').length, 2);
+  await click(confirmTransfer());
+  assert.deepEqual(writes[1].budget_reassignment.sources, [{ concept_id: 7, amount: '300.00' }, { concept_id: 8, amount: '321.00' }]);
+  await cleanup();
+});
+
+test('partial reassignment submits original movement once and clears normally without another warning', async () => {
+  const { writes } = setupReassignmentFetch(); let saved = 0;
+  await mount(Expenses, { onExpenseCreated: () => saved++ });
+  await openReassignment();
+  const original = { ...writes[0] };
+  await editContribution('Restaurantes', '100');
+  await movementField('description', 'Synthetic background change');
+  await click(confirmTransfer());
+  assert.equal(saved, 1);
+  assert.deepEqual(writes[1], { ...original, budget_confirmation: true, budget_reassignment: { sources: [{ concept_id: 7, amount: '1.00' }] } });
+  assert.equal(budgetDialog(), null);
+  assert.equal(document.querySelector('[name="description"]').value, '');
+  await cleanup();
+});
+
+test('excess source input is preserved with inline error and blocks submission', async () => {
+  const { writes } = setupReassignmentFetch();
+  await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+  await editContribution('Restaurantes', '501');
+  const input = document.querySelector('[aria-label="Reasignar de Restaurantes"]');
+  assert.equal(input.value, '$5.01'); assert.equal(input.getAttribute('aria-invalid'), 'true');
+  const dialog = budgetDialog();
+  await click(buttons('Ver otras categorías', dialog)[0]);
+  await click(dialog.querySelectorAll('.budget-category-toggle')[1]);
+  assert.equal(dialog.querySelector('.budget-category-pending-dot') !== null, true);
+  assert.equal(confirmTransfer().disabled, true);
+  await click(dialog.querySelectorAll('.budget-category-toggle')[0]);
+  const reopened = document.querySelector('[aria-label="Reasignar de Restaurantes"]');
+  assert.equal(reopened.value, '$5.01');
+  assert.equal(reopened.getAttribute('aria-invalid'), 'true');
+  assert.equal(document.getElementById('source-error-7').textContent, 'Supera el disponible.');
+  assert.equal(confirmTransfer().disabled, true);
+  await click(confirmTransfer()); assert.equal(writes.length, 1);
+  await editContribution('Restaurantes', '234');
+  assert.equal(confirmTransfer().disabled, false); // Exactly the deficit is valid.
+  assert.equal(budgetDialog().querySelectorAll('dd')[2].textContent, '$0.00');
+  await cleanup();
+});
+
+test('Volver retains choices; Register Anyway omits transfer; cancel and Escape retain movement and favorite', async () => {
+  const { writes } = setupReassignmentFetch();
+  await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+  await editContribution('Restaurantes', '100');
+  await click(buttons('Volver', budgetDialog())[0]);
+  assert.equal(document.activeElement.textContent, 'Reasignar presupuesto');
+  await click(buttons('Reasignar presupuesto', budgetDialog())[0]);
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]').value, '$1.00');
+  await act(async () => budgetDialog().dispatchEvent(new dom.window.Event('cancel', { cancelable: true })));
+  assert.equal(budgetDialog(), null);
+  assert.equal(document.querySelector('[name="description"]').value, template.description);
+  await submit();
+  assert.equal(writes[1].source_favorite_id, template.id);
+  await click(buttons('Registrar de todos modos', budgetDialog())[0]);
+  assert.equal(writes[2].budget_reassignment, undefined);
+  await cleanup();
+});
+
+test('conflict refresh retains unavailable selected row and requires manual correction', async () => {
+  const { writes } = setupReassignmentFetch({ failure: 'conflict' });
+  await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+  await editContribution('Restaurantes', '100'); await click(confirmTransfer());
+  const input = document.querySelector('[aria-label="Reasignar de Restaurantes"]');
+  assert.equal(input.value, '$1.00'); assert.equal(input.getAttribute('aria-invalid'), 'true');
+  assert.equal(confirmTransfer().disabled, true);
+  assert.ok(budgetDialog().textContent.includes('Cambió el disponible'));
+  assert.equal(writes.length, 2);
+  await cleanup();
+});
+
+test('known rollback permits retry without losing selections or original payload', async () => {
+  const { writes } = setupReassignmentFetch({ failure: 'rollback' });
+  await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+  await editContribution('Restaurantes', '100'); await click(confirmTransfer());
+  assert.equal(confirmTransfer().disabled, false);
+  await click(confirmTransfer());
+  assert.deepEqual(writes[2], writes[1]);
+  assert.equal(document.querySelector('[name="date"]').value, '2025-08-31');
+  await cleanup();
+});
+
+test('discovery failure supports retry and returning to original warning', async () => {
+  const { reads, writes } = setupReassignmentFetch({ discoveryFailure: true });
+  await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+  assert.ok(budgetDialog().textContent.includes('Consulta no disponible'));
+  await click(buttons('Reintentar consulta', budgetDialog())[0]); assert.equal(reads.length, 2);
+  await click(buttons('Volver', budgetDialog())[0]);
+  assert.equal(budgetDialog().querySelector('h2').textContent, 'Presupuesto insuficiente');
+  await click(buttons('Registrar de todos modos', budgetDialog())[0]);
+  assert.equal(writes.length, 2); assert.equal(writes[1].budget_reassignment, undefined);
+  await cleanup();
+});
+
+test('unknown network outcome never automatically retries or falls back to creation', async () => {
+  const { writes } = setupReassignmentFetch({ failure: 'network' });
+  const originalError = console.error; console.error = () => {};
+  try {
+    await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+    await editContribution('Restaurantes', '100'); await click(confirmTransfer());
+    assert.equal(confirmTransfer().disabled, true);
+    assert.ok(budgetDialog().textContent.includes('Revisa Movimientos y Presupuesto'));
+    await click(buttons('Volver', budgetDialog())[0]);
+    assert.equal(buttons('Registrar de todos modos', budgetDialog())[0].disabled, true);
+    assert.equal(writes.length, 2);
+    await cleanup();
+  } finally { console.error = originalError; }
+});
+
+test('duplicate reassignment clicks send one mutation; Escape/background submit cannot interrupt in-flight operation', async () => {
+  const state = setupReassignmentFetch({ deferred: true }); let saved = 0;
+  await mount(Expenses, { onExpenseCreated: () => saved++ }); await openReassignment();
+  await editContribution('Restaurantes', '100');
+  const confirm = confirmTransfer();
+  await act(async () => { confirm.click(); confirm.click(); });
+  assert.equal(state.writes.length, 2);
+  await submit();
+  await act(async () => budgetDialog().dispatchEvent(new dom.window.Event('cancel', { cancelable: true })));
+  assert.ok(budgetDialog()); assert.equal(state.writes.length, 2);
+  await act(async () => state.release());
+  assert.equal(saved, 1); assert.equal(budgetDialog(), null);
+  await cleanup();
+});
+
+test('editing warning keeps PUT snapshot and discovery includes owned expense ID', async () => {
+  setupFetch(); const fallback = globalThis.fetch; const mutations = []; const reads = [];
+  const historical = { ...template, id: 90, date: '2024-08-01', expense_code: 'EX260090', concept: 'Shop', category: 'Food', account_alias: 'Cash' };
+  globalThis.fetch = async (url, init = {}) => {
+    if (url.includes('/api/budgets/reassignment-sources')) { reads.push(url); return { ok: true, json: async () => sourceDiscovery() }; }
+    if (init.method === 'PUT') {
+      const payload = JSON.parse(init.body); mutations.push({ url, payload });
+      return payload.budget_confirmation ? { ok: true, status: 200, json: async () => ({ message: 'Saved' }) }
+        : { ok: false, status: 409, json: async () => ({ code: 'BUDGET_CONFIRMATION_REQUIRED', budgetImpact: budgetImpact() }) };
+    }
+    if (!init.method && new URL(url, 'http://localhost').pathname === '/api/expenses') return { ok: true, json: async () => [historical] };
+    return fallback(url, init);
+  };
+  await mount(Expenses, { onExpenseCreated() {} });
+  await click(document.querySelector('[aria-label="Editar movimiento EX260090"]'));
+  await movementField('amount', '2000'); await submit();
+  assert.ok(budgetDialog());
+  assert.match(budgetDialog().querySelector('#budget-warning-impact').textContent, /Nuevo importe:/);
+  assert.doesNotMatch(budgetDialog().querySelector('#budget-warning-impact').textContent, /Nuevo movimiento:|Importe anterior|Incremento|Importe editado/);
+  await click(buttons('Reasignar presupuesto', budgetDialog())[0]);
+  assert.ok(reads[0].includes('expense_id=90'));
+  await editContribution('Restaurantes', '100'); await click(confirmTransfer());
+  assert.equal(mutations.length, 2); assert.ok(mutations[1].url.endsWith('/90'));
+  assert.equal(mutations[1].payload.source_favorite_id, undefined);
+  assert.equal(mutations[1].payload.amount, 20);
+  assert.equal(budgetDialog(), null);
+  await cleanup();
+});
+
+test('overspent refreshed donor can be cleared to zero while another source remains valid', async () => {
+  setupReassignmentFetch({ failure: 'conflict' });
+  const fallback = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    const response = await fallback(url, init);
+    if (init.method && JSON.parse(init.body || '{}').budget_reassignment) {
+      const data = await response.json();
+      data.conflicts[0].available = '-1.00';
+      return { ...response, json: async () => data };
+    }
+    return response;
+  };
+  await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+  await editContribution('Restaurantes', '100'); await click(confirmTransfer());
+  assert.equal(confirmTransfer().disabled, true);
+  await editContribution('Restaurantes', '0');
+  assert.equal(document.querySelector('[aria-label="Reasignar de Restaurantes"]').getAttribute('aria-invalid'), 'false');
+  await click(buttons('Ver otras categorías', budgetDialog())[0]);
+  await click([...budgetDialog().querySelectorAll('.budget-category-toggle')].find((button) => button.textContent === 'Transporte'));
+  await editContribution('Gasolina', '100');
+  assert.equal(confirmTransfer().disabled, false);
+  await cleanup();
+});
+
+test('reassignment Cancel keeps complete favorite draft and submits no transfer', async () => {
+  const { writes } = setupReassignmentFetch();
+  await mount(Expenses, { onExpenseCreated() {} }); await openReassignment();
+  await editContribution('Restaurantes', '100');
+  await click(buttons('Cancelar', budgetDialog())[0]);
+  assert.equal(budgetDialog(), null);
+  assert.equal(writes.length, 1);
+  await submit();
+  assert.deepEqual(writes[1], writes[0]);
+  await cleanup();
 });
