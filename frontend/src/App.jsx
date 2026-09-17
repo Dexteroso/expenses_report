@@ -13,6 +13,7 @@ import AuthPage from './components/AuthPage';
 import UsersPage from './components/UsersPage';
 import ActivityPage from './components/ActivityPage';
 import HelpPage from './components/HelpPage';
+import SidebarProfileCard from './components/SidebarProfileCard';
 import PortfolioPage from './pages/PortfolioPage';
 import { useEffect, useState } from 'react';
 import { authFetch, clearAuth, getUser, isAuthenticated, markOnboardingCompleted } from './utils/auth';
@@ -614,7 +615,7 @@ function App() {
             >
               <div className="desktop-sidebar-brand">{renderBrandMark('desktop-sidebar-logo')}</div>
               {renderNavigation()}
-              {renderSidebarProfile()}
+              <SidebarProfileCard user={currentUser} />
             </div>
 
             <div
